@@ -1,18 +1,17 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { SessionProvider } from "next-auth/react";
-import "./globals.css";
 import { auth } from "@/auth";
+import { SessionProvider } from "next-auth/react";
+import { TaskTimer } from "@/components/task-timer";
+import { Separator } from "@radix-ui/react-separator";
+import { AppSidebar } from "@/components/app-sidebar";
+import { DynamicBreadcrumb } from "@/components/dynamic-breadcrumb";
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import type { Metadata } from "next";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -25,14 +24,36 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
-  
+
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body>
         <SessionProvider session={session}>
-          {children}
+          {session ? (
+            <SidebarProvider
+              style={
+                {
+                  "--sidebar-width": "350px",
+                } as React.CSSProperties
+              }
+            >
+              <AppSidebar />
+              <SidebarInset>
+                <header className="sticky top-0 flex shrink-0 items-center gap-2 border-b bg-background p-4">
+                  <SidebarTrigger className="-ml-1" />
+                  <Separator orientation="vertical" className="mr-2 h-4" />
+                  <DynamicBreadcrumb />
+                  <div className="flex-1" />
+                  <TaskTimer />
+                </header>
+                <main className="flex-1">
+                  <div className="w-full p-8 mx-auto space-y-6">{children}</div>
+                </main>
+              </SidebarInset>
+            </SidebarProvider>
+          ) : (
+            <div>{children}</div>
+          )}
         </SessionProvider>
       </body>
     </html>

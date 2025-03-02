@@ -7,6 +7,7 @@ import {
   CreditCard,
   LogOut,
   Sparkles,
+  Palette,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -26,6 +27,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function NavUser({
   user,
@@ -81,6 +83,17 @@ export function NavUser({
               <LogOut />
               Log out
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Preferences</DropdownMenuLabel>
+              <div className="px-2 py-1.5">
+                <div className="flex items-center gap-2">
+                  <Palette className="h-4 w-4" />
+                  <span className="mr-auto text-sm">Theme</span>
+                  <ThemeToggle />
+                </div>
+              </div>
+            </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

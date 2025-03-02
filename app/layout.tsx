@@ -4,6 +4,7 @@ import { TaskTimer } from "@/components/task-timer";
 import { Separator } from "@radix-ui/react-separator";
 import { AppSidebar } from "@/components/app-sidebar";
 import { DynamicBreadcrumb } from "@/components/dynamic-breadcrumb";
+import { ThemeProvider } from "@/components/theme-provider";
 import {
   SidebarProvider,
   SidebarInset,
@@ -26,35 +27,37 @@ export default async function RootLayout({
   const session = await auth();
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <SessionProvider session={session}>
-          {session ? (
-            <SidebarProvider
-              style={
-                {
-                  "--sidebar-width": "350px",
-                } as React.CSSProperties
-              }
-            >
-              <AppSidebar />
-              <SidebarInset>
-                <header className="sticky top-0 flex shrink-0 items-center gap-2 border-b bg-background p-4">
-                  <SidebarTrigger className="-ml-1" />
-                  <Separator orientation="vertical" className="mr-2 h-4" />
-                  <DynamicBreadcrumb />
-                  <div className="flex-1" />
-                  <TaskTimer />
-                </header>
-                <main className="flex-1">
-                  <div className="w-full p-8 mx-auto space-y-6">{children}</div>
-                </main>
-              </SidebarInset>
-            </SidebarProvider>
-          ) : (
-            <div>{children}</div>
-          )}
-        </SessionProvider>
+        <ThemeProvider>
+          <SessionProvider session={session}>
+            {session ? (
+              <SidebarProvider
+                style={
+                  {
+                    "--sidebar-width": "350px",
+                  } as React.CSSProperties
+                }
+              >
+                <AppSidebar />
+                <SidebarInset>
+                  <header className="sticky top-0 flex shrink-0 items-center gap-2 border-b bg-background p-4">
+                    <SidebarTrigger className="-ml-1" />
+                    <Separator orientation="vertical" className="mr-2 h-4" />
+                    <DynamicBreadcrumb />
+                    <div className="flex-1" />
+                    <TaskTimer />
+                  </header>
+                  <main className="flex-1">
+                    <div className="w-full p-8 mx-auto space-y-6">{children}</div>
+                  </main>
+                </SidebarInset>
+              </SidebarProvider>
+            ) : (
+              <div>{children}</div>
+            )}
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

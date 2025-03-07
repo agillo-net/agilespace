@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { Star, Clock, ExternalLink } from 'lucide-react';
+import { Clock, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TaskTimer } from '@/components/task-timer';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTimer } from '@/contexts/timer-context';
 
 interface GithubIssue {
   id: number;
@@ -31,11 +30,7 @@ interface IssueListProps {
 }
 
 export function IssueList({ issues, loading = false }: IssueListProps) {
-  const [activeIssueId, setActiveIssueId] = useState<number | null>(null);
-
-  const handleToggleTimer = (issueId: number) => {
-    setActiveIssueId(activeIssueId === issueId ? null : issueId);
-  };
+  const { activeIssue, startTracking } = useTimer();
   
   // Helper function to extract repository name from GitHub URLs
   const getRepositoryInfo = (issue: GithubIssue) => {
@@ -143,31 +138,19 @@ export function IssueList({ issues, loading = false }: IssueListProps) {
               )}
             </div>
 
-            <div className={cn("flex flex-col items-center", {
-              "min-w-[100px]": activeIssueId === issue.id
-            })}>
-              <Button
-                size="sm"
-                variant="ghost"
-                className={cn("rounded-full", {
-                  "text-primary": activeIssueId === issue.id
-                })}
-                onClick={() => handleToggleTimer(issue.id)}
-              >
-                <Star className={cn("h-5 w-5", {
-                  "fill-primary": activeIssueId === issue.id
-                })} />
-                <span className="sr-only">
-                  {activeIssueId === issue.id ? "Stop tracking" : "Start tracking"}
-                </span>
-              </Button>
-              
-              {activeIssueId === issue.id && (
-                <div className="mt-2">
-                  <TaskTimer className="flex-col" />
-                </div>
-              )}
-            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="whitespace-nowrap"
+              disabled={activeIssue?.id === issue.id}
+              onClick={() => startTracking({
+                id: issue.id,
+                title: issue.title,
+                url: issue.html_url
+              })}
+            >
+              {activeIssue?.id === issue.id ? 'Tracking' : 'Start Tracking'}
+            </Button>
           </div>
         </Card>
       ))}

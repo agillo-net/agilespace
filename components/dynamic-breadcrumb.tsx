@@ -1,65 +1,73 @@
 "use client";
 
-import React from "react";
-import Link from "next/link";
+import * as React from "react";
 import { usePathname } from "next/navigation";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import Link from "next/link";
+import { ChevronRight, Home } from "lucide-react";
+import { useGithubStore } from "@/store/github-store";
+import { useRepositoryStore } from "@/store/repository-store";
 
 export function DynamicBreadcrumb() {
   const pathname = usePathname();
+  const { organizations } = useGithubStore();
+  const { repository, organizationDetails } = useRepositoryStore();
+  
+  // Don't show anything on the root path
+  if (pathname === "/") return null;
 
-  // Skip rendering breadcrumb on home page
-  if (pathname === "/") {
-    return null;
-  }
-
-  // Split pathname into segments and remove empty strings
-  const segments = pathname.split("/").filter(Boolean);
-
-  // Format segment text (capitalize, replace hyphens with spaces)
-  const formatSegmentText = (text: string) => {
-    return text
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
+  // Split the path into segments
+  const pathSegments = pathname
+    .split("/")
+    .filter(Boolean)
+    .map((segment, index, segments) => {
+      // Create the path up to and including this segment
+      const path = `/${segments.slice(0, index + 1).join("/")}`;
+      
+      // Format the segment name
+      let name = segment;
+      
+      // Check if this segment matches an organization name
+      if (index === 0) {
+        const matchedOrg = organizations.find(org => org.login === segment);
+        if (matchedOrg) {
+          name = matchedOrg.login;
+        } else if (organizationDetails && organizationDetails.login === segment) {
+          name = organizationDetails.login;
+        }
+      }
+      
+      // Check if this segment matches a repository name
+      if (index === 1 && repository && repository.name === segment) {
+        name = repository.name;
+      }
+      
+      return { name, path };
+    });
 
   return (
-    <Breadcrumb>
-      <BreadcrumbList>
-        <BreadcrumbItem>
-          <BreadcrumbLink asChild>
-            <Link href="/">Home</Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-
-        {segments.map((segment, index) => {
-          const isLast = index === segments.length - 1;
-          const href = `/${segments.slice(0, index + 1).join("/")}`;
-
-          return (
-            <React.Fragment key={segment}>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                {isLast ? (
-                  <BreadcrumbPage>{formatSegmentText(segment)}</BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink asChild>
-                    <Link href={href}>{formatSegmentText(segment)}</Link>
-                  </BreadcrumbLink>
-                )}
-              </BreadcrumbItem>
-            </React.Fragment>
-          );
-        })}
-      </BreadcrumbList>
-    </Breadcrumb>
+    <div className="flex items-center text-sm">
+      <Link 
+        href="/" 
+        className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+      >
+        <Home className="h-4 w-4" />
+        <span className="sr-only">Home</span>
+      </Link>
+      
+      {pathSegments.map((segment, index) => (
+        <React.Fragment key={segment.path}>
+          <ChevronRight className="h-4 w-4 mx-1 text-muted-foreground" />
+          <Link
+            href={segment.path}
+            className={index === pathSegments.length - 1 
+              ? "font-medium" 
+              : "text-muted-foreground hover:text-foreground"
+            }
+          >
+            {segment.name}
+          </Link>
+        </React.Fragment>
+      ))}
+    </div>
   );
 }

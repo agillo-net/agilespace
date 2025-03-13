@@ -1,113 +1,62 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo } from "react"
 import { useParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useRepositoryStore } from "@/store/repository-store"
+import { fetchRepositoryDetails } from "@/lib/api-services"
 
 // Import shadcn chart components
-import { Bar, BarChart } from "@/components/ui/bar-chart"
-import { Line, LineChart } from "@/components/ui/line-chart"
-import { Pie, PieChart } from "@/components/ui/pie-chart"
-import { Area, AreaChart } from "@/components/ui/area-chart"
-
-// Repository data types
-interface RepoData {
-  id: number
-  name: string
-  description: string | null
-  html_url: string
-  owner: {
-    login: string
-    avatar_url: string
-  }
-  stargazers_count: number
-  forks_count: number
-  language: string | null
-  open_issues_count: number
-  default_branch: string
-}
-
-// Chart data types
-interface VelocityData {
-  sprint: string
-  estimated: number
-  actual: number
-}
-
-interface IssueTypeData {
-  type: string
-  count: number
-  color: string
-}
-
-interface EngineerWorkloadData {
-  name: string
-  coding: number
-  review: number
-  meetings: number
-  documentation: number
-}
-
-interface ProductivityData {
-  week: string
-  coding: number
-  meetings: number
-}
-
-interface BurndownData {
-  date: string
-  open: number
-  closed: number
-}
-
-// Sample colors for charts
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+import { BarChart } from "@/components/ui/bar-chart"
+import { LineChart } from "@/components/ui/line-chart"
+import { PieChart } from "@/components/ui/pie-chart"
+import { AreaChart } from "@/components/ui/area-chart"
 
 export default function RepositoryAnalyticsPage() {
   const { orgName, repoName } = useParams()
-  const [repoData, setRepoData] = useState<RepoData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  
-  // Sample chart data
-  const [velocityData, setVelocityData] = useState<VelocityData[]>([])
-  const [issueTypeData, setIssueTypeData] = useState<IssueTypeData[]>([])
-  const [engineerWorkloadData, setEngineerWorkloadData] = useState<EngineerWorkloadData[]>([])
-  const [productivityData, setProductivityData] = useState<ProductivityData[]>([])
-  const [burndownData, setBurndownData] = useState<BurndownData[]>([])
+  const { 
+    repository,
+    isLoadingRepository,
+    repositoryError,
+    velocityData,
+    issueTypeData,
+    engineerWorkloadData,
+    productivityData,
+    burndownData,
+    setRepository,
+    setIsLoadingRepository,
+    setRepositoryError,
+    generateSampleAnalyticsData,
+    resetState
+  } = useRepositoryStore()
 
   // Fetch repository data and generate sample analytics data
   useEffect(() => {
     async function fetchRepoData() {
-      if (!orgName || !repoName) return
+      if (!orgName || !repoName || typeof orgName !== 'string' || typeof repoName !== 'string') return
       
-      setIsLoading(true)
-      setError(null)
+      setIsLoadingRepository(true)
+      setRepositoryError(null)
       
       try {
-        // Try to fetch real repository data if API endpoint is available
+        // Try to fetch real repository data
         try {
-          const response = await fetch(`/api/github/org/${orgName}/repo/${repoName}`)
-          if (response.ok) {
-            const data = await response.json()
-            setRepoData(data)
-          } else {
-            throw new Error('Repository API not available')
-          }
+          const data = await fetchRepositoryDetails(orgName, repoName)
+          setRepository(data)
         } catch (e) {
           // Fallback to sample data if API fails
           console.log('Using sample repository data')
-          setRepoData({
+          setRepository({
             id: 123456789,
-            name: repoName as string,
+            name: repoName,
             description: "Sample repository with analytics data",
             html_url: `https://github.com/${orgName}/${repoName}`,
             owner: {
-              login: orgName as string,
+              login: orgName,
               avatar_url: `https://github.com/${orgName}.png`
             },
             stargazers_count: 42,
@@ -119,79 +68,51 @@ export default function RepositoryAnalyticsPage() {
         }
         
         // Generate sample data for charts
-        generateSampleData()
+        generateSampleAnalyticsData()
       } catch (err) {
         console.error('Error fetching repository data:', err)
-        setError(err instanceof Error ? err.message : 'Unknown error occurred')
+        setRepositoryError(err instanceof Error ? err.message : 'Unknown error occurred')
       } finally {
-        setIsLoading(false)
+        setIsLoadingRepository(false)
       }
     }
     
     fetchRepoData()
-  }, [orgName, repoName])
+    
+    // Cleanup function to reset state when component unmounts
+    return () => { resetState() }
+  }, [orgName, repoName, setIsLoadingRepository, setRepository, setRepositoryError, generateSampleAnalyticsData, resetState])
 
-  // Generate sample data for all charts
-  const generateSampleData = () => {
-    // Team Velocity data
-    const velocitySampleData: VelocityData[] = [
-      { sprint: "Sprint 1", estimated: 45, actual: 40 },
-      { sprint: "Sprint 2", estimated: 50, actual: 52 },
-      { sprint: "Sprint 3", estimated: 55, actual: 48 },
-      { sprint: "Sprint 4", estimated: 60, actual: 58 },
-      { sprint: "Sprint 5", estimated: 65, actual: 70 },
-      { sprint: "Sprint 6", estimated: 70, actual: 68 }
-    ]
-    setVelocityData(velocitySampleData)
-    
-    // Issue Type breakdown data
-    const issueTypeSampleData: IssueTypeData[] = [
-      { type: "Bug", count: 35, color: "#FF8042" },
-      { type: "Feature", count: 45, color: "#0088FE" },
-      { type: "Documentation", count: 15, color: "#00C49F" },
-      { type: "Enhancement", count: 25, color: "#FFBB28" },
-      { type: "Test", count: 10, color: "#8884d8" }
-    ]
-    setIssueTypeData(issueTypeSampleData)
-    
-    // Engineer workload data
-    const engineerSampleData: EngineerWorkloadData[] = [
-      { name: "Alex", coding: 35, review: 15, meetings: 10, documentation: 5 },
-      { name: "Blake", coding: 25, review: 20, meetings: 15, documentation: 10 },
-      { name: "Casey", coding: 40, review: 10, meetings: 12, documentation: 8 },
-      { name: "Dana", coding: 30, review: 25, meetings: 8, documentation: 12 },
-      { name: "Jamie", coding: 20, review: 30, meetings: 16, documentation: 14 }
-    ]
-    setEngineerWorkloadData(engineerSampleData)
-    
-    // Productivity balance data
-    const productivitySampleData: ProductivityData[] = [
-      { week: "Week 1", coding: 30, meetings: 10 },
-      { week: "Week 2", coding: 25, meetings: 15 },
-      { week: "Week 3", coding: 35, meetings: 12 },
-      { week: "Week 4", coding: 20, meetings: 18 },
-      { week: "Week 5", coding: 28, meetings: 14 },
-      { week: "Week 6", coding: 32, meetings: 8 }
-    ]
-    setProductivityData(productivitySampleData)
-    
-    // Burndown data
-    const burndownSampleData: BurndownData[] = [
-      { date: "Week 1", open: 25, closed: 5 },
-      { date: "Week 2", open: 20, closed: 10 },
-      { date: "Week 3", open: 15, closed: 15 },
-      { date: "Week 4", open: 12, closed: 18 },
-      { date: "Week 5", open: 8, closed: 22 },
-      { date: "Week 6", open: 5, closed: 25 }
-    ]
-    setBurndownData(burndownSampleData)
-  }
+  // Format data for Pie Chart
+  const issueTypePieData = useMemo(() => {
+    return issueTypeData.map(({ type, count, color }) => ({
+      name: type,
+      value: count,
+      color
+    }))
+  }, [issueTypeData])
 
-  if (isLoading) {
+  // Format data for Productivity Pie Chart
+  const productivityPieData = useMemo(() => {
+    return [
+      { 
+        name: "Coding", 
+        value: productivityData.reduce((sum, item) => sum + item.coding, 0),
+        color: "#8884d8"
+      },
+      { 
+        name: "Meetings", 
+        value: productivityData.reduce((sum, item) => sum + item.meetings, 0),
+        color: "#82ca9d"
+      }
+    ]
+  }, [productivityData])
+
+  if (isLoadingRepository) {
     return <RepositorySkeleton />
   }
 
-  if (error || !repoData) {
+  if (repositoryError || !repository) {
     return (
       <Card className="border-red-200">
         <CardHeader>
@@ -201,32 +122,11 @@ export default function RepositoryAnalyticsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-red-500">{error || "Repository not found"}</p>
+          <p className="text-red-500">{repositoryError || "Repository not found"}</p>
         </CardContent>
       </Card>
     )
   }
-
-  // Format data for Pie Chart
-  const issueTypePieData = issueTypeData.map(({ type, count, color }) => ({
-    name: type,
-    value: count,
-    color
-  }));
-
-  // Format data for Productivity Pie Chart
-  const productivityPieData = [
-    { 
-      name: "Coding", 
-      value: productivityData.reduce((sum, item) => sum + item.coding, 0),
-      color: "#8884d8"
-    },
-    { 
-      name: "Meetings", 
-      value: productivityData.reduce((sum, item) => sum + item.meetings, 0),
-      color: "#82ca9d"
-    }
-  ];
 
   return (
     <div className="space-y-8">
@@ -234,21 +134,21 @@ export default function RepositoryAnalyticsPage() {
       <Card>
         <CardHeader className="flex flex-row items-center gap-4 flex-wrap">
           <Avatar className="h-16 w-16">
-            <AvatarImage src={repoData.owner.avatar_url} alt={repoData.owner.login} />
-            <AvatarFallback>{repoData.owner.login[0].toUpperCase()}</AvatarFallback>
+            <AvatarImage src={repository.owner.avatar_url} alt={repository.owner.login} />
+            <AvatarFallback>{repository.owner.login[0].toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <CardTitle className="text-2xl">{repoData.name}</CardTitle>
+            <CardTitle className="text-2xl">{repository.name}</CardTitle>
             <CardDescription>
-              {repoData.description || "No description available"}
+              {repository.description || "No description available"}
             </CardDescription>
             <div className="flex gap-2 mt-2 flex-wrap">
-              {repoData.language && (
-                <Badge variant="outline">{repoData.language}</Badge>
+              {repository.language && (
+                <Badge variant="outline">{repository.language}</Badge>
               )}
-              <Badge variant="secondary">⭐ {repoData.stargazers_count}</Badge>
-              <Badge variant="secondary">🍴 {repoData.forks_count}</Badge>
-              <Badge variant="secondary">🐛 {repoData.open_issues_count}</Badge>
+              <Badge variant="secondary">⭐ {repository.stargazers_count}</Badge>
+              <Badge variant="secondary">🍴 {repository.forks_count}</Badge>
+              <Badge variant="secondary">🐛 {repository.open_issues_count}</Badge>
             </div>
           </div>
         </CardHeader>

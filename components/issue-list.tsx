@@ -1,159 +1,127 @@
-'use client';
+"use client";
 
-import { Clock, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useTimer } from '@/contexts/timer-context';
+import { useTimerStore } from "@/store/timer-store";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface GithubIssue {
+interface Issue {
   id: number;
   title: string;
   html_url: string;
-  number: number;
   state: string;
   updated_at: string;
-  repository_url?: string;
-  url?: string;
-  labels: Array<{
-    id: number;
-    name: string;
-    color: string;
-  }>;
+  repository_url: string;
+  user: {
+    login: string;
+  };
 }
 
 interface IssueListProps {
-  issues: GithubIssue[];
-  loading?: boolean;
+  issues: Issue[];
+  loading: boolean;
 }
 
-export function IssueList({ issues, loading = false }: IssueListProps) {
-  const { activeIssue, startTracking } = useTimer();
-  
-  // Helper function to extract repository name from GitHub URLs
-  const getRepositoryInfo = (issue: GithubIssue) => {
-    // Extract from repository_url (e.g., "https://api.github.com/repos/owner/repo")
-    if (issue.repository_url) {
-      const parts = issue.repository_url.split('/');
-      if (parts.length >= 2) {
-        const repoName = parts.pop();
-        const ownerName = parts.pop();
-        return `${ownerName}/${repoName}`;
-      }
-    }
-    
-    // Extract from html_url (e.g., "https://github.com/owner/repo/issues/123")
-    if (issue.html_url) {
-      const urlParts = issue.html_url.split('/');
-      // Format is usually: https://github.com/owner/repo/issues/number
-      if (urlParts.length >= 5) {
-        return `${urlParts[3]}/${urlParts[4]}`;
-      }
-    }
-    
-    return "Unknown repository";
+export function IssueList({ issues, loading }: IssueListProps) {
+  const { startTracking } = useTimerStore();
+
+  const handleStartTracking = (issue: Issue) => {
+    startTracking({
+      id: issue.id,
+      title: issue.title,
+      url: issue.html_url,
+    });
   };
 
   if (loading) {
     return (
-      <div className="mt-6 space-y-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="p-4">
-            <div className="flex justify-between">
-              <div className="space-y-2 flex-1">
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-1/4" />
-                <div className="flex gap-2 mt-2">
-                  <Skeleton className="h-5 w-16 rounded-full" />
-                  <Skeleton className="h-5 w-20 rounded-full" />
-                </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Issues</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="flex justify-between items-center p-4 border rounded-md">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[250px]" />
+                <Skeleton className="h-3 w-[200px]" />
               </div>
-              <Skeleton className="h-8 w-8 rounded-full" />
+              <Skeleton className="h-8 w-[100px]" />
             </div>
-          </Card>
-        ))}
-      </div>
+          ))}
+        </CardContent>
+      </Card>
     );
   }
 
-  console.log(JSON.stringify(issues, null, 2));
-
   if (!issues.length) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <Clock className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-        <h3 className="text-lg font-medium">No issues found</h3>
-        <p className="text-muted-foreground mt-2">
-          Try adjusting your search query or select a different organization
-        </p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>No issues found</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">
+            No matching issues were found. Try a different search query.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="mt-6 space-y-4">
-      {issues.map((issue) => (
-        <Card key={issue.id} className="overflow-hidden">
-          <div className="p-4 flex items-start gap-4">
-            <div className="flex-1">
-              <div className="flex items-start justify-between">
-                <h3 className="font-medium line-clamp-2">
-                  <a 
-                    href={issue.html_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="hover:underline flex items-center gap-1"
+    <Card>
+      <CardHeader>
+        <CardTitle>Issues ({issues.length})</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {issues.map((issue) => {
+          // Extract repository name from URL
+          const repoUrl = issue.repository_url;
+          const repoName = repoUrl.split('/').slice(-2).join('/');
+          
+          // Format date
+          const updatedDate = new Date(issue.updated_at).toLocaleDateString();
+          
+          return (
+            <div
+              key={issue.id}
+              className="flex justify-between items-center p-4 border rounded-md hover:bg-muted/50 transition-colors"
+            >
+              <div className="space-y-1">
+                <h3 className="font-medium">
+                  <a
+                    href={issue.html_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline"
                   >
                     {issue.title}
-                    <ExternalLink className="h-3 w-3 inline opacity-50" />
                   </a>
                 </h3>
-                <Badge variant={issue.state === "open" ? "default" : "outline"}>
-                  {issue.state}
-                </Badge>
-              </div>
-
-              <div className="text-sm text-muted-foreground mt-1">
-                {getRepositoryInfo(issue)} #{issue.number}
-              </div>
-
-              {issue.labels && issue.labels.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {issue.labels.map((label) => (
-                    <Badge 
-                      key={label.id} 
-                      variant="outline" 
-                      className="text-xs"
-                      style={{
-                        borderColor: `#${label.color}`,
-                        backgroundColor: `#${label.color}10`
-                      }}
-                    >
-                      {label.name}
-                    </Badge>
-                  ))}
+                <div className="text-sm text-muted-foreground flex gap-2">
+                  <span>{repoName}</span>
+                  <span>•</span>
+                  <span>
+                    {issue.state === "open" ? (
+                      <span className="text-green-600 dark:text-green-400">Open</span>
+                    ) : (
+                      <span className="text-red-600 dark:text-red-400">Closed</span>
+                    )}
+                  </span>
+                  <span>•</span>
+                  <span>Updated {updatedDate}</span>
                 </div>
-              )}
+              </div>
+              <button
+                onClick={() => handleStartTracking(issue)}
+                className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              >
+                Track Time
+              </button>
             </div>
-
-            <Button
-              size="sm"
-              variant="secondary"
-              className="whitespace-nowrap"
-              disabled={activeIssue?.id === issue.id}
-              onClick={() => startTracking({
-                id: issue.id,
-                title: issue.title,
-                url: issue.html_url
-              })}
-            >
-              {activeIssue?.id === issue.id ? 'Tracking' : 'Start Tracking'}
-            </Button>
-          </div>
-        </Card>
-      ))}
-    </div>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
 }

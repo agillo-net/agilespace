@@ -1,55 +1,76 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import { useRepositoryStore } from "@/store/repository-store"
+import { fetchOrganizationDetails, fetchOrganizationRepositories } from "@/lib/api-services"
+import { useUIStore } from "@/store/ui-store"
 
 export default function OrganizationPage() {
   const { orgName } = useParams()
-  const [orgData, setOrgData] = useState<any>(null)
-  const [orgRepos, setOrgRepos] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { 
+    organizationDetails, 
+    organizationRepositories,
+    isLoadingOrganization,
+    organizationError,
+    setOrganizationDetails,
+    setOrganizationRepositories,
+    setIsLoadingOrganization,
+    setOrganizationError
+  } = useRepositoryStore()
+
+  // Update UI store with current organization
+  const { setActiveOrganization } = useUIStore()
+
+  useEffect(() => {
+    if (typeof orgName === 'string') {
+      setActiveOrganization(orgName)
+    }
+  }, [orgName, setActiveOrganization])
 
   useEffect(() => {
     async function fetchOrgData() {
-      if (!orgName) return
+      if (!orgName || typeof orgName !== 'string') return
       
-      setIsLoading(true)
-      setError(null)
+      setIsLoadingOrganization(true)
+      setOrganizationError(null)
       
       try {
-        // Fetch organization details
-        const orgResponse = await fetch(`/api/github/org/${orgName}`)
-        if (!orgResponse.ok) throw new Error('Failed to fetch organization data')
-        const orgData = await orgResponse.json()
-        setOrgData(orgData)
+        // Fetch organization details and repositories in parallel
+        const [orgDetails, repos] = await Promise.all([
+          fetchOrganizationDetails(orgName),
+          fetchOrganizationRepositories(orgName)
+        ])
         
-        // Fetch organization repositories
-        const reposResponse = await fetch(`/api/github/org/${orgName}/repos`)
-        if (!reposResponse.ok) throw new Error('Failed to fetch organization repositories')
-        const reposData = await reposResponse.json()
-        setOrgRepos(reposData)
+        setOrganizationDetails(orgDetails)
+        setOrganizationRepositories(repos)
       } catch (err) {
         console.error('Error fetching organization data:', err)
-        setError(err instanceof Error ? err.message : 'Unknown error occurred')
+        setOrganizationError(err instanceof Error ? err.message : 'Unknown error occurred')
       } finally {
-        setIsLoading(false)
+        setIsLoadingOrganization(false)
       }
     }
     
     fetchOrgData()
-  }, [orgName])
+    
+    // Cleanup function to reset state when component unmounts
+    return () => {
+      setOrganizationDetails(null)
+      setOrganizationRepositories([])
+    }
+  }, [orgName, setIsLoadingOrganization, setOrganizationDetails, setOrganizationRepositories, setOrganizationError])
 
-  if (isLoading) {
+  if (isLoadingOrganization) {
     return <OrganizationSkeleton />
   }
 
-  if (error) {
+  if (organizationError) {
     return (
       <div className="space-y-6">
         <Card className="border-red-200">
@@ -60,7 +81,7 @@ export default function OrganizationPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-red-500">{error}</p>
+            <p className="text-red-500">{organizationError}</p>
           </CardContent>
         </Card>
       </div>
@@ -73,17 +94,17 @@ export default function OrganizationPage() {
       <Card>
         <CardHeader className="flex flex-row items-center gap-4">
           <Avatar className="h-16 w-16">
-            <AvatarImage src={orgData?.avatar_url} alt={orgData?.login} />
-            <AvatarFallback>{orgData?.login?.[0]?.toUpperCase()}</AvatarFallback>
+            <AvatarImage src={organizationDetails?.avatar_url} alt={organizationDetails?.login} />
+            <AvatarFallback>{organizationDetails?.login?.[0]?.toUpperCase()}</AvatarFallback>
           </Avatar>
           <div>
-            <CardTitle className="text-2xl">{orgData?.name || orgData?.login}</CardTitle>
+            <CardTitle className="text-2xl">{organizationDetails?.name || organizationDetails?.login}</CardTitle>
             <CardDescription>
-              {orgData?.description || "No description available"}
+              {organizationDetails?.description || "No description available"}
             </CardDescription>
-            {orgData?.location && (
+            {organizationDetails?.location && (
               <div className="text-muted-foreground text-sm mt-1">
-                {orgData.location}
+                {organizationDetails.location}
               </div>
             )}
           </div>
@@ -94,12 +115,12 @@ export default function OrganizationPage() {
       <div>
         <h2 className="text-xl font-semibold mb-4">Repositories</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {orgRepos.length > 0 ? (
-            orgRepos.map((repo) => (
+          {organizationRepositories.length > 0 ? (
+            organizationRepositories.map((repo) => (
               <Card key={repo.id} className="overflow-hidden">
                 <CardHeader>
                   <CardTitle className="text-base">
-                    <Link href={repo.html_url} target="_blank" className="hover:underline">
+                    <Link href={`/${orgName}/${repo.name}`} className="hover:underline">
                       {repo.name}
                     </Link>
                   </CardTitle>

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useTimer } from "@/contexts/timer-context";
+import { useTimerStore } from "@/store/timer-store";
 import { formatTime } from "@/lib/format-time";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -26,7 +26,8 @@ export function WorkSessionModal() {
     submitComment,
     isSwitchingIssues,
     discardTracking,
-  } = useTimer();
+    setIsCommentModalOpen
+  } = useTimerStore();
 
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);

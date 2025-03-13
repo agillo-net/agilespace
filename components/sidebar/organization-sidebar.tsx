@@ -13,7 +13,9 @@ interface OrganizationSidebarProps {
     teams: boolean;
     [key: string]: boolean;
   };
-  toggleSection: (section: string) => void;
+  toggleSection: (
+    section: "repositories" | "projects" | "teams" | "issues" | "pullRequests"
+  ) => void;
   orgName: string;
 }
 
@@ -43,7 +45,7 @@ export function OrganizationSidebar({
                 className="flex items-center justify-between pr-1"
               >
                 <Link
-                  href={`/org/${orgName}/${repo.name}`}
+                  href={`/${orgName}/${repo.name}`}
                   className="block py-1.5 px-2 rounded text-sm hover:bg-primary/10 truncate flex-1"
                 >
                   {repo.name}

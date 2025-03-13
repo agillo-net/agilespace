@@ -11,7 +11,9 @@ interface ProfileSidebarProps {
     pullRequests: boolean;
     [key: string]: boolean;
   };
-  toggleSection: (section: string) => void;
+  toggleSection: (
+    section: "issues" | "pullRequests" | "repositories" | "projects" | "teams"
+  ) => void;
 }
 
 export function ProfileSidebar({

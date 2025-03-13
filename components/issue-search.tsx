@@ -1,97 +1,86 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-
-interface Organization {
-  id: number;
-  login: string;
-  avatar_url?: string;
-}
+} from "@/components/ui/select";
+import { useGithubStore } from "@/store/github-store";
 
 interface IssueSearchProps {
-  onSearch: (query: string, organization: string) => void;
+  onSearch: (query: string, organization: string) => Promise<void>;
 }
 
 export function IssueSearch({ onSearch }: IssueSearchProps) {
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [selectedOrg, setSelectedOrg] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
+  const [query, setQuery] = useState("");
+  const [organization, setOrganization] = useState("");
+  const { isSearching, organizations } = useGithubStore();
 
-  useEffect(() => {
-    const fetchOrganizations = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/github/orgs');
-        if (response.ok) {
-          const orgs = await response.json();
-          setOrganizations(orgs);
-          if (orgs.length > 0) {
-            setSelectedOrg(orgs[0].login);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching organizations:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchOrganizations();
-  }, []);
-
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(searchQuery, selectedOrg);
+    onSearch(query, organization);
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
-      <form onSubmit={handleSearch} className="relative">
-        <div className="flex items-center border rounded-lg shadow-sm overflow-hidden bg-background">
-          <Select
-            value={selectedOrg}
-            onValueChange={setSelectedOrg}
-            disabled={loading || organizations.length === 0}
-          >
-            <SelectTrigger className="w-[160px] border-0 focus:ring-0 rounded-none">
-              <SelectValue placeholder="Organization" />
-            </SelectTrigger>
-            <SelectContent>
-              {organizations.map((org) => (
-                <SelectItem key={org.id} value={org.login}>
-                  {org.login}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="w-px h-6 bg-muted mx-1"></div>
-          
-          <Input
-            type="text"
-            placeholder="Search issues..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-3"
-          />
-          
-          <Button type="submit" variant="ghost" size="icon" className="mr-1">
-            <Search className="h-4 w-4" />
-            <span className="sr-only">Search</span>
+    <Card className="mb-8">
+      <CardHeader>
+        <CardTitle>Search GitHub Issues</CardTitle>
+        <CardDescription>
+          Find issues from your organizations and repositories
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 md:flex-row items-end">
+          <div className="flex-1">
+            <label htmlFor="query" className="block text-sm font-medium mb-1">
+              Search Query
+            </label>
+            <Input
+              id="query"
+              placeholder="Type to search issues..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <div className="w-full md:w-1/3">
+            <label htmlFor="organization" className="block text-sm font-medium mb-1">
+              Organization (Optional)
+            </label>
+            <Select
+              value={organization}
+              onValueChange={setOrganization}
+            >
+              <SelectTrigger id="organization">
+                <SelectValue placeholder="All organizations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All organizations</SelectItem>
+                {organizations.map((org) => (
+                  <SelectItem key={org.login} value={org.login}>
+                    {org.login}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button type="submit" disabled={isSearching}>
+            {isSearching ? "Searching..." : "Search Issues"}
           </Button>
-        </div>
-      </form>
-    </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

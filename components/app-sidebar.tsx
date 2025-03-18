@@ -97,7 +97,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navItems = React.useMemo(() => {
     return organizations.map((org) => ({
       title: org.login,
-      url: `/${org.login}`,
+      url: `/orgs/${org.login}`,
       avatar: org.avatar_url,
       isActive: pathname === `/${org.login}`,
     }));

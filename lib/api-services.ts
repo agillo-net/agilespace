@@ -74,3 +74,9 @@ export async function submitIssueComment(owner: string, repo: string, issueNumbe
   if (!response.ok) throw new Error("Failed to submit comment");
   return await response.json();
 }
+
+export async function fetchTeamMembers(orgName: string, teamSlug: string) {
+  const response = await fetch(`/api/github/org/${orgName}/teams/${teamSlug}/members`);
+  if (!response.ok) throw new Error(`Failed to fetch team members for ${teamSlug}`);
+  return await response.json();
+}

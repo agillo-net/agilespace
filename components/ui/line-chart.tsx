@@ -4,7 +4,7 @@ import { CartesianGrid, Legend, Line as RechartsLine, LineChart as BaseLineChart
 import { cn } from "@/lib/utils"
 
 export interface LineChartProps {
-  data: any[]
+  data: ChartData[]
   index: string
   categories: string[]
   colors?: string[]
@@ -18,8 +18,12 @@ export interface LineChartProps {
   valueFormatter?: (value: number) => string
 }
 
+interface ChartData {
+  [key: string]: string | number;
+}
+
 export function LineChart({
-  data,
+  data = [],
   index,
   categories,
   colors = ["blue", "green", "yellow", "red", "purple", "indigo", "pink", "orange"],

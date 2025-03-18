@@ -12,7 +12,7 @@ export async function GET(
     }
 
     const accessToken = session.accessToken as string;
-    const { orgName } = params;
+    const { orgName } = await params;
     
     // Get URL search params to support pagination
     const searchParams = request.nextUrl.searchParams;

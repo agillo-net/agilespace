@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NavUser } from "@/components/nav-user";
+import Link from 'next/link';
 
 interface NavSidebarProps {
   data: {
@@ -30,7 +31,14 @@ interface NavSidebarProps {
       avatar?: string;
     }>;
   };
-  handleNavigation: (item: any) => void;
+  handleNavigation: (item: {
+    title: string;
+    url: string;
+    icon?: React.ComponentType<{ className?: string }>;
+    isActive: boolean;
+    isCustomIcon: boolean;
+    avatar?: string;
+  }) => void;
 }
 
 export function NavSidebar({ data, handleNavigation }: NavSidebarProps) {
@@ -43,7 +51,7 @@ export function NavSidebar({ data, handleNavigation }: NavSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
-              <a href="/">
+              <Link href="/">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <Command className="size-4" />
                 </div>
@@ -51,7 +59,7 @@ export function NavSidebar({ data, handleNavigation }: NavSidebarProps) {
                   <span className="truncate font-medium">GitHub</span>
                   <span className="truncate text-xs">Organizations</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

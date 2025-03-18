@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useGithubStore } from "@/store/github-store";
 import { useUIStore } from "@/store/ui-store";
@@ -12,7 +11,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -29,7 +27,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const {
     user,
     organizations,
-    isLoadingUser,
     isLoadingOrganizations,
     setUser,
     setOrganizations,
@@ -73,12 +70,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     };
 
     fetchData();
-  }, []);
+  }, [
+    setIsLoadingOrganizations, 
+    setIsLoadingUser, 
+    setOrganizations, 
+    setOrganizationsError, 
+    setUser, 
+    setUserError
+  ]);
 
   // Navigation handler
-  const handleNavigation = async (org: any) => {
-    setActiveOrganization(org.title);
-    router.push(org.url);
+  const handleNavigation = async (org: { login: string; avatar_url: string; }) => {
+    setActiveOrganization(org.login);
+    router.push(`/orgs/${org.login}`);
     setOpen(true);
   };
 

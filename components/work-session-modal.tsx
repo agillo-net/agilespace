@@ -25,8 +25,7 @@ export function WorkSessionModal() {
     cancelComment,
     submitComment,
     isSwitchingIssues,
-    discardTracking,
-    setIsCommentModalOpen
+    discardTracking
   } = useTimerStore();
 
   const [comment, setComment] = useState("");

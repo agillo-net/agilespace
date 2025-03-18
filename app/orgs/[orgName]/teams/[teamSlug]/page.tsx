@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useGithubStore } from "@/store/github-store";
 import { fetchTeamMembers } from "@/lib/api-services";

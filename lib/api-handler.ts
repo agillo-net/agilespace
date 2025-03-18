@@ -167,7 +167,7 @@ export function useRepositoryApi() {
         setRepository(data);
         generateSampleAnalyticsData();
         return data;
-      } catch (e) {
+      } catch {
         // Fallback to sample data if API fails
         console.log('Using sample repository data');
         const fallbackData = {

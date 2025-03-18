@@ -47,7 +47,7 @@ export default function RepositoryAnalyticsPage() {
         try {
           const data = await fetchRepositoryDetails(orgName, repoName)
           setRepository(data)
-        } catch (e) {
+        } catch {
           // Fallback to sample data if API fails
           console.log('Using sample repository data')
           setRepository({

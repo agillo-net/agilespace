@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useGithubStore } from "@/store/github-store";
 import { useUIStore } from "@/store/ui-store";
@@ -20,11 +19,8 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
-  SidebarInput,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Search } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NavUser } from "@/components/nav-user";
 import { OrganizationSidebar } from "@/components/sidebar/organization-sidebar";
 import { ProfileSidebar } from "@/components/sidebar/profile-sidebar";
@@ -75,6 +71,59 @@ export function OrgSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Check the current path to determine what we're viewing
   React.useEffect(() => {
+    // Move both functions inside useEffect
+    const loadOrganizationData = async (orgName: string) => {
+      setIsLoadingOrgResources(true);
+      resetOrgResourcesState();
+      resetUserResourcesState();
+
+      try {
+        // Fetch repos, projects, and teams in parallel
+        const [reposData, projectsData, teamsData] = await Promise.all([
+          fetchOrganizationRepositories(orgName),
+          fetchOrganizationProjects(orgName),
+          fetchOrganizationTeams(orgName),
+        ]);
+
+        setRepositories(reposData);
+        setProjects(projectsData);
+        setTeams(teamsData);
+      } catch (error) {
+        console.error("Error fetching organization resources:", error);
+        setOrgResourcesError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load organization resources"
+        );
+      } finally {
+        setIsLoadingOrgResources(false);
+      }
+    };
+
+    const loadProfileData = async () => {
+      setIsLoadingUserResources(true);
+      resetOrgResourcesState();
+      resetUserResourcesState();
+
+      try {
+        // Fetch issues and PRs in parallel
+        const [issuesData, prsData] = await Promise.all([
+          fetchUserIssues(),
+          fetchUserPullRequests(),
+        ]);
+
+        setIssues(issuesData);
+        setPullRequests(prsData);
+      } catch (error) {
+        console.error("Error fetching user resources:", error);
+        setUserResourcesError(
+          error instanceof Error ? error.message : "Failed to load user resources"
+        );
+      } finally {
+        setIsLoadingUserResources(false);
+      }
+    };
+
     if (pathname === "/profile") {
       setViewMode("profile");
       loadProfileData();
@@ -82,61 +131,21 @@ export function OrgSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       setViewMode("organization");
       loadOrganizationData(activeOrganization);
     }
-  }, [pathname, activeOrganization]);
-
-  // Load organization data
-  const loadOrganizationData = async (orgName: string) => {
-    setIsLoadingOrgResources(true);
-    resetOrgResourcesState();
-    resetUserResourcesState();
-
-    try {
-      // Fetch repos, projects, and teams in parallel
-      const [reposData, projectsData, teamsData] = await Promise.all([
-        fetchOrganizationRepositories(orgName),
-        fetchOrganizationProjects(orgName),
-        fetchOrganizationTeams(orgName),
-      ]);
-
-      setRepositories(reposData);
-      setProjects(projectsData);
-      setTeams(teamsData);
-    } catch (error) {
-      console.error("Error fetching organization resources:", error);
-      setOrgResourcesError(
-        error instanceof Error
-          ? error.message
-          : "Failed to load organization resources"
-      );
-    } finally {
-      setIsLoadingOrgResources(false);
-    }
-  };
-
-  // Load profile data
-  const loadProfileData = async () => {
-    setIsLoadingUserResources(true);
-    resetOrgResourcesState();
-    resetUserResourcesState();
-
-    try {
-      // Fetch issues and PRs in parallel
-      const [issuesData, prsData] = await Promise.all([
-        fetchUserIssues(),
-        fetchUserPullRequests(),
-      ]);
-
-      setIssues(issuesData);
-      setPullRequests(prsData);
-    } catch (error) {
-      console.error("Error fetching user resources:", error);
-      setUserResourcesError(
-        error instanceof Error ? error.message : "Failed to load user resources"
-      );
-    } finally {
-      setIsLoadingUserResources(false);
-    }
-  };
+  }, [
+    pathname, 
+    activeOrganization, 
+    setIsLoadingOrgResources, 
+    resetOrgResourcesState, 
+    resetUserResourcesState, 
+    setRepositories, 
+    setProjects, 
+    setTeams, 
+    setOrgResourcesError, 
+    setIsLoadingUserResources, 
+    setIssues, 
+    setPullRequests, 
+    setUserResourcesError
+  ]);
 
   // Format user data for display
   const userData = React.useMemo(() => {
@@ -162,7 +171,7 @@ export function OrgSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const { setActiveOrganization } = useUIStore();
 
-  const handleNavigation = async (org: any) => {
+  const handleNavigation = async (org: { title: string; url: string }) => {
     setActiveOrganization(org.title);
     router.push(org.url);
     setOpen(true);

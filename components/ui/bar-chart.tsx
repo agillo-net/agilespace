@@ -1,10 +1,10 @@
 "use client"
 
-import { Bar, BarChart as BaseBarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from "recharts"
+import { Bar, BarChart as BaseBarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { cn } from "@/lib/utils"
 
 export interface BarChartProps {
-  data: any[]
+  data: ChartData[]
   index: string
   categories: string[]
   colors?: string[]
@@ -19,8 +19,12 @@ export interface BarChartProps {
   valueFormatter?: (value: number) => string
 }
 
+interface ChartData {
+  [key: string]: string | number;
+}
+
 export function BarChart({
-  data,
+  data = [],
   index,
   categories,
   colors = ["blue", "green", "yellow", "red", "purple", "indigo", "pink", "orange"],

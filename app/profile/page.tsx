@@ -7,9 +7,32 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 
+// Replace 'any' types with appropriate types
+interface UserProfile {
+  // Define the user profile properties here
+  name?: string;
+  avatar_url?: string;
+  login?: string;
+  bio?: string;
+  location?: string;
+  // Add other properties as needed
+}
+
+interface RepositoryData {
+  // Define the repository data properties
+  id: number;
+  name: string;
+  html_url: string;
+  description?: string;
+  language?: string;
+  stargazers_count: number;
+  forks_count: number;
+  // Add other properties as needed
+}
+
 export default function ProfilePage() {
-  const [userData, setUserData] = useState<any>(null)
-  const [userRepos, setUserRepos] = useState<any[]>([])
+  const [userData, setUserData] = useState<UserProfile | null>(null)
+  const [userRepos, setUserRepos] = useState<RepositoryData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 

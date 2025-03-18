@@ -3,9 +3,32 @@ import Link from "next/link";
 import { CircleAlert, GitPullRequest } from "lucide-react";
 import { CollapsibleSection } from "@/components/sidebar/collapsible-section";
 
+// Replace 'any' with more specific types
+interface UserData {
+  login: string;
+  avatar_url?: string;
+  name?: string;
+  // Add other properties as needed
+}
+
 interface ProfileSidebarProps {
-  issues: any[];
-  pullRequests: any[];
+  issues: {
+    id: number;
+    html_url: string;
+    number: number;
+    title: string;
+    repository?: {
+      owner: UserData;
+      name: string;
+    };
+  }[];
+  pullRequests: {
+    id: number;
+    html_url: string;
+    number: number;
+    title: string;
+    repository_url: string;
+  }[];
   expandedSections: {
     issues: boolean;
     pullRequests: boolean;

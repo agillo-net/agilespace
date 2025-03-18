@@ -15,9 +15,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 import { useGithubStore } from "@/store/github-store"
-import { useGithubApi } from "@/lib/api-handler"
 import { Skeleton } from "@/components/ui/skeleton"
-import { fetchOrganizations, fetchUserData } from "@/lib/api-services";
+import { fetchOrganizations } from "@/lib/api-services";
+import Image from 'next/image';
 
 export default function OrganizationsPage() {
   const router = useRouter()
@@ -47,7 +47,7 @@ export default function OrganizationsPage() {
     };
 
     fetchData();
-  }, [])
+  }, [setIsLoadingOrganizations, setOrganizations, setOrganizationsError])
 
   const filteredOrganizations = organizations.filter(org =>
     org.login.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -125,10 +125,12 @@ export default function OrganizationsPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
                 {org.avatar_url && (
-                  <img
+                  <Image
                     src={org.avatar_url}
                     alt={org.login}
-                    className="w-8 h-8 rounded-full"
+                    width={32}
+                    height={32}
+                    className="rounded-full"
                   />
                 )}
                 <CardTitle>{org.login}</CardTitle>

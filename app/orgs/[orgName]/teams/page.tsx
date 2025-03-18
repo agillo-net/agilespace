@@ -108,7 +108,7 @@ export default function TeamsPage() {
         <Alert>
           <AlertTitle>No teams found</AlertTitle>
           <AlertDescription>
-            This organization doesn't have any teams or you don't have access to view them.
+            {`No teams found for &apos;${orgName}&apos;`}
           </AlertDescription>
         </Alert>
       ) : (

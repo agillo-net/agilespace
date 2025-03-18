@@ -4,7 +4,7 @@ import { Area, AreaChart as BaseAreaChart, CartesianGrid, Legend, ResponsiveCont
 import { cn } from "@/lib/utils"
 
 export interface AreaChartProps {
-  data: any[]
+  data: ChartData[]
   index: string
   categories: string[]
   colors?: string[]
@@ -18,8 +18,12 @@ export interface AreaChartProps {
   valueFormatter?: (value: number) => string
 }
 
+interface ChartData {
+  [key: string]: string | number;
+}
+
 export function AreaChart({
-  data,
+  data = [],
   index,
   categories,
   colors = ["blue", "green", "yellow", "red", "purple", "indigo", "pink", "orange"],

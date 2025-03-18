@@ -4,10 +4,29 @@ import { Code, FolderKanban, Users } from "lucide-react";
 import { CollapsibleSection } from "@/components/sidebar/collapsible-section";
 import { ExternalLink } from "@/components/ui/external-link";
 
+// Replace 'any' with more specific types
+interface Repository {
+  id: number;
+  name: string;
+  // Add other properties as needed
+}
+
+interface Team {
+  id: number;
+  name: string;
+  slug: string;
+  // Add other properties as needed
+}
+
 interface OrganizationSidebarProps {
-  repos: any[];
-  projects: any[];
-  teams: any[];
+  repos: Repository[];
+  projects: { 
+    id: number;
+    name: string;
+    html_url: string;
+    // Add other properties as needed
+  }[]; // Replace 'any[]' with a specific type
+  teams: Team[];
   expandedSections: {
     repositories: boolean;
     projects: boolean;
@@ -46,7 +65,7 @@ export function OrganizationSidebar({
                 className="flex items-center justify-between pr-1"
               >
                 <Link
-                  href={`/orgs/${orgName}/${repo.name}`}
+                  href={`/orgs/${orgName}/repos/${repo.name}`}
                   className="block py-1.5 px-2 rounded text-sm hover:bg-primary/10 truncate flex-1"
                 >
                   {repo.name}

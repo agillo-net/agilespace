@@ -4,7 +4,7 @@ import { Cell, Legend, Pie, PieChart as BasePieChart, ResponsiveContainer, Toolt
 import { cn } from "@/lib/utils"
 
 export interface PieChartProps {
-  data: any[]
+  data: PieData[]
   index: string
   category: string
   colors?: string[]
@@ -14,8 +14,25 @@ export interface PieChartProps {
   valueFormatter?: (value: number) => string
 }
 
+interface PieData {
+  name: string;
+  value: number;
+  color?: string;
+}
+
+interface CustomLabelProps {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  percent: number;
+  // value is not used, so we can remove it or keep it commented
+  // value: number;
+}
+
 export function PieChart({
-  data,
+  data = [],
   index,
   category,
   colors = ["blue", "green", "yellow", "red", "purple", "indigo", "pink", "orange"],
@@ -44,7 +61,7 @@ export function PieChart({
     return colorMap[color] || color
   }
 
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index: idx }: any) => {
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: CustomLabelProps) => {
     const RADIAN = Math.PI / 180
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5
     const x = cx + radius * Math.cos(-midAngle * RADIAN)

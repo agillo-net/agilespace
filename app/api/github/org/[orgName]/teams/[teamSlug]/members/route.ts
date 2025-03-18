@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 
+interface TeamMember {
+  id: number;
+  login: string;
+  avatar_url: string;
+  // Add other required properties
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { orgName: string, teamSlug: string } }
@@ -34,7 +41,7 @@ export async function GET(
     const membersData = await response.json();
     
     // Process the members data to match our TeamMember interface
-    const formattedMembers = membersData.map((member: any) => ({
+    const formattedMembers = membersData.map((member: TeamMember) => ({
       login: member.login,
       avatar_url: member.avatar_url,
       html_url: member.html_url,

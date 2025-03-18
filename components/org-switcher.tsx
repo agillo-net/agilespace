@@ -27,7 +27,7 @@ interface OrgSwitcherProps {
     isActive: boolean;
     avatar: string;
   }>;
-  handleNavigation: (item: any) => void;
+  handleNavigation: (item: { login: string; avatar_url?: string; }) => void;
 }
 
 export function OrgSwitcher({ orgs, handleNavigation }: OrgSwitcherProps) {

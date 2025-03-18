@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orgName: string } }
+  { params }: { params: Promise<{ orgName: string }> }
 ) {
   try {
     const session = await auth();
@@ -12,17 +12,43 @@ export async function GET(
     }
 
     const accessToken = session.accessToken as string;
-    const { orgName } = params;
+    const { orgName } = await params;
     
+    // GraphQL query to fetch ProjectsV2 for the organization
+    const graphqlQuery = {
+      query: `
+        query($orgName: String!) {
+          organization(login: $orgName) {
+            projectsV2(first: 100) {
+              nodes {
+                id
+                title
+                number
+                closed
+                shortDescription
+                url
+                createdAt
+                updatedAt
+              }
+            }
+          }
+        }
+      `,
+      variables: {
+        orgName: orgName
+      }
+    };
+
+    // Use GraphQL endpoint with POST method
     const response = await fetch(
-      `https://api.github.com/orgs/${orgName}/projects`, 
+      'https://api.github.com/graphql',
       {
+        method: 'POST',
         headers: {
-          Authorization: `token ${accessToken}`,
-          Accept: "application/vnd.github.v3+json",
-          // Projects API requires specific preview header
-          "Accept-Encoding": "application/vnd.github.inertia-preview+json"
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify(graphqlQuery)
       }
     );
 
@@ -33,7 +59,19 @@ export async function GET(
       );
     }
 
-    const projectsData = await response.json();
+    const data = await response.json();
+    
+    // Check for GraphQL errors in the response
+    if (data.errors) {
+      console.error("GraphQL errors:", data.errors);
+      return NextResponse.json(
+        { error: data.errors[0].message || "Error fetching projects" },
+        { status: 500 }
+      );
+    }
+
+    // Extract projects from the GraphQL response
+    const projectsData = data.data.organization?.projectsV2?.nodes || [];
     return NextResponse.json(projectsData);
   } catch (error) {
     console.error("Error in GitHub organization projects API:", error);

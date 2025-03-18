@@ -5,12 +5,13 @@ interface TeamMember {
   id: number;
   login: string;
   avatar_url: string;
-  // Add other required properties
+  html_url: string;
+  role?: string; // Optional role property
 }
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orgName: string, teamSlug: string } }
+  { params }: { params: Promise<{ orgName: string, teamSlug: string }> }
 ) {
   try {
     const session = await auth();
@@ -19,7 +20,7 @@ export async function GET(
     }
 
     const accessToken = session.accessToken as string;
-    const { orgName, teamSlug } = params;
+    const { orgName, teamSlug } = await params;
     
     const response = await fetch(
       `https://api.github.com/orgs/${orgName}/teams/${teamSlug}/members`, 

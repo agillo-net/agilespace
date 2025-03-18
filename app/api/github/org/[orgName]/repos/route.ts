@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orgName: string } }
+  { params }: { params: Promise<{ orgName: string }> }
 ) {
   try {
     const session = await auth();

@@ -8,6 +8,7 @@ import { ExternalLink } from "@/components/ui/external-link";
 interface Repository {
   id: number;
   name: string;
+  html_url: string;
   // Add other properties as needed
 }
 
@@ -22,8 +23,8 @@ interface OrganizationSidebarProps {
   repos: Repository[];
   projects: { 
     id: number;
-    name: string;
-    html_url: string;
+    title: string;
+    url: string;
     // Add other properties as needed
   }[]; // Replace 'any[]' with a specific type
   teams: Team[];
@@ -92,14 +93,18 @@ export function OrganizationSidebar({
         <div className="pl-10 pr-4 pb-3 space-y-1">
           {projects.length > 0 ? (
             projects.map((project) => (
-              <Link
+              <div
                 key={project.id}
-                href={project.html_url}
-                target="_blank"
-                className="block py-1.5 px-2 rounded text-sm hover:bg-primary/10 truncate"
+                className="flex items-center justify-between pr-1"
               >
-                {project.name}
-              </Link>
+                <Link
+                  href={`/orgs/${orgName}/projects/${project.id}`}
+                  className="block py-1.5 px-2 rounded text-sm hover:bg-primary/10 truncate flex-1"
+                >
+                  {project.title}
+                </Link>
+                <ExternalLink href={project.url} title="Open in GitHub" />
+              </div>
             ))
           ) : (
             <div className="text-sm text-muted-foreground py-2">

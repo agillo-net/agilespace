@@ -3,7 +3,7 @@ import { auth } from "@/auth"
 
 export async function GET(
   request: Request,
-  { params }: { params: { orgName: string; repoName: string } }
+  { params }: { params: Promise<{ orgName: string; repoName: string }> }
 ) {
   try {
     const session = await auth()
@@ -14,7 +14,7 @@ export async function GET(
       })
     }
 
-    const { orgName, repoName } = params
+    const { orgName, repoName } = await params
     
     // Fetch repository data from GitHub API
     const response = await fetch(

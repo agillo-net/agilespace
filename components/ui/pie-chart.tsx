@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 export interface PieChartProps {
   data: PieData[]
   index: string
-  category: string
+  category: keyof PieData
   colors?: string[]
   className?: string
   showLegend?: boolean
@@ -111,7 +111,7 @@ export function PieChart({
             label={renderCustomizedLabel}
           >
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color || getColor(entry[category], index)} />
+              <Cell key={`cell-${index}`} fill={entry.color || getColor(String(entry[category]), index)} />
             ))}
           </Pie>
         </BasePieChart>

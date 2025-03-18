@@ -16,9 +16,47 @@ import { LineChart } from "@/components/ui/line-chart"
 import { PieChart } from "@/components/ui/pie-chart"
 import { AreaChart } from "@/components/ui/area-chart"
 
+// Define base ChartData type with index signature
+interface ChartData {
+  [key: string]: string | number;
+}
+
+interface ProductivityItem extends ChartData {
+  week: string;
+  coding: number;
+  meetings: number;
+}
+
+interface PieChartItem extends ChartData {
+  name: string;
+  value: number;
+  color: string;
+}
+
+// Additional specific chart data types
+interface VelocityItem extends ChartData {
+  sprint: string;
+  estimated: number;
+  actual: number;
+}
+
+interface WorkloadItem extends ChartData {
+  name: string;
+  coding: number;
+  review: number;
+  meetings: number;
+  documentation: number;
+}
+
+interface BurndownItem extends ChartData {
+  date: string;
+  open: number;
+  closed: number;
+}
+
 export default function RepositoryAnalyticsPage() {
   const { orgName, repoName } = useParams()
-  const { 
+  const {
     repository,
     isLoadingRepository,
     repositoryError,
@@ -38,10 +76,10 @@ export default function RepositoryAnalyticsPage() {
   useEffect(() => {
     async function fetchRepoData() {
       if (!orgName || !repoName || typeof orgName !== 'string' || typeof repoName !== 'string') return
-      
+
       setIsLoadingRepository(true)
       setRepositoryError(null)
-      
+
       try {
         // Try to fetch real repository data
         try {
@@ -66,7 +104,7 @@ export default function RepositoryAnalyticsPage() {
             default_branch: "main"
           })
         }
-        
+
         // Generate sample data for charts
         generateSampleAnalyticsData()
       } catch (err) {
@@ -76,15 +114,15 @@ export default function RepositoryAnalyticsPage() {
         setIsLoadingRepository(false)
       }
     }
-    
+
     fetchRepoData()
-    
+
     // Cleanup function to reset state when component unmounts
     return () => { resetState() }
   }, [orgName, repoName, setIsLoadingRepository, setRepository, setRepositoryError, generateSampleAnalyticsData, resetState])
 
-  // Format data for Pie Chart
-  const issueTypePieData = useMemo(() => {
+  // Format data for Pie Chart with proper typing
+  const issueTypePieData = useMemo((): PieChartItem[] => {
     return issueTypeData.map(({ type, count, color }) => ({
       name: type,
       value: count,
@@ -92,17 +130,17 @@ export default function RepositoryAnalyticsPage() {
     }))
   }, [issueTypeData])
 
-  // Format data for Productivity Pie Chart
-  const productivityPieData = useMemo(() => {
+  // Format data for Productivity Pie Chart with proper typing
+  const productivityPieData = useMemo((): PieChartItem[] => {
     return [
-      { 
-        name: "Coding", 
-        value: productivityData.reduce((sum, item) => sum + item.coding, 0),
+      {
+        name: "Coding",
+        value: productivityData.reduce((sum: number, item) => sum + item.coding, 0),
         color: "#8884d8"
       },
-      { 
-        name: "Meetings", 
-        value: productivityData.reduce((sum, item) => sum + item.meetings, 0),
+      {
+        name: "Meetings",
+        value: productivityData.reduce((sum: number, item) => sum + item.meetings, 0),
         color: "#82ca9d"
       }
     ]
@@ -163,7 +201,7 @@ export default function RepositoryAnalyticsPage() {
           <TabsTrigger value="productivity">Productivity</TabsTrigger>
           <TabsTrigger value="issues">Issue Tracking</TabsTrigger>
         </TabsList>
-        
+
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -175,7 +213,7 @@ export default function RepositoryAnalyticsPage() {
               </CardHeader>
               <CardContent className="h-80">
                 <LineChart
-                  data={velocityData}
+                  data={velocityData as VelocityItem[]}
                   categories={["estimated", "actual"]}
                   index="sprint"
                   colors={["indigo", "green"]}
@@ -188,7 +226,7 @@ export default function RepositoryAnalyticsPage() {
                 />
               </CardContent>
             </Card>
-            
+
             {/* Issue Type Breakdown */}
             <Card>
               <CardHeader>
@@ -217,7 +255,7 @@ export default function RepositoryAnalyticsPage() {
               </CardHeader>
               <CardContent className="h-80">
                 <BarChart
-                  data={productivityData}
+                  data={productivityData as ProductivityItem[]}
                   categories={["coding", "meetings"]}
                   index="week"
                   colors={["indigo", "green"]}
@@ -239,7 +277,7 @@ export default function RepositoryAnalyticsPage() {
               </CardHeader>
               <CardContent className="h-80">
                 <AreaChart
-                  data={burndownData}
+                  data={burndownData as BurndownItem[]}
                   categories={["open", "closed"]}
                   index="date"
                   colors={["orange", "teal"]}
@@ -254,7 +292,7 @@ export default function RepositoryAnalyticsPage() {
             </Card>
           </div>
         </TabsContent>
-        
+
         {/* Team Velocity Tab */}
         <TabsContent value="velocity" className="space-y-6 pt-4">
           <Card>
@@ -266,7 +304,7 @@ export default function RepositoryAnalyticsPage() {
             </CardHeader>
             <CardContent className="h-96">
               <LineChart
-                data={velocityData}
+                data={velocityData as VelocityItem[]}
                 categories={["estimated", "actual"]}
                 index="sprint"
                 colors={["indigo", "green"]}
@@ -280,7 +318,7 @@ export default function RepositoryAnalyticsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Workload Tab */}
         <TabsContent value="workload" className="space-y-6 pt-4">
           <Card>
@@ -292,7 +330,7 @@ export default function RepositoryAnalyticsPage() {
             </CardHeader>
             <CardContent className="h-96">
               <BarChart
-                data={engineerWorkloadData}
+                data={engineerWorkloadData as WorkloadItem[]}
                 categories={["coding", "review", "meetings", "documentation"]}
                 index="name"
                 colors={["indigo", "green", "amber", "rose"]}
@@ -307,7 +345,7 @@ export default function RepositoryAnalyticsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Productivity Tab */}
         <TabsContent value="productivity" className="space-y-6 pt-4">
           <Card>
@@ -319,7 +357,7 @@ export default function RepositoryAnalyticsPage() {
             </CardHeader>
             <CardContent className="h-96">
               <BarChart
-                data={productivityData}
+                data={productivityData as ProductivityItem[]}
                 categories={["coding", "meetings"]}
                 index="week"
                 colors={["indigo", "green"]}
@@ -353,7 +391,7 @@ export default function RepositoryAnalyticsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Issue Tracking Tab */}
         <TabsContent value="issues" className="space-y-6 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -377,7 +415,7 @@ export default function RepositoryAnalyticsPage() {
                 />
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Burndown Chart</CardTitle>
@@ -387,7 +425,7 @@ export default function RepositoryAnalyticsPage() {
               </CardHeader>
               <CardContent className="h-80">
                 <AreaChart
-                  data={burndownData}
+                  data={burndownData as BurndownItem[]}
                   categories={["open", "closed"]}
                   index="date"
                   colors={["orange", "teal"]}
@@ -433,7 +471,7 @@ function RepositorySkeleton() {
             <Skeleton key={i} className="h-10" />
           ))}
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>

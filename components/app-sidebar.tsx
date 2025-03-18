@@ -71,25 +71,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     fetchData();
   }, [
-    setIsLoadingOrganizations, 
-    setIsLoadingUser, 
-    setOrganizations, 
-    setOrganizationsError, 
-    setUser, 
+    setIsLoadingOrganizations,
+    setIsLoadingUser,
+    setOrganizations,
+    setOrganizationsError,
+    setUser,
     setUserError
   ]);
 
   // Navigation handler
-  const handleNavigation = async (org: { login: string; avatar_url: string; }) => {
-    setActiveOrganization(org.login);
-    router.push(`/orgs/${org.login}`);
+  const handleNavigation = async (org: { title: string; url: string; avatar: string; isActive: boolean }) => {
+    setActiveOrganization(org.title);
+    router.push(org.url);
     setOpen(true);
   };
 
   // Format user data for display
   const userData = React.useMemo(() => {
     if (!user) return { name: "Loading...", email: "loading@example.com", avatar: "" };
-    
+
     return {
       name: user.name || user.login || "Unknown User",
       email: user.email || `@${user.login}`,

@@ -56,8 +56,8 @@ interface TeamMember {
 
 interface Project {
   id: number;
-  name: string;
-  html_url: string;
+  title: string;
+  url: string;
   body: string;
 }
 
@@ -68,6 +68,7 @@ interface PullRequest {
   html_url: string;
   state: string;
   updated_at: string;
+  repository_url: string;
   user: {
     login: string;
     avatar_url: string;

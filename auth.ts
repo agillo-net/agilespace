@@ -16,7 +16,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorization: {
         params: {
           // Request additional scopes for GitHub API access
-          scope: "read:user user:email repo",
+          scope: "read:user user:email repo read:project",
         },
       },
     }),

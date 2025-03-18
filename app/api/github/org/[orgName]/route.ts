@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orgName: string } }
+  { params }: { params: Promise<{ orgName: string }> }
 ) {
   try {
     const session = await auth();
@@ -12,7 +12,7 @@ export async function GET(
     }
 
     const accessToken = session.accessToken as string;
-    const { orgName } = params;
+    const { orgName } = await params;
     
     const response = await fetch(`https://api.github.com/orgs/${orgName}`, {
       headers: {

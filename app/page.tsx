@@ -26,15 +26,13 @@ export default function Home() {
     };
   }, []);
 
-  const handleSearch = async (query: string, organization: string) => {
+  const handleSearch = async (query: string, orgs: string[]) => {
     setIsSearching(true);
     setHasSearched(true);
     setSearchError(null);
 
     try {
-      // If organization is "all", pass empty string to the API
-      const orgParam = organization === "all" ? "" : organization;
-      const data = await searchIssues(query, orgParam);
+      const data = await searchIssues(query, orgs);
       setSearchResults(data);
     } catch (error) {
       console.error("Error searching issues:", error);

@@ -54,10 +54,10 @@ export async function fetchUserPullRequests() {
   return await response.json();
 }
 
-export async function searchIssues(query: string, organization: string) {
+export async function searchIssues(query: string, orgs: string[]) {
   const params = new URLSearchParams();
   if (query) params.append("query", query);
-  if (organization) params.append("org", organization);
+  if (orgs) params.append("orgs", orgs.join(","));
 
   const response = await fetch(`/api/github/issues?${params.toString()}`);
   if (!response.ok) throw new Error("Failed to search issues");

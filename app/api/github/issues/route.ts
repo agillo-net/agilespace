@@ -10,19 +10,20 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('query') || '';
-    const organization = searchParams.get('org') || '';
+    const orgs = searchParams.get('orgs') || '';
 
     const accessToken = session.accessToken as string;
     
     // Build the GitHub search query
-    let searchQuery = 'is:issue';
+    let searchQuery = 'archived:false is:open is:issue';
+    if (orgs) {
+      orgs.split(',').forEach(org => {
+        searchQuery += ` org:${org}`;
+      });
+    }
     if (query) {
       searchQuery += ` ${query}`;
     }
-    if (organization) {
-      searchQuery += ` org:${organization}`;
-    }
-    searchQuery += ' involves:@me'; // Only issues that involve the user
     
     // Fetch issues based on search query
     const response = await fetch(`https://api.github.com/search/issues?q=${encodeURIComponent(searchQuery)}&sort=updated&order=desc`, {

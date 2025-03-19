@@ -3,6 +3,7 @@
 import { useTimerStore } from "@/store/timer-store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import Image from "next/image";
 
 interface Issue {
   id: number;
@@ -13,7 +14,12 @@ interface Issue {
   repository_url: string;
   user: {
     login: string;
+    avatar_url?: string;
   };
+  assignees?: {
+    login: string;
+    avatar_url?: string;
+  }[];
 }
 
 interface IssueListProps {
@@ -78,16 +84,16 @@ export function IssueList({ issues, loading }: IssueListProps) {
           // Extract repository name from URL
           const repoUrl = issue.repository_url;
           const repoName = repoUrl.split('/').slice(-2).join('/');
-          
+
           // Format date
           const updatedDate = new Date(issue.updated_at).toLocaleDateString();
-          
+
           return (
             <div
               key={issue.id}
               className="flex justify-between items-center p-4 border rounded-md hover:bg-muted/50 transition-colors"
             >
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <h3 className="font-medium">
                   <a
                     href={issue.html_url}
@@ -98,7 +104,7 @@ export function IssueList({ issues, loading }: IssueListProps) {
                     {issue.title}
                   </a>
                 </h3>
-                <div className="text-sm text-muted-foreground flex gap-2">
+                <div className="text-sm text-muted-foreground flex flex-wrap gap-2 items-center">
                   <span>{repoName}</span>
                   <span>•</span>
                   <span>
@@ -110,6 +116,41 @@ export function IssueList({ issues, loading }: IssueListProps) {
                   </span>
                   <span>•</span>
                   <span>Updated {updatedDate}</span>
+                </div>
+                <div className="mt-2 text-muted-foreground flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Created By</span>
+                    <div className="flex items-center gap-1.5">
+                      {issue.user.avatar_url && (
+                        <Image
+                          src={issue.user.avatar_url}
+                          alt={`${issue.user.login}'s avatar`}
+                          width={20}
+                          height={20}
+                          className="rounded-full object-cover"
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <span>•</span>
+                  {issue.assignees && issue.assignees.length > 0 ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Assigned To</span>
+                      {issue.assignees.map((assignee, index) => (
+                        <div key={index} className="flex items-center gap-1.5">
+                          {assignee.avatar_url && (
+                            <Image
+                              src={assignee.avatar_url}
+                              alt={`${assignee.login}'s avatar`}
+                              width={20}
+                              height={20}
+                              className="rounded-full object-cover"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : <span className="text-sm text-muted-foreground">No Assignees</span>}
                 </div>
               </div>
               <button

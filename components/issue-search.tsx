@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -20,18 +20,35 @@ import {
 import { useGithubStore } from "@/store/github-store";
 
 interface IssueSearchProps {
-  onSearch: (query: string, organization: string) => Promise<void>;
+  onSearch: (query: string, organizations: string[]) => Promise<void>;
 }
 
 export function IssueSearch({ onSearch }: IssueSearchProps) {
   const [query, setQuery] = useState("");
-  const [organization, setOrganization] = useState("");
+  const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const { isSearching, organizations } = useGithubStore();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(query, organization);
+    onSearch(query, selectedOrgs);
   };
+
+  const handleOrganizationChange = (value: string) => {
+    if (value === "all") {
+      // If "all" is selected, include all organization logins
+      setSelectedOrgs(organizations.map(org => org.login));
+    } else {
+      // Otherwise, just include the selected organization
+      setSelectedOrgs([value]);
+    }
+  };
+
+  // Initialize with organizations selected by default
+  useEffect(() => {
+    if (organizations.length > 0 && selectedOrgs.length === 0) {
+      setSelectedOrgs(organizations.map(org => org.login));
+    }
+  }, [organizations, selectedOrgs]);
 
   return (
     <Card className="mb-8">
@@ -45,7 +62,7 @@ export function IssueSearch({ onSearch }: IssueSearchProps) {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 md:flex-row items-end">
           <div className="flex-1">
             <label htmlFor="query" className="block text-sm font-medium mb-1">
-              Search Query
+              Search Query <span className="text-muted-foreground text-xs">(archived:false is:open is:issue)</span>
             </label>
             <Input
               id="query"
@@ -57,11 +74,11 @@ export function IssueSearch({ onSearch }: IssueSearchProps) {
           </div>
           <div className="w-full md:w-1/3">
             <label htmlFor="organization" className="block text-sm font-medium mb-1">
-              Organization (Optional)
+              Organization
             </label>
             <Select
-              value={organization}
-              onValueChange={setOrganization}
+              value={selectedOrgs.length === organizations.length && selectedOrgs.length > 1 ? "all" : selectedOrgs[0] || ""}
+              onValueChange={handleOrganizationChange}
             >
               <SelectTrigger id="organization">
                 <SelectValue placeholder="All organizations" />

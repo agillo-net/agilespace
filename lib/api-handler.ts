@@ -114,15 +114,13 @@ export function useGithubApi() {
   };
 
   // Search issues
-  const searchIssues = async (query: string, organization: string) => {
+  const searchIssues = async (query: string, orgs: string[]) => {
     setIsSearching(true);
     setHasSearched(true);
     setSearchError(null);
     
     try {
-      // If organization is "all", pass empty string to the API
-      const orgParam = organization === "all" ? "" : organization;
-      const data = await apiServices.searchIssues(query, orgParam);
+      const data = await apiServices.searchIssues(query, orgs);
       setSearchResults(data);
       return data;
     } catch (error) {

@@ -4,6 +4,12 @@ import { useTimerStore } from "@/store/timer-store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { CircleDot } from "lucide-react";
 
 interface Issue {
   id: number;
@@ -37,7 +43,6 @@ export function IssueList({ issues, loading }: IssueListProps) {
       url: issue.html_url,
     });
   };
-
   if (loading) {
     return (
       <Card>
@@ -46,7 +51,10 @@ export function IssueList({ issues, loading }: IssueListProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="flex justify-between items-center p-4 border rounded-md">
+            <div
+              key={index}
+              className="flex justify-between items-center p-4 border rounded-md"
+            >
               <div className="space-y-2">
                 <Skeleton className="h-4 w-[250px]" />
                 <Skeleton className="h-3 w-[200px]" />
@@ -83,7 +91,7 @@ export function IssueList({ issues, loading }: IssueListProps) {
         {issues.map((issue) => {
           // Extract repository name from URL
           const repoUrl = issue.repository_url;
-          const repoName = repoUrl.split('/').slice(-2).join('/');
+          const repoName = repoUrl.split("/").slice(-2).join("/");
 
           // Format date
           const updatedDate = new Date(issue.updated_at).toLocaleDateString();
@@ -94,7 +102,18 @@ export function IssueList({ issues, loading }: IssueListProps) {
               className="flex justify-between items-center p-4 border rounded-md hover:bg-muted/50 transition-colors"
             >
               <div className="space-y-2">
-                <h3 className="font-medium">
+                <h3 className="font-medium flex gap-x-2 items-center">
+                  <span>
+                    {issue.state === "open" ? (
+                      <span className="text-green-600 dark:text-green-400">
+                        <CircleDot size={16} />
+                      </span>
+                    ) : (
+                      <span className="text-red-600 dark:text-red-400">
+                        <CircleDot size={16} />
+                      </span>
+                    )}
+                  </span>
                   <a
                     href={issue.html_url}
                     target="_blank"
@@ -106,38 +125,17 @@ export function IssueList({ issues, loading }: IssueListProps) {
                 </h3>
                 <div className="text-sm text-muted-foreground flex flex-wrap gap-2 items-center">
                   <span>{repoName}</span>
-                  <span>•</span>
-                  <span>
-                    {issue.state === "open" ? (
-                      <span className="text-green-600 dark:text-green-400">Open</span>
-                    ) : (
-                      <span className="text-red-600 dark:text-red-400">Closed</span>
-                    )}
-                  </span>
-                  <span>•</span>
+                </div>
+                <div className="text-sm text-muted-foreground flex flex-wrap gap-2 items-center">
                   <span>Updated {updatedDate}</span>
                 </div>
-                <div className="mt-2 text-muted-foreground flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Created By</span>
-                    <div className="flex items-center gap-1.5">
-                      {issue.user.avatar_url && (
-                        <Image
-                          src={issue.user.avatar_url}
-                          alt={`${issue.user.login}'s avatar`}
-                          width={20}
-                          height={20}
-                          className="rounded-full object-cover"
-                        />
-                      )}
-                    </div>
-                  </div>
-                  <span>•</span>
-                  {issue.assignees && issue.assignees.length > 0 ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">Assigned To</span>
-                      {issue.assignees.map((assignee, index) => (
-                        <div key={index} className="flex items-center gap-1.5">
+              </div>
+              <div className="flex flex-col h-20 justify-between items-end">
+                {issue.assignees && issue.assignees.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    {issue.assignees.map((assignee, index) => (
+                      <Tooltip key={index}>
+                        <TooltipTrigger>
                           {assignee.avatar_url && (
                             <Image
                               src={assignee.avatar_url}
@@ -147,18 +145,24 @@ export function IssueList({ issues, loading }: IssueListProps) {
                               className="rounded-full object-cover"
                             />
                           )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : <span className="text-sm text-muted-foreground">No Assignees</span>}
-                </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <span>{assignee.login}</span>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex-1"></div>
+
+                <button
+                  onClick={() => handleStartTracking(issue)}
+                  className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  Track Time
+                </button>
               </div>
-              <button
-                onClick={() => handleStartTracking(issue)}
-                className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-              >
-                Track Time
-              </button>
             </div>
           );
         })}

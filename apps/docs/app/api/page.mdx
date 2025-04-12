@@ -1,0 +1,51 @@
+# API Reference
+
+Welcome to the AgileSpace API reference documentation. This section provides detailed information about the APIs available in the AgileSpace platform.
+
+## REST APIs
+
+AgileSpace provides a set of RESTful APIs for interacting with the platform.
+
+### Authentication
+
+All API requests require authentication using an API key or JWT token.
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" https://api.agilespace.example.com/v1/resources
+```
+
+### Endpoints
+
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| `/api/v1/users` | GET | List all users |
+| `/api/v1/users/:id` | GET | Get user details |
+| `/api/v1/projects` | GET | List all projects |
+| `/api/v1/projects/:id` | GET | Get project details |
+
+## Client Libraries
+
+AgileSpace provides client libraries for several programming languages to make it easier to interact with the API.
+
+### JavaScript/TypeScript
+
+```typescript
+import { AgileSpace } from '@agilespace/client';
+
+const client = new AgileSpace({ apiKey: 'YOUR_API_KEY' });
+
+// Fetch users
+const users = await client.users.list();
+```
+
+## Webhooks
+
+AgileSpace supports webhooks to notify your application when events happen in your account.
+
+### Available Events
+
+- `user.created`
+- `user.updated`
+- `project.created`
+- `project.updated`
+- `task.completed`

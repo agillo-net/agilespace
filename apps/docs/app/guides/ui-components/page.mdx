@@ -1,0 +1,58 @@
+# UI Components
+
+AgileSpace provides a shared UI component library that ensures consistency across all applications in the project.
+
+## Getting Started
+
+The UI components are available in the `@workspace/ui` package, which is already included as a dependency in all applications within the monorepo.
+
+To use a component, import it from the package:
+
+```tsx
+import { Button } from '@workspace/ui';
+
+export default function MyComponent() {
+  return (
+    <Button variant="default">Click me</Button>
+  );
+}
+```
+
+## Available Components
+
+### Button
+
+The Button component is used to trigger actions.
+
+```tsx
+<Button variant="default">Default</Button>
+<Button variant="destructive">Destructive</Button>
+<Button variant="outline">Outline</Button>
+<Button variant="secondary">Secondary</Button>
+<Button variant="ghost">Ghost</Button>
+<Button variant="link">Link</Button>
+```
+
+## Utility Functions
+
+The UI package also provides utility functions to help with common tasks.
+
+### cn
+
+The `cn` utility is a wrapper around `clsx` and `tailwind-merge`, which helps to conditionally apply Tailwind CSS classes without conflicts:
+
+```tsx
+import { cn } from '@workspace/ui';
+
+export function MyComponent({ className }) {
+  return (
+    <div className={cn('bg-blue-500 p-4', className)}>
+      Content
+    </div>
+  );
+}
+```
+
+## Customization
+
+You can customize the UI components by extending the Tailwind configuration in your app.

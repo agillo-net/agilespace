@@ -1,0 +1,60 @@
+# Configuration
+
+This guide will help you configure AgileSpace for your specific needs.
+
+## Environment Variables
+
+AgileSpace uses environment variables for configuration. These can be set in `.env` files in the root directory or in specific app directories.
+
+### Common Variables
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `NODE_ENV` | Environment (development, production, test) | development |
+| `PORT` | Port for the server | 3000 |
+| `DATABASE_URL` | Connection string for the database | - |
+
+### App-Specific Variables
+
+#### Dashboard App
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_URL` | URL of the API | http://localhost:3000/api |
+| `NEXT_PUBLIC_SITE_URL` | URL of the site | http://localhost:3000 |
+
+## Tailwind Configuration
+
+AgileSpace uses Tailwind CSS for styling. The configuration is shared across apps using the workspace packages.
+
+You can extend the Tailwind configuration in each app's `tailwind.config.js` file.
+
+## TypeScript Configuration
+
+The TypeScript configuration is extended from the shared configuration in the workspace packages.
+
+To extend the configuration for a specific app, modify the `tsconfig.json` file in the app directory:
+
+```json
+{
+  "extends": "@workspace/typescript-config/nextjs.json",
+  "compilerOptions": {
+    // App-specific compiler options
+  }
+}
+```
+
+## ESLint Configuration
+
+ESLint is configured through the shared configuration in the workspace packages.
+
+To extend the ESLint configuration for a specific app, modify the `eslint.config.js` or `eslint.config.mjs` file in the app directory:
+
+```javascript
+import baseConfig from '@workspace/eslint-config/next';
+
+export default [
+  ...baseConfig,
+  // App-specific rules
+];
+```

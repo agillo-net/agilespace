@@ -19,18 +19,18 @@ import { AlertCircle } from "lucide-react";
 export function WorkSessionModal() {
   const {
     isCommentModalOpen,
-    activeIssue,
-    nextIssue,
-    elapsedTime,
+    issues,
+    activeIssueId,
     cancelComment,
     submitComment,
-    isSwitchingIssues,
     discardTracking
   } = useTimerStore();
 
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const activeIssue = issues.find(issue => issue.id === activeIssueId);
 
   const handleSubmit = async () => {
     if (!comment.trim()) return;
@@ -63,89 +63,42 @@ export function WorkSessionModal() {
 
   if (!activeIssue) return null;
 
-  // Customize title and descriptions based on whether we're switching issues
-  const title = isSwitchingIssues
-    ? "Complete current work session"
-    : "Submit work session details";
-
-  const description = isSwitchingIssues
-    ? `Before tracking "${
-        nextIssue?.title
-      }", please describe the work you completed on "${
-        activeIssue.title
-      }" (${formatTime(elapsedTime)}).`
-    : `Describe the work you completed during this session (${formatTime(
-        elapsedTime
-      )}).`;
-
-  const submissionNote = isSwitchingIssues
-    ? "Your comment will be posted to the current issue and tracking will begin on the new issue."
-    : "This will be posted as a comment to the GitHub issue.";
-
   return (
-    <Dialog
-      open={isCommentModalOpen}
-      onOpenChange={(open) => !open && handleCancel()}
-    >
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={isCommentModalOpen} onOpenChange={() => handleCancel()}>
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>Submit work session details</DialogTitle>
           <DialogDescription>
-            {description}
-            <br />
-            {submissionNote}
+            Describe the work you completed during this session ({formatTime(activeIssue.elapsedTime)}).
           </DialogDescription>
         </DialogHeader>
 
         {error && (
-          <Alert variant="destructive" className="my-2">
+          <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        <div className="py-4">
-          <Textarea
-            placeholder="Describe your work or progress..."
-            className="min-h-[150px]"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            disabled={isSubmitting}
-          />
-        </div>
+        <Textarea
+          placeholder="What did you work on?"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          className="min-h-[100px]"
+        />
 
-        <DialogFooter className="flex justify-between">
-          <div>
-            {!isSwitchingIssues && (
-              <Button
-                variant="destructive"
-                onClick={handleDiscard}
-                disabled={isSubmitting}
-              >
-                Discard
-              </Button>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              disabled={isSubmitting}
-            >
-              {isSwitchingIssues ? "Continue Current Issue" : "Cancel"}
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={!comment.trim() || isSubmitting}
-            >
-              {isSubmitting
-                ? "Submitting..."
-                : isSwitchingIssues
-                ? "Submit & Switch Issues"
-                : "Submit Comment"}
-            </Button>
-          </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={handleDiscard}
+            disabled={isSubmitting}
+          >
+            Discard
+          </Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? "Submitting..." : "Submit"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

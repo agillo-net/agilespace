@@ -1,8 +1,8 @@
 export default {
   providers: [
     {
-      domain: "https://charmed-chicken-50.clerk.accounts.dev",
-      applicationID: "convex",
+      domain: process.env.CLERK_JWT_ISSUER_DOMAIN,
+      applicationID: process.env.CLERK_APPLICATION_ID,
     },
   ],
 };

@@ -5,6 +5,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { WorkSessionModal } from "@/components/work-session-modal";
 import { TimerInitializer } from "@/components/timer-initializer";
+import { RefreshPreventionDialog } from "@/components/refresh-prevention-dialog";
 import type { Metadata } from "next";
 
 import "./globals.css";
@@ -37,6 +38,7 @@ export default async function RootLayout({
                     </div>
                   </main>
                   <WorkSessionModal />
+                  <RefreshPreventionDialog />
                 </SidebarProvider>
               </SessionProvider>
             </div>

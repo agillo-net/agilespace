@@ -1,138 +1,164 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-type ActiveIssue = {
+type Issue = {
   id: number;
   title: string;
   url: string;
-} | null;
+  elapsedTime: number;
+  isRunning: boolean;
+};
 
 interface TimerState {
   // Timer state
-  isRunning: boolean;
-  elapsedTime: number;
-  activeIssue: ActiveIssue;
-  nextIssue: ActiveIssue;
+  issues: Issue[];
+  activeIssueId: number | null;
   isCommentModalOpen: boolean;
   isSwitchingIssues: boolean;
 
   // Actions
-  setIsRunning: (isRunning: boolean) => void;
-  setElapsedTime: (time: number) => void;
-  setActiveIssue: (issue: ActiveIssue) => void;
-  setNextIssue: (issue: ActiveIssue) => void;
+  setActiveIssueId: (id: number | null) => void;
   setIsCommentModalOpen: (isOpen: boolean) => void;
   setIsSwitchingIssues: (isSwitching: boolean) => void;
-  startTracking: (issue: ActiveIssue) => void;
+  startTracking: (issue: Omit<Issue, 'elapsedTime' | 'isRunning'>) => void;
   stopTracking: () => void;
   toggleTimer: () => void;
   cancelComment: () => void;
   discardTracking: () => void;
   submitComment: (comment: string) => Promise<void>;
+  switchToIssue: (issueId: number) => void;
+  updateIssueTime: (issueId: number, elapsedTime: number) => void;
 }
 
 export const useTimerStore = create<TimerState>()(
   persist(
     (set, get) => ({
       // Timer state
-      isRunning: false,
-      elapsedTime: 0,
-      activeIssue: null,
-      nextIssue: null,
+      issues: [],
+      activeIssueId: null,
       isCommentModalOpen: false,
       isSwitchingIssues: false,
 
       // Actions
-      setIsRunning: (isRunning) => set({ isRunning }),
-      setElapsedTime: (elapsedTime) => set({ elapsedTime }),
-      setActiveIssue: (activeIssue) => set({ activeIssue }),
-      setNextIssue: (nextIssue) => set({ nextIssue }),
-      setIsCommentModalOpen: (isCommentModalOpen) =>
-        set({ isCommentModalOpen }),
-      setIsSwitchingIssues: (isSwitchingIssues) => set({ isSwitchingIssues }),
+      setActiveIssueId: (id) => set({ activeIssueId: id }),
+      setIsCommentModalOpen: (isOpen) => set({ isCommentModalOpen: isOpen }),
+      setIsSwitchingIssues: (isSwitching) => set({ isSwitchingIssues: isSwitching }),
 
       startTracking: (issue) => {
         const state = get();
-        // If there's already an active issue
-        if (state.activeIssue) {
-          // Store the next issue we want to switch to
-          set({
-            nextIssue: issue,
-            isRunning: false,
-            isSwitchingIssues: true,
-            isCommentModalOpen: true,
-          });
-        } else {
-          // Start tracking the new issue directly if no active issue
-          set({
-            activeIssue: issue,
-            isRunning: true,
-          });
+        const existingIssue = state.issues.find(i => i.id === issue.id);
+
+        if (existingIssue) {
+          // If issue exists, just switch to it
+          set({ activeIssueId: issue.id });
+          return;
         }
+
+        // Add new issue
+        const newIssue: Issue = {
+          ...issue,
+          elapsedTime: 0,
+          isRunning: true
+        };
+
+        set((state) => ({
+          issues: [...state.issues, newIssue],
+          activeIssueId: issue.id
+        }));
       },
 
-      stopTracking: () =>
-        set({
-          isRunning: false,
-          isCommentModalOpen: true,
-        }),
+      stopTracking: () => {
+        const state = get();
+        if (!state.activeIssueId) return;
 
-      toggleTimer: () =>
         set((state) => ({
-          isRunning: !state.isRunning,
-        })),
+          issues: state.issues.map(issue =>
+            issue.id === state.activeIssueId
+              ? { ...issue, isRunning: false }
+              : issue
+          ),
+          isCommentModalOpen: true
+        }));
+      },
+
+      toggleTimer: () => {
+        const state = get();
+        if (!state.activeIssueId) return;
+
+        set((state) => ({
+          issues: state.issues.map(issue =>
+            issue.id === state.activeIssueId
+              ? { ...issue, isRunning: !issue.isRunning }
+              : issue
+          )
+        }));
+      },
 
       cancelComment: () => {
         const state = get();
         set({ isCommentModalOpen: false });
-
-        // If we were switching issues and canceled, continue tracking the current issue
-        if (state.isSwitchingIssues) {
-          set({
-            isRunning: true,
-            nextIssue: null,
-            isSwitchingIssues: false,
-          });
-        } else {
-          // Regular cancel - reset everything
-          set({ isRunning: true });
-        }
       },
 
       discardTracking: () => {
         const state = get();
-        set({ isCommentModalOpen: false });
+        if (!state.activeIssueId) return;
 
-        // If we're switching issues, start tracking the next issue directly
-        if (state.isSwitchingIssues && state.nextIssue) {
-          set({
-            activeIssue: state.nextIssue,
-            nextIssue: null,
-            isSwitchingIssues: false,
-            elapsedTime: 0,
-            isRunning: true,
-          });
-        } else {
-          // Regular discard - reset everything without submitting
-          set({
-            activeIssue: null,
-            elapsedTime: 0,
-          });
+        set((state) => ({
+          issues: state.issues.filter(issue => issue.id !== state.activeIssueId),
+          activeIssueId: state.issues.length > 1 ? state.issues[0].id : null,
+          isCommentModalOpen: false
+        }));
+      },
+
+      switchToIssue: (issueId) => {
+        const state = get();
+        if (!state.issues.find(i => i.id === issueId)) return;
+
+        // Pause current issue if any
+        if (state.activeIssueId) {
+          set((state) => ({
+            issues: state.issues.map(issue =>
+              issue.id === state.activeIssueId
+                ? { ...issue, isRunning: false }
+                : issue
+            )
+          }));
         }
+
+        // Switch to new issue
+        set((state) => ({
+          activeIssueId: issueId,
+          issues: state.issues.map(issue =>
+            issue.id === issueId
+              ? { ...issue, isRunning: true }
+              : issue
+          )
+        }));
+      },
+
+      updateIssueTime: (issueId, elapsedTime) => {
+        set((state) => ({
+          issues: state.issues.map(issue =>
+            issue.id === issueId
+              ? { ...issue, elapsedTime }
+              : issue
+          )
+        }));
       },
 
       submitComment: async (comment) => {
         const state = get();
-        if (!state.activeIssue) return;
+        const activeIssue = state.issues.find(i => i.id === state.activeIssueId);
+        if (!activeIssue) return;
 
         try {
           // Extract owner and repo from URL to format API endpoint
-          const urlParts = state.activeIssue.url.split("/");
+          const urlParts = activeIssue.url.split("/");
           const issueNumber = urlParts[urlParts.length - 1];
           const repo = urlParts[urlParts.length - 3];
           const owner = urlParts[urlParts.length - 4];
 
-          const timeTracked = state.elapsedTime;
+          const timeTracked = activeIssue.elapsedTime;
 
           // Format comment with time tracked information
           const formattedComment = `
@@ -157,41 +183,24 @@ ${comment}
             }),
           });
 
-          // Reset the timer state after successful submission
-          set({ isCommentModalOpen: false });
-
-          // If we're switching issues, start tracking the next issue
-          if (state.isSwitchingIssues && state.nextIssue) {
-            set({
-              activeIssue: state.nextIssue,
-              nextIssue: null,
-              isSwitchingIssues: false,
-              elapsedTime: 0,
-              isRunning: true,
-            });
-          } else {
-            // Regular stop tracking flow
-            set({
-              activeIssue: null,
-              elapsedTime: 0,
-            });
-          }
+          // Remove the issue after successful submission
+          set((state) => ({
+            issues: state.issues.filter(issue => issue.id !== state.activeIssueId),
+            activeIssueId: state.issues.length > 1 ? state.issues[0].id : null,
+            isCommentModalOpen: false
+          }));
         } catch (error) {
           console.error("Error submitting comment:", error);
-          // Keep the modal open on error
           throw error;
         }
       },
     }),
     {
-      name: "agillo-timer-store", // unique name for storage
+      name: "agillo-timer-store",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        // Only persist these specific parts of the state
-        isRunning: state.isRunning,
-        elapsedTime: state.elapsedTime,
-        activeIssue: state.activeIssue,
-        // Don't persist UI state like isCommentModalOpen
+        issues: state.issues,
+        activeIssueId: state.activeIssueId,
       }),
     }
   )

@@ -15,6 +15,7 @@ import { useTimerStore } from "@/store/timer-store";
 import { formatTime } from "@/lib/format-time";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { createFireEffect } from "@/lib/fire-effect";
 
 export function WorkSessionModal() {
   const {
@@ -40,6 +41,7 @@ export function WorkSessionModal() {
 
     try {
       await submitComment(comment);
+      createFireEffect();
       setComment("");
     } catch (err) {
       setError("Failed to submit comment. Please try again.");

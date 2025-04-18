@@ -2,6 +2,16 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // Users table to store authenticated users
+  users: defineTable({
+    // Auth information
+    tokenIdentifier: v.string(), // Clerk user ID
+    name: v.optional(v.string()),
+    email: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+  })
+    .index("by_token", ["tokenIdentifier"]),
+
   // Work sessions table to store user's tracked time with GitHub issues
   workSessions: defineTable({
     // The GitHub issue being tracked

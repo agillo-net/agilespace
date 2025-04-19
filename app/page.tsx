@@ -7,11 +7,12 @@ import { IssueSearch } from "@/components/issue-search";
 import { IssueList } from "@/components/issue-list";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { TicketHistory } from "@/components/ticket-history";
 
 export default function Home() {
-  const { 
-    searchResults, 
-    isSearching, 
+  const {
+    searchResults,
+    isSearching,
     hasSearched,
     setSearchResults,
     setIsSearching,
@@ -53,13 +54,21 @@ export default function Home() {
 
           <IssueSearch onSearch={handleSearch} />
 
-          {hasSearched && <IssueList issues={searchResults} loading={isSearching} />}
-
-          {!hasSearched && (
-            <div className="text-center py-16 text-muted-foreground">
-              Search for issues above to get started
+          <div className="grid grid-cols-2 gap-6 mt-8">
+            <div className="h-full">
+              <h2 className="text-2xl font-semibold mb-4">Search Results</h2>
+              {hasSearched ? (
+                <IssueList issues={searchResults} loading={isSearching} />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Search for issues above to get started
+                </div>
+              )}
             </div>
-          )}
+            <div className="h-full">
+              <TicketHistory />
+            </div>
+          </div>
         </div>
       </SidebarInset>
     </div>

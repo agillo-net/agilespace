@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { Issue } from '@/types/github';
 
 interface User {
   name: string;
@@ -23,20 +25,6 @@ interface Repository {
   private: boolean;
   fork: boolean;
   updated_at: string;
-}
-
-interface Issue {
-  id: number;
-  number: number;
-  title: string;
-  html_url: string;
-  state: string;
-  updated_at: string;
-  repository_url: string;
-  user: {
-    login: string;
-    avatar_url: string;
-  };
 }
 
 interface Team {
@@ -80,25 +68,25 @@ interface GithubState {
   user: User | null;
   isLoadingUser: boolean;
   userError: string | null;
-  
+
   // Organizations 
   organizations: Organization[];
   isLoadingOrganizations: boolean;
   organizationsError: string | null;
-  
+
   // Organization resources
   repositories: Repository[];
   projects: Project[];
   teams: Team[];
   isLoadingOrgResources: boolean;
   orgResourcesError: string | null;
-  
+
   // User resources
   issues: Issue[];
   pullRequests: PullRequest[];
   isLoadingUserResources: boolean;
   userResourcesError: string | null;
-  
+
   // Team members
   teamMembers: TeamMember[];
   isLoadingTeamMembers: boolean;
@@ -109,6 +97,12 @@ interface GithubState {
   isSearching: boolean;
   hasSearched: boolean;
   searchError: string | null;
+
+  // Tracked tickets
+  trackedTickets: Issue[];
+  addTrackedTicket: (ticket: Issue) => void;
+  removeTrackedTicket: (ticketId: number) => void;
+  clearTrackedTickets: () => void;
 
   // Actions
   setUser: (user: User) => void;
@@ -139,90 +133,110 @@ interface GithubState {
   resetTeamMembersState: () => void;
 }
 
-export const useGithubStore = create<GithubState>((set) => ({
-  // User state
-  user: null,
-  isLoadingUser: false,
-  userError: null,
-  
-  // Organizations state
-  organizations: [],
-  isLoadingOrganizations: false,
-  organizationsError: null,
-  
-  // Organization resources state
-  repositories: [],
-  projects: [],
-  teams: [],
-  isLoadingOrgResources: false,
-  orgResourcesError: null,
-  
-  // User resources state
-  issues: [],
-  pullRequests: [],
-  isLoadingUserResources: false,
-  userResourcesError: null,
-  
-  // Team members state
-  teamMembers: [],
-  isLoadingTeamMembers: false,
-  teamMembersError: null,
-  
-  // Search results state
-  searchResults: [],
-  isSearching: false,
-  hasSearched: false,
-  searchError: null,
+export const useGithubStore = create<GithubState>()(
+  persist(
+    (set) => ({
+      // User state
+      user: null,
+      isLoadingUser: false,
+      userError: null,
 
-  // Actions
-  setUser: (user) => set({ user }),
-  setOrganizations: (organizations) => set({ organizations }),
-  setRepositories: (repositories) => set({ repositories }),
-  setProjects: (projects) => set({ projects }),
-  setTeams: (teams) => set({ teams }),
-  setIssues: (issues) => set({ issues }),
-  setPullRequests: (pullRequests) => set({ pullRequests }),
-  setTeamMembers: (teamMembers) => set({ teamMembers }),
-  setSearchResults: (searchResults) => set({ searchResults }),
-  setIsLoadingUser: (isLoadingUser) => set({ isLoadingUser }),
-  setIsLoadingOrganizations: (isLoadingOrganizations) => set({ isLoadingOrganizations }),
-  setIsLoadingOrgResources: (isLoadingOrgResources) => set({ isLoadingOrgResources }),
-  setIsLoadingUserResources: (isLoadingUserResources) => set({ isLoadingUserResources }),
-  setIsLoadingTeamMembers: (isLoadingTeamMembers) => set({ isLoadingTeamMembers }),
-  setIsSearching: (isSearching) => set({ isSearching }),
-  setHasSearched: (hasSearched) => set({ hasSearched }),
-  setUserError: (userError) => set({ userError }),
-  setOrganizationsError: (organizationsError) => set({ organizationsError }),
-  setOrgResourcesError: (orgResourcesError) => set({ orgResourcesError }),
-  setUserResourcesError: (userResourcesError) => set({ userResourcesError }),
-  setTeamMembersError: (teamMembersError) => set({ teamMembersError }),
-  setSearchError: (searchError) => set({ searchError }),
-  
-  resetSearchState: () => set({ 
-    searchResults: [], 
-    isSearching: false, 
-    hasSearched: false,
-    searchError: null 
-  }),
-  
-  resetOrgResourcesState: () => set({
-    repositories: [],
-    projects: [],
-    teams: [],
-    isLoadingOrgResources: false,
-    orgResourcesError: null
-  }),
-  
-  resetUserResourcesState: () => set({
-    issues: [],
-    pullRequests: [],
-    isLoadingUserResources: false,
-    userResourcesError: null
-  }),
+      // Organizations state
+      organizations: [],
+      isLoadingOrganizations: false,
+      organizationsError: null,
 
-  resetTeamMembersState: () => set({
-    teamMembers: [],
-    isLoadingTeamMembers: false,
-    teamMembersError: null
-  })
-}));
+      // Organization resources state
+      repositories: [],
+      projects: [],
+      teams: [],
+      isLoadingOrgResources: false,
+      orgResourcesError: null,
+
+      // User resources state
+      issues: [],
+      pullRequests: [],
+      isLoadingUserResources: false,
+      userResourcesError: null,
+
+      // Team members state
+      teamMembers: [],
+      isLoadingTeamMembers: false,
+      teamMembersError: null,
+
+      // Search results state
+      searchResults: [],
+      isSearching: false,
+      hasSearched: false,
+      searchError: null,
+
+      // Tracked tickets state
+      trackedTickets: [],
+
+      // Actions
+      setUser: (user) => set({ user }),
+      setOrganizations: (organizations) => set({ organizations }),
+      setRepositories: (repositories) => set({ repositories }),
+      setProjects: (projects) => set({ projects }),
+      setTeams: (teams) => set({ teams }),
+      setIssues: (issues) => set({ issues }),
+      setPullRequests: (pullRequests) => set({ pullRequests }),
+      setTeamMembers: (teamMembers) => set({ teamMembers }),
+      setSearchResults: (searchResults) => set({ searchResults }),
+      setIsLoadingUser: (isLoadingUser) => set({ isLoadingUser }),
+      setIsLoadingOrganizations: (isLoadingOrganizations) => set({ isLoadingOrganizations }),
+      setIsLoadingOrgResources: (isLoadingOrgResources) => set({ isLoadingOrgResources }),
+      setIsLoadingUserResources: (isLoadingUserResources) => set({ isLoadingUserResources }),
+      setIsLoadingTeamMembers: (isLoadingTeamMembers) => set({ isLoadingTeamMembers }),
+      setIsSearching: (isSearching) => set({ isSearching }),
+      setHasSearched: (hasSearched) => set({ hasSearched }),
+      setUserError: (userError) => set({ userError }),
+      setOrganizationsError: (organizationsError) => set({ organizationsError }),
+      setOrgResourcesError: (orgResourcesError) => set({ orgResourcesError }),
+      setUserResourcesError: (userResourcesError) => set({ userResourcesError }),
+      setTeamMembersError: (teamMembersError) => set({ teamMembersError }),
+      setSearchError: (searchError) => set({ searchError }),
+
+      resetSearchState: () => set({
+        searchResults: [],
+        isSearching: false,
+        hasSearched: false,
+        searchError: null
+      }),
+
+      resetOrgResourcesState: () => set({
+        repositories: [],
+        projects: [],
+        teams: [],
+        isLoadingOrgResources: false,
+        orgResourcesError: null
+      }),
+
+      resetUserResourcesState: () => set({
+        issues: [],
+        pullRequests: [],
+        isLoadingUserResources: false,
+        userResourcesError: null
+      }),
+
+      resetTeamMembersState: () => set({
+        teamMembers: [],
+        isLoadingTeamMembers: false,
+        teamMembersError: null
+      }),
+
+      // Tracked tickets actions
+      addTrackedTicket: (ticket) => set((state) => ({
+        trackedTickets: [ticket, ...state.trackedTickets].slice(0, 20)
+      })),
+      removeTrackedTicket: (ticketId) => set((state) => ({
+        trackedTickets: state.trackedTickets.filter(ticket => ticket.id !== ticketId)
+      })),
+      clearTrackedTickets: () => set({ trackedTickets: [] }),
+    }),
+    {
+      name: 'github-storage',
+      partialize: (state) => ({ trackedTickets: state.trackedTickets }),
+    }
+  )
+);

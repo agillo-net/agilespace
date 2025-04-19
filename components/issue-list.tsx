@@ -9,24 +9,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { CircleDot } from "lucide-react";
-
-interface Issue {
-  id: number;
-  title: string;
-  html_url: string;
-  state: string;
-  updated_at: string;
-  repository_url: string;
-  user: {
-    login: string;
-    avatar_url?: string;
-  };
-  assignees?: {
-    login: string;
-    avatar_url?: string;
-  }[];
-}
+import { CircleDot, BookmarkIcon, BookmarkCheckIcon } from "lucide-react";
+import { Issue } from "@/types/github";
+import { useGithubStore } from "@/store/github-store";
+import { Button } from "@/components/ui/button";
 
 interface IssueListProps {
   issues: Issue[];
@@ -35,6 +21,9 @@ interface IssueListProps {
 
 export function IssueList({ issues, loading }: IssueListProps) {
   const { startTracking } = useTimerStore();
+  const { trackedTickets, addTrackedTicket, removeTrackedTicket } = useGithubStore();
+
+  const isTracked = (issue: Issue) => trackedTickets.some(ticket => ticket.id === issue.id);
 
   const handleStartTracking = (issue: Issue) => {
     startTracking({
@@ -42,7 +31,20 @@ export function IssueList({ issues, loading }: IssueListProps) {
       title: issue.title,
       url: issue.html_url,
     });
+    // Automatically add to tracked tickets when starting to track time
+    if (!isTracked(issue)) {
+      addTrackedTicket(issue);
+    }
   };
+
+  const handleTrackToggle = (issue: Issue) => {
+    if (isTracked(issue)) {
+      removeTrackedTicket(issue.id);
+    } else {
+      addTrackedTicket(issue);
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -156,12 +158,26 @@ export function IssueList({ issues, loading }: IssueListProps) {
 
                 <div className="flex-1"></div>
 
-                <button
-                  onClick={() => handleStartTracking(issue)}
-                  className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                >
-                  Track Time
-                </button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleTrackToggle(issue)}
+                    className="h-8 w-8"
+                  >
+                    {isTracked(issue) ? (
+                      <BookmarkCheckIcon className="h-4 w-4" />
+                    ) : (
+                      <BookmarkIcon className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => handleStartTracking(issue)}
+                    className="h-8"
+                  >
+                    Track Time
+                  </Button>
+                </div>
               </div>
             </div>
           );

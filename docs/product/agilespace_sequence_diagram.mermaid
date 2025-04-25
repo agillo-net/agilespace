@@ -1,0 +1,56 @@
+sequenceDiagram
+    participant U as User
+    participant A as AuthService
+    participant G as GitHub API
+    participant D as Dashboard
+    participant C as CommandModal
+    participant S as SpacierPanel
+    participant WS as WebSocketManager
+    participant DB as Database
+
+    %% Authentication Flow
+    U->>A: Click Login
+    A->>G: Initiate OAuth
+    G-->>U: Redirect to GitHub
+    U->>G: Authorize App
+    G-->>A: Auth Code
+    A->>G: Exchange Token
+    G-->>A: Access Token
+    A->>DB: Store User Session
+    A-->>U: Redirect to Dashboard
+
+    %% Dashboard Initialization
+    U->>D: Access Dashboard
+    D->>G: Fetch Organizations
+    G-->>D: Return Org List
+    D->>G: Fetch Selected Org Data
+    G-->>D: Return Repositories, Teams
+    D-->>U: Display Dashboard
+
+    %% Issue Search and Session Start
+    U->>C: Open Command Modal (Cmd+J)
+    C->>G: Search Issues
+    G-->>C: Return Filtered Issues
+    C-->>U: Display Results
+    U->>C: Select Issue
+    C->>S: Start Session
+    S->>WS: Initialize Session
+    WS->>DB: Create Session Record
+    WS-->>S: Session Started
+    S-->>U: Show Active Session
+
+    %% Real-time Session Updates
+    U->>S: Update Notes
+    S->>WS: Emit Update
+    WS->>DB: Store Update
+    WS-->>S: Confirm Update
+    S-->>U: Show Updated Notes
+
+    %% Session Completion
+    U->>S: Stop Session
+    S->>WS: End Session
+    WS->>DB: Update Session Record
+    WS->>G: Update Issue (optionally)
+    G-->>WS: Confirm Update
+    WS-->>S: Session Ended
+    S-->>U: Clear Active Session

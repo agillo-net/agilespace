@@ -1,189 +1,184 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
-
-// Replace 'any' types with appropriate types
-interface UserProfile {
-  // Define the user profile properties here
-  name?: string;
-  avatar_url?: string;
-  login?: string;
-  bio?: string;
-  location?: string;
-  // Add other properties as needed
-}
-
-interface RepositoryData {
-  // Define the repository data properties
-  id: number;
-  name: string;
-  html_url: string;
-  description?: string;
-  language?: string;
-  stargazers_count: number;
-  forks_count: number;
-  // Add other properties as needed
-}
+import { useEffect } from "react";
+import { useGithubStore } from "@/store/github-store";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ExternalLink } from "@/components/ui/external-link";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 export default function ProfilePage() {
-  const [userData, setUserData] = useState<UserProfile | null>(null)
-  const [userRepos, setUserRepos] = useState<RepositoryData[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    user,
+    repos,
+    orgs,
+    isLoadingUser,
+    isLoadingRepos,
+    isLoadingOrgs,
+    userError,
+    reposError,
+    orgsError,
+    fetchUserProfile,
+    fetchUserRepos,
+    fetchUserOrgs,
+  } = useGithubStore();
 
   useEffect(() => {
-    async function fetchData() {
-      setIsLoading(true)
-      setError(null)
-      
-      try {
-        // Fetch user details
-        const userResponse = await fetch('/api/github/user')
-        if (!userResponse.ok) throw new Error('Failed to fetch user data')
-        const userData = await userResponse.json()
-        setUserData(userData)
-        
-        // Fetch user repositories
-        const reposResponse = await fetch('/api/github/repos')
-        if (!reposResponse.ok) throw new Error('Failed to fetch repositories')
-        const reposData = await reposResponse.json()
-        setUserRepos(reposData)
-      } catch (err) {
-        console.error('Error fetching data:', err)
-        setError(err instanceof Error ? err.message : 'Unknown error occurred')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    
-    fetchData()
-  }, [])
-
-  if (isLoading) {
-    return <ProfileSkeleton />
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <Card className="border-red-200">
-          <CardHeader>
-            <CardTitle>Error Loading Profile</CardTitle>
-            <CardDescription>
-              We encountered a problem while loading your profile data.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-red-500">{error}</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+    // Fetch user profile and related data when component mounts
+    fetchUserProfile();
+    fetchUserRepos();
+    fetchUserOrgs();
+  }, [fetchUserProfile, fetchUserRepos, fetchUserOrgs]);
 
   return (
-    <div className="space-y-8">
-      {/* Profile Header */}
-      <Card>
-        <CardHeader className="flex flex-row items-center gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={userData?.avatar_url} alt={userData?.login} />
-            <AvatarFallback>{userData?.login?.[0]?.toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <div>
-            <CardTitle className="text-2xl">{userData?.name || userData?.login}</CardTitle>
-            <CardDescription>{userData?.bio || "No bio available"}</CardDescription>
-            {userData?.location && (
-              <div className="text-muted-foreground text-sm mt-1">
-                {userData.location}
-              </div>
-            )}
-          </div>
-        </CardHeader>
-      </Card>
+    <div className="flex flex-1">
+      <AppSidebar />
+      <SidebarInset>
+        <div className="container mx-auto py-6">
+          <h1 className="text-3xl font-bold mb-8">Profile</h1>
 
-      {/* User Repositories */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Your Recent Repositories</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {userRepos.length > 0 ? (
-            userRepos.map((repo) => (
-              <Card key={repo.id} className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle className="text-base">
-                    <Link href={repo.html_url} target="_blank" className="hover:underline">
-                      {repo.name}
-                    </Link>
-                  </CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {repo.description || "No description available"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex gap-2 flex-wrap">
-                    {repo.language && (
-                      <Badge variant="outline">{repo.language}</Badge>
-                    )}
-                    <Badge variant="secondary">⭐ {repo.stargazers_count}</Badge>
-                    <Badge variant="secondary">🍴 {repo.forks_count}</Badge>
+          {/* User Profile */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>GitHub Profile</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingUser ? (
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-16 w-16 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-4 w-64" />
                   </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <Card>
-              <CardContent className="pt-6">
-                No repositories found.
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ProfileSkeleton() {
-  return (
-    <div className="space-y-8">
-      {/* Profile Header Skeleton */}
-      <Card>
-        <CardHeader className="flex flex-row items-center gap-4">
-          <Skeleton className="h-16 w-16 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-6 w-40" />
-            <Skeleton className="h-4 w-64" />
-            <Skeleton className="h-4 w-24" />
-          </div>
-        </CardHeader>
-      </Card>
-
-      {/* Repository List Skeleton */}
-      <div>
-        <Skeleton className="h-8 w-48 mb-4" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Array(4).fill(0).map((_, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-4 w-full" />
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex gap-2">
-                  <Skeleton className="h-5 w-16" />
-                  <Skeleton className="h-5 w-12" />
-                  <Skeleton className="h-5 w-12" />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              ) : userError ? (
+                <div className="text-destructive">Error: {userError}</div>
+              ) : user ? (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={user.avatarUrl} alt={user.login} />
+                    <AvatarFallback>
+                      {user.login.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="text-lg font-semibold">{user.name}</h3>
+                    <p className="text-muted-foreground">@{user.login}</p>
+                    <ExternalLink
+                      href={user.url}
+                      className="mt-2"
+                      title="View on GitHub"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-muted-foreground">
+                  No profile data available. Please login with GitHub.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Organizations */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Organizations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingOrgs ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-16" />
+                  ))}
+                </div>
+              ) : orgsError ? (
+                <div className="text-destructive">Error: {orgsError}</div>
+              ) : orgs.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {orgs.map((org) => (
+                    <Card key={org.login} className="overflow-hidden">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage src={org.avatarUrl} alt={org.login} />
+                          <AvatarFallback>
+                            {org.login.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{org.name || org.login}</p>
+                          <ExternalLink
+                            href={org.url}
+                            className="text-sm text-muted-foreground"
+                            title={`@${org.login}`}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-muted-foreground">
+                  No organizations found.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Repositories */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Repositories</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingRepos ? (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-20" />
+                  ))}
+                </div>
+              ) : reposError ? (
+                <div className="text-destructive">Error: {reposError}</div>
+              ) : repos.length > 0 ? (
+                <div className="divide-y">
+                  {repos.slice(0, 10).map((repo) => (
+                    <div key={repo.id} className="py-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-medium">
+                            <ExternalLink
+                              href={repo.url}
+                              title={`${repo.owner}/${repo.name}`}
+                            />
+                          </h3>
+                          {repo.description && (
+                            <p className="text-muted-foreground text-sm mt-1">
+                              {repo.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            ⭐ {repo.stargazerCount}
+                          </Badge>
+                          <Badge variant="outline">🍴 {repo.forkCount}</Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-muted-foreground">
+                  No repositories found.
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
-      </div>
+      </SidebarInset>
     </div>
-  )
+  );
 }

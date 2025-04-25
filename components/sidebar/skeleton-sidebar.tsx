@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function OrgSidebarSkeleton() {
+export function SkeletonSidebar() {
   return (
     <div className="space-y-0">
       {/* Repository Section Skeleton */}

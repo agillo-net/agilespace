@@ -1,24 +1,36 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data?.session) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    // Use the GitHub token from the session to fetch user data
-    const accessToken = session.accessToken as string;
-    
+    // Extract the GitHub access token from the user's session
+    // This assumes your Supabase auth has linked GitHub provider
+    const provider = data.session.user?.app_metadata?.provider;
+    const providerToken = data.session.provider_token;
+
+    if (!providerToken || provider !== 'github') {
+      return NextResponse.json(
+        { error: "No GitHub access token available" },
+        { status: 401 }
+      );
+    }
+
     const response = await fetch("https://api.github.com/user", {
       headers: {
-        Authorization: `token ${accessToken}`,
+        Authorization: `Bearer ${providerToken}`,
         Accept: "application/vnd.github.v3+json",
+        "X-GitHub-Api-Version": "2022-11-28"
       },
     });
 
     if (!response.ok) {
+      console.error("GitHub API response status:", response.status);
       return NextResponse.json(
         { error: "Failed to fetch GitHub user data" },
         { status: response.status }
@@ -26,6 +38,7 @@ export async function GET() {
     }
 
     const userData = await response.json();
+
     return NextResponse.json(userData);
   } catch (error) {
     console.error("Error in GitHub user API:", error);

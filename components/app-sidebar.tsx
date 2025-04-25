@@ -4,7 +4,6 @@ import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useGithubStore } from "@/store/github-store";
 import { useUIStore } from "@/store/ui-store";
-import { fetchOrganizations, fetchUserData } from "@/lib/api-services";
 import {
   Sidebar,
   SidebarContent,
@@ -23,17 +22,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Get state from GitHub store
+  // Get state from GitHub store using the new implementation
   const {
     user,
-    organizations,
-    isLoadingOrganizations,
-    setUser,
-    setOrganizations,
-    setIsLoadingUser,
-    setIsLoadingOrganizations,
-    setUserError,
-    setOrganizationsError
+    orgs,
+    isLoadingUser,
+    isLoadingOrgs,
+    fetchUserProfile,
+    fetchUserOrgs
   } = useGithubStore();
 
   // Get UI state
@@ -42,42 +38,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Fetch GitHub user and organizations data
   React.useEffect(() => {
-    const fetchData = async () => {
-      setIsLoadingUser(true);
-      setIsLoadingOrganizations(true);
-
-      try {
-        // Fetch user data
-        const userData = await fetchUserData();
-        setUser(userData);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        setUserError(error instanceof Error ? error.message : "Failed to fetch user data");
-      } finally {
-        setIsLoadingUser(false);
-      }
-
-      try {
-        // Fetch organizations data
-        const orgsData = await fetchOrganizations();
-        setOrganizations(orgsData);
-      } catch (error) {
-        console.error("Error fetching organizations:", error);
-        setOrganizationsError(error instanceof Error ? error.message : "Failed to fetch organizations");
-      } finally {
-        setIsLoadingOrganizations(false);
-      }
-    };
-
-    fetchData();
-  }, [
-    setIsLoadingOrganizations,
-    setIsLoadingUser,
-    setOrganizations,
-    setOrganizationsError,
-    setUser,
-    setUserError
-  ]);
+    fetchUserProfile();
+    fetchUserOrgs();
+  }, [fetchUserProfile, fetchUserOrgs]);
 
   // Navigation handler
   const handleNavigation = async (org: { title: string; url: string; avatar: string; isActive: boolean }) => {
@@ -92,20 +55,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     return {
       name: user.name || user.login || "Unknown User",
-      email: user.email || `@${user.login}`,
-      avatar: user.avatar_url || "",
+      email: `@${user.login}`, // GitHub GraphQL API doesn't return email, we use login instead
+      avatar: user.avatarUrl || "",
     };
   }, [user]);
 
   // Create navigation items from organizations
   const navItems = React.useMemo(() => {
-    return organizations.map((org) => ({
+    return orgs.map((org) => ({
       title: org.login,
       url: `/orgs/${org.login}`,
-      avatar: org.avatar_url,
-      isActive: pathname === `/${org.login}`,
+      avatar: org.avatarUrl,
+      isActive: pathname === `/orgs/${org.login}`,
     }));
-  }, [organizations, pathname]);
+  }, [orgs, pathname]);
 
   return (
     <Sidebar
@@ -116,7 +79,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarGroupLabel>Organizations</SidebarGroupLabel>
           <SidebarMenu>
-            {isLoadingOrganizations ? (
+            {isLoadingOrgs ? (
               <div className="px-4 py-2 text-sm text-muted-foreground">Loading...</div>
             ) : navItems.length === 0 ? (
               <div className="px-4 py-2 text-sm text-muted-foreground">No organizations found</div>

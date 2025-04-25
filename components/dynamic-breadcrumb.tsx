@@ -9,7 +9,7 @@ import { useRepositoryStore } from "@/store/repository-store";
 
 export function DynamicBreadcrumb() {
   const pathname = usePathname();
-  const { organizations } = useGithubStore();
+  const { orgs } = useGithubStore();
   const { repository, organizationDetails } = useRepositoryStore();
   
   // Don't show anything on the root path
@@ -28,11 +28,11 @@ export function DynamicBreadcrumb() {
       
       // Check if this segment matches an organization name
       if (index === 0) {
-        const matchedOrg = organizations.find(org => org.login === segment);
+        const matchedOrg = orgs.find(org => org.login === segment);
         if (matchedOrg) {
-          name = matchedOrg.login;
+          name = matchedOrg.name || matchedOrg.login;
         } else if (organizationDetails && organizationDetails.login === segment) {
-          name = organizationDetails.login;
+          name = organizationDetails.name || organizationDetails.login;
         }
       }
       

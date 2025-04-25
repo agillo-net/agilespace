@@ -1,0 +1,92 @@
+classDiagram
+    class AuthService {
+        -githubProvider: GithubProvider
+        +login(credentials: GithubCredentials)
+        +logout()
+        +getCurrentUser(): User
+        +refreshToken()
+    }
+
+    class User {
+        +id: string
+        +name: string
+        +email: string
+        +avatarUrl: string
+        +githubToken: string
+        +organizations: Organization[]
+    }
+
+    class Organization {
+        +id: string
+        +name: string
+        +avatarUrl: string
+        +repositories: Repository[]
+        +teams: Team[]
+        +members: User[]
+    }
+
+    class Repository {
+        +id: string
+        +name: string
+        +description: string
+        +issues: Issue[]
+        +getIssues(filters: IssueFilter): Issue[]
+    }
+
+    class Issue {
+        +id: string
+        +title: string
+        +number: number
+        +state: string
+        +assignees: User[]
+        +labels: string[]
+        +workSessions: WorkSession[]
+    }
+
+    class WorkSession {
+        +id: string
+        +issueId: string
+        +startTime: DateTime
+        +endTime: DateTime
+        +participants: User[]
+        +notes: string
+        +status: SessionStatus
+        +start()
+        +stop()
+        +addParticipant(user: User)
+        +updateNotes(content: string)
+    }
+
+    class SpacierPanel {
+        +activeSession: WorkSession
+        +sessionHistory: WorkSession[]
+        +togglePanel()
+        +startSession(issue: Issue)
+        +stopSession()
+        +updateSessionNotes(content: string)
+    }
+
+    class CommandModal {
+        +searchQuery: string
+        +filters: IssueFilter
+        +searchIssues(query: string): Issue[]
+        +applyFilters(filters: IssueFilter)
+        +startSession(issue: Issue)
+    }
+
+    class WebSocketManager {
+        +socket: Socket
+        +connect()
+        +disconnect()
+        +subscribeToSession(sessionId: string)
+        +emitSessionUpdate(update: SessionUpdate)
+    }
+
+    User "1" -- "*" Organization
+    Organization "1" -- "*" Repository
+    Repository "1" -- "*" Issue
+    Issue "1" -- "*" WorkSession
+    WorkSession "*" -- "*" User
+    SpacierPanel "1" -- "1" WorkSession
+    WorkSession -- WebSocketManager
+    CommandModal -- Issue

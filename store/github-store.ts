@@ -1,228 +1,400 @@
-import { create } from 'zustand';
+import { create } from "zustand";
+import {
+  getUserOrgs,
+  getUserRepos,
+  getCurrentUser,
+  searchIssues,
+  getOrgRepos,
+  getOrgProjects,
+  getOrgTeams,
+  getUserIssues,
+  getUserPullRequests,
+} from "@/lib/github-client";
 
-interface User {
+export interface GitHubRepo {
+  id: string;
   name: string;
-  login: string;
-  email?: string;
-  avatar_url: string;
-}
-
-interface Organization {
-  login: string;
-  avatar_url: string;
-  description?: string;
-  url: string;
-}
-
-interface Repository {
-  id: number;
-  name: string;
-  full_name: string;
-  html_url: string;
+  owner: string;
   description: string;
-  private: boolean;
-  fork: boolean;
-  updated_at: string;
+  url: string;
+  stargazerCount: number;
+  forkCount: number;
 }
 
-interface Issue {
-  id: number;
+export interface GitHubIssue {
+  id: string;
   number: number;
   title: string;
-  html_url: string;
+  url: string;
   state: string;
-  updated_at: string;
-  repository_url: string;
-  user: {
-    login: string;
-    avatar_url: string;
+  created_at: string;
+  repo: {
+    name: string;
+    owner: string;
   };
 }
 
-interface Team {
-  id: number;
+export interface GitHubProject {
+  id: string;
+  title: string;
+  number: number;
+  closed: boolean;
+  shortDescription?: string;
+  url: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GitHubTeam {
+  id: string;
   name: string;
   slug: string;
-  description: string;
+  description?: string;
+  url?: string;
 }
 
-interface TeamMember {
+interface GitHubUser {
   login: string;
-  avatar_url: string;
-  html_url: string;
-  name?: string;
-  role: string;
-}
-
-interface Project {
-  id: number;
-  title: string;
+  name: string;
+  avatarUrl: string;
   url: string;
-  body: string;
 }
 
-interface PullRequest {
-  id: number;
-  number: number;
-  title: string;
-  html_url: string;
-  state: string;
-  updated_at: string;
-  repository_url: string;
-  user: {
-    login: string;
-    avatar_url: string;
-  };
+interface GitHubOrg {
+  login: string;
+  name: string;
+  avatarUrl: string;
+  url: string;
 }
 
-interface GithubState {
+interface GitHubState {
   // User data
-  user: User | null;
+  user: GitHubUser | null;
   isLoadingUser: boolean;
   userError: string | null;
-  
-  // Organizations 
-  organizations: Organization[];
-  isLoadingOrganizations: boolean;
-  organizationsError: string | null;
-  
+
+  // Organizations
+  orgs: GitHubOrg[];
+  isLoadingOrgs: boolean;
+  orgsError: string | null;
+
+  // Repositories
+  repos: GitHubRepo[];
+  isLoadingRepos: boolean;
+  reposError: string | null;
+
   // Organization resources
-  repositories: Repository[];
-  projects: Project[];
-  teams: Team[];
+  orgRepos: GitHubRepo[];
+  orgProjects: GitHubProject[];
+  orgTeams: GitHubTeam[];
   isLoadingOrgResources: boolean;
   orgResourcesError: string | null;
-  
+
   // User resources
-  issues: Issue[];
-  pullRequests: PullRequest[];
+  userIssues: GitHubIssue[];
+  userPullRequests: any[];
   isLoadingUserResources: boolean;
   userResourcesError: string | null;
-  
-  // Team members
-  teamMembers: TeamMember[];
-  isLoadingTeamMembers: boolean;
-  teamMembersError: string | null;
 
-  // Search results
-  searchResults: Issue[];
+  // Search
+  searchResults: GitHubIssue[];
   isSearching: boolean;
   hasSearched: boolean;
   searchError: string | null;
 
   // Actions
-  setUser: (user: User) => void;
-  setOrganizations: (orgs: Organization[]) => void;
-  setRepositories: (repos: Repository[]) => void;
-  setProjects: (projects: Project[]) => void;
-  setTeams: (teams: Team[]) => void;
-  setIssues: (issues: Issue[]) => void;
-  setPullRequests: (prs: PullRequest[]) => void;
-  setTeamMembers: (members: TeamMember[]) => void;
-  setSearchResults: (issues: Issue[]) => void;
-  setIsLoadingUser: (loading: boolean) => void;
-  setIsLoadingOrganizations: (loading: boolean) => void;
-  setIsLoadingOrgResources: (loading: boolean) => void;
-  setIsLoadingUserResources: (loading: boolean) => void;
-  setIsLoadingTeamMembers: (loading: boolean) => void;
-  setIsSearching: (searching: boolean) => void;
+  fetchUserProfile: () => Promise<void>;
+  fetchUserOrgs: () => Promise<void>;
+  fetchUserRepos: () => Promise<void>;
+  fetchOrgResources: (org: string) => Promise<void>;
+  fetchUserResources: () => Promise<void>;
+  searchIssues: (query: string, orgs: string[]) => Promise<void>;
+  setSearchResults: (issues: GitHubIssue[]) => void;
+  setIsSearching: (isSearching: boolean) => void;
   setHasSearched: (hasSearched: boolean) => void;
-  setUserError: (error: string | null) => void;
-  setOrganizationsError: (error: string | null) => void;
-  setOrgResourcesError: (error: string | null) => void;
-  setUserResourcesError: (error: string | null) => void;
-  setTeamMembersError: (error: string | null) => void;
   setSearchError: (error: string | null) => void;
   resetSearchState: () => void;
+  setOrgRepos: (repos: GitHubRepo[]) => void;
+  setOrgProjects: (projects: GitHubProject[]) => void;
+  setOrgTeams: (teams: GitHubTeam[]) => void;
+  setIsLoadingOrgResources: (loading: boolean) => void;
+  setOrgResourcesError: (error: string | null) => void;
   resetOrgResourcesState: () => void;
+  setUserIssues: (issues: GitHubIssue[]) => void;
+  setUserPullRequests: (prs: any[]) => void;
+  setIsLoadingUserResources: (loading: boolean) => void;
+  setUserResourcesError: (error: string | null) => void;
   resetUserResourcesState: () => void;
-  resetTeamMembersState: () => void;
 }
 
-export const useGithubStore = create<GithubState>((set) => ({
-  // User state
+export const useGithubStore = create<GitHubState>((set, get) => ({
+  // User data
   user: null,
   isLoadingUser: false,
   userError: null,
-  
-  // Organizations state
-  organizations: [],
-  isLoadingOrganizations: false,
-  organizationsError: null,
-  
-  // Organization resources state
-  repositories: [],
-  projects: [],
-  teams: [],
+
+  // Organizations
+  orgs: [],
+  isLoadingOrgs: false,
+  orgsError: null,
+
+  // Repositories
+  repos: [],
+  isLoadingRepos: false,
+  reposError: null,
+
+  // Organization resources
+  orgRepos: [],
+  orgProjects: [],
+  orgTeams: [],
   isLoadingOrgResources: false,
   orgResourcesError: null,
-  
-  // User resources state
-  issues: [],
-  pullRequests: [],
+
+  // User resources
+  userIssues: [],
+  userPullRequests: [],
   isLoadingUserResources: false,
   userResourcesError: null,
-  
-  // Team members state
-  teamMembers: [],
-  isLoadingTeamMembers: false,
-  teamMembersError: null,
-  
-  // Search results state
+
+  // Search
   searchResults: [],
   isSearching: false,
   hasSearched: false,
   searchError: null,
 
   // Actions
-  setUser: (user) => set({ user }),
-  setOrganizations: (organizations) => set({ organizations }),
-  setRepositories: (repositories) => set({ repositories }),
-  setProjects: (projects) => set({ projects }),
-  setTeams: (teams) => set({ teams }),
-  setIssues: (issues) => set({ issues }),
-  setPullRequests: (pullRequests) => set({ pullRequests }),
-  setTeamMembers: (teamMembers) => set({ teamMembers }),
-  setSearchResults: (searchResults) => set({ searchResults }),
-  setIsLoadingUser: (isLoadingUser) => set({ isLoadingUser }),
-  setIsLoadingOrganizations: (isLoadingOrganizations) => set({ isLoadingOrganizations }),
-  setIsLoadingOrgResources: (isLoadingOrgResources) => set({ isLoadingOrgResources }),
-  setIsLoadingUserResources: (isLoadingUserResources) => set({ isLoadingUserResources }),
-  setIsLoadingTeamMembers: (isLoadingTeamMembers) => set({ isLoadingTeamMembers }),
+  fetchUserProfile: async () => {
+    set({ isLoadingUser: true, userError: null });
+
+    try {
+      // Use Octokit REST API via our client utility
+      const userData = await getCurrentUser();
+
+      // Transform the data to match our interface
+      const user: GitHubUser = {
+        login: userData.login,
+        name: userData.name || userData.login,
+        avatarUrl: userData.avatar_url,
+        url: userData.html_url,
+      };
+
+      set({ user, isLoadingUser: false });
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      set({
+        userError:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch user profile",
+        isLoadingUser: false,
+      });
+    }
+  },
+
+  fetchUserOrgs: async () => {
+    set({ isLoadingOrgs: true, orgsError: null });
+
+    try {
+      // Use Octokit REST API via our client utility
+      const orgsData = await getUserOrgs();
+
+      // Transform the data to match our interface
+      const orgs: GitHubOrg[] = orgsData.map((org) => ({
+        login: org.login,
+        name: org.login,
+        avatarUrl: org.avatar_url,
+        url: org.url,
+      }));
+
+      set({ orgs, isLoadingOrgs: false });
+    } catch (error) {
+      console.error("Error fetching user organizations:", error);
+      set({
+        orgsError:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch organizations",
+        isLoadingOrgs: false,
+        // Don't clear existing orgs if we have them
+        orgs: get().orgs,
+      });
+    }
+  },
+
+  fetchUserRepos: async () => {
+    set({ isLoadingRepos: true, reposError: null });
+
+    try {
+      // Use Octokit REST API via our client utility
+      const reposData = await getUserRepos({ sort: "updated" });
+
+      // Transform the data to match our interface
+      const repos: GitHubRepo[] = reposData.map((repo) => ({
+        id: repo.node_id,
+        name: repo.name,
+        owner: repo.owner.login,
+        description: repo.description || "",
+        url: repo.html_url,
+        stargazerCount: repo.stargazers_count,
+        forkCount: repo.forks_count,
+      }));
+
+      set({ repos, isLoadingRepos: false });
+    } catch (error) {
+      console.error("Error fetching user repositories:", error);
+      set({
+        reposError:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch repositories",
+        isLoadingRepos: false,
+      });
+    }
+  },
+
+  fetchOrgResources: async (org) => {
+    set({ isLoadingOrgResources: true, orgResourcesError: null });
+    try {
+      const [repos, projects, teams] = await Promise.all([
+        getOrgRepos(org),
+        getOrgProjects(org),
+        getOrgTeams(org),
+      ]);
+      set({
+        orgRepos: repos.map((repo) => ({
+          id: repo.node_id,
+          name: repo.name,
+          owner: repo.owner.login,
+          description: repo.description || "",
+          url: repo.html_url,
+          stargazerCount: repo.stargazers_count || 0,
+          forkCount: repo.forks_count || 0,
+        })),
+        orgProjects: projects,
+        orgTeams: teams.map((team) => ({
+          id: team.id.toString(),
+          name: team.name,
+          slug: team.slug,
+          description: team.description || undefined,
+          url: team.html_url || undefined,
+        })),
+        isLoadingOrgResources: false,
+      });
+    } catch (error) {
+      set({
+        orgResourcesError:
+          error instanceof Error
+            ? error.message
+            : "Failed to load organization resources",
+        isLoadingOrgResources: false,
+      });
+    }
+  },
+
+  fetchUserResources: async () => {
+    set({ isLoadingUserResources: true, userResourcesError: null });
+    try {
+      const [issues, prs] = await Promise.all([
+        getUserIssues(),
+        getUserPullRequests(),
+      ]);
+      set({
+        userIssues: issues.map((issue) => ({
+          id: issue.node_id,
+          number: issue.number,
+          title: issue.title,
+          url: issue.html_url,
+          state: issue.state.toUpperCase(),
+          created_at: issue.created_at,
+          repo: {
+            name: issue.repository_url.split("/").pop() || "",
+            owner: issue.repository_url.split("/").slice(-2, -1)[0] || "",
+          },
+        })),
+        userPullRequests: prs,
+        isLoadingUserResources: false,
+      });
+    } catch (error) {
+      set({
+        userResourcesError:
+          error instanceof Error
+            ? error.message
+            : "Failed to load user resources",
+        isLoadingUserResources: false,
+      });
+    }
+  },
+
+  searchIssues: async (query: string, orgs: string[]) => {
+    set({ isSearching: true, hasSearched: true, searchError: null });
+
+    try {
+      // Construct the search query with organization filters
+      const orgFilters = orgs.map((org) => `org:${org}`).join(" ");
+      const searchQuery = `${query} ${orgFilters} is:issue`.trim();
+
+      // Use Octokit REST API via our client utility
+      const searchData = await searchIssues(searchQuery, {
+        sort: "updated",
+        order: "desc",
+      });
+
+      // Transform the data to match our interface
+      const issues: GitHubIssue[] = searchData.items.map((item) => ({
+        id: item.node_id,
+        number: item.number,
+        title: item.title,
+        url: item.html_url,
+        state: item.state.toUpperCase(),
+        created_at: item.created_at,
+        repo: {
+          name: item.repository_url.split("/").pop() || "",
+          owner: item.repository_url.split("/").slice(-2, -1)[0] || "",
+        },
+      }));
+
+      set({ searchResults: issues, isSearching: false });
+    } catch (error) {
+      console.error("Error searching issues:", error);
+      set({
+        searchError:
+          error instanceof Error ? error.message : "Failed to search issues",
+        isSearching: false,
+      });
+    }
+  },
+
+  setSearchResults: (issues) => set({ searchResults: issues }),
   setIsSearching: (isSearching) => set({ isSearching }),
   setHasSearched: (hasSearched) => set({ hasSearched }),
-  setUserError: (userError) => set({ userError }),
-  setOrganizationsError: (organizationsError) => set({ organizationsError }),
-  setOrgResourcesError: (orgResourcesError) => set({ orgResourcesError }),
-  setUserResourcesError: (userResourcesError) => set({ userResourcesError }),
-  setTeamMembersError: (teamMembersError) => set({ teamMembersError }),
-  setSearchError: (searchError) => set({ searchError }),
-  
-  resetSearchState: () => set({ 
-    searchResults: [], 
-    isSearching: false, 
-    hasSearched: false,
-    searchError: null 
-  }),
-  
-  resetOrgResourcesState: () => set({
-    repositories: [],
-    projects: [],
-    teams: [],
-    isLoadingOrgResources: false,
-    orgResourcesError: null
-  }),
-  
-  resetUserResourcesState: () => set({
-    issues: [],
-    pullRequests: [],
-    isLoadingUserResources: false,
-    userResourcesError: null
-  }),
+  setSearchError: (error) => set({ searchError: error }),
+  resetSearchState: () =>
+    set({
+      searchResults: [],
+      isSearching: false,
+      hasSearched: false,
+      searchError: null,
+    }),
 
-  resetTeamMembersState: () => set({
-    teamMembers: [],
-    isLoadingTeamMembers: false,
-    teamMembersError: null
-  })
+  setOrgRepos: (repos) => set({ orgRepos: repos }),
+  setOrgProjects: (projects) => set({ orgProjects: projects }),
+  setOrgTeams: (teams) => set({ orgTeams: teams }),
+  setIsLoadingOrgResources: (loading) =>
+    set({ isLoadingOrgResources: loading }),
+  setOrgResourcesError: (error) => set({ orgResourcesError: error }),
+  resetOrgResourcesState: () =>
+    set({
+      orgRepos: [],
+      orgProjects: [],
+      orgTeams: [],
+      orgResourcesError: null,
+    }),
+
+  setUserIssues: (issues) => set({ userIssues: issues }),
+  setUserPullRequests: (prs) => set({ userPullRequests: prs }),
+  setIsLoadingUserResources: (loading) =>
+    set({ isLoadingUserResources: loading }),
+  setUserResourcesError: (error) => set({ userResourcesError: error }),
+  resetUserResourcesState: () =>
+    set({ userIssues: [], userPullRequests: [], userResourcesError: null }),
 }));

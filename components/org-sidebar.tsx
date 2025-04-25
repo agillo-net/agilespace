@@ -5,12 +5,12 @@ import { useRouter, usePathname } from "next/navigation";
 import { useGithubStore } from "@/store/github-store";
 import { useUIStore } from "@/store/ui-store";
 import {
-  fetchOrganizationRepositories,
-  fetchOrganizationProjects,
-  fetchOrganizationTeams,
-  fetchUserIssues,
-  fetchUserPullRequests,
-} from "@/lib/api-services";
+  getOrgRepos,
+  getOrgProjects,
+  getOrgTeams,
+  getUserIssues,
+  getUserPullRequests,
+} from "@/lib/github-client";
 
 import {
   Sidebar,
@@ -27,7 +27,7 @@ import { ProfileSidebar } from "@/components/sidebar/profile-sidebar";
 import {
   OrgSidebarSkeleton,
   ProfileSidebarSkeleton,
-} from "@/components/sidebar/sidebar-skeletons";
+} from "@/components/sidebar/skeleton-sidebar";
 import { OrgSwitcher } from "@/components/org-switcher";
 
 export function OrgSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -37,24 +37,24 @@ export function OrgSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Get state from GitHub store
   const {
     user,
-    organizations,
-    repositories,
+    orgs,
+    repos,
     projects,
     teams,
     issues,
     pullRequests,
     isLoadingOrgResources,
     isLoadingUserResources,
-    orgResourcesError,
+    orgsError: orgResourcesError,
     userResourcesError,
-    setRepositories,
+    setRepos: setRepositories,
     setProjects,
     setTeams,
     setIssues,
     setPullRequests,
     setIsLoadingOrgResources,
     setIsLoadingUserResources,
-    setOrgResourcesError,
+    setOrgsError: setOrgResourcesError,
     setUserResourcesError,
     resetOrgResourcesState,
     resetUserResourcesState,
@@ -78,11 +78,11 @@ export function OrgSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       resetUserResourcesState();
 
       try {
-        // Fetch repos, projects, and teams in parallel
+        // Fetch repos, projects, and teams in parallel using github-client
         const [reposData, projectsData, teamsData] = await Promise.all([
-          fetchOrganizationRepositories(orgName),
-          fetchOrganizationProjects(orgName),
-          fetchOrganizationTeams(orgName),
+          getOrgRepos(orgName),
+          getOrgProjects(orgName),
+          getOrgTeams(orgName),
         ]);
 
         setRepositories(reposData);
@@ -106,10 +106,10 @@ export function OrgSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       resetUserResourcesState();
 
       try {
-        // Fetch issues and PRs in parallel
+        // Fetch issues and PRs in parallel using github-client
         const [issuesData, prsData] = await Promise.all([
-          fetchUserIssues(),
-          fetchUserPullRequests(),
+          getUserIssues(),
+          getUserPullRequests(),
         ]);
 
         setIssues(issuesData);
@@ -154,20 +154,20 @@ export function OrgSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     return {
       name: user.name || user.login || "Unknown User",
-      email: user.email || `@${user.login}`,
-      avatar: user.avatar_url || "",
+      email: user.login ? `@${user.login}` : "",
+      avatar: user.avatarUrl || "",
     };
   }, [user]);
 
   // Create formatted navigation items
   const navItems = React.useMemo(() => {
-    return organizations.map((org) => ({
+    return orgs.map((org: any) => ({
       title: org.login,
       url: `/${org.login}`,
-      avatar: org.avatar_url,
+      avatar: org.avatarUrl,
       isActive: org.login === activeOrganization,
     }));
-  }, [organizations, activeOrganization]);
+  }, [orgs, activeOrganization]);
 
   const { setActiveOrganization } = useUIStore();
 
@@ -183,7 +183,7 @@ export function OrgSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {...props}
     >
       <SidebarHeader>
-        <OrgSwitcher orgs={navItems} handleNavigation={handleNavigation} />
+        <OrgSwitcher navItems={navItems} handleNavigation={handleNavigation} />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup className="px-0">
@@ -197,7 +197,7 @@ export function OrgSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
               ) : (
                 <OrganizationSidebar
-                  repos={repositories}
+                  repos={repos}
                   projects={projects}
                   teams={teams}
                   expandedSections={expandedSections}

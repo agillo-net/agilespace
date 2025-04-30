@@ -4,6 +4,7 @@ import * as React from "react";
 import { useState, useEffect } from "react";
 import { CircleIcon, CircleDotIcon, SearchIcon } from "lucide-react";
 import { useDebounce } from "use-debounce";
+import { toast } from "sonner";
 
 // UI Components
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,7 @@ import {
   GitHubUser,
   SearchOptions,
 } from "@/lib/github/types";
+import { SessionStartModal } from "./session-start-modal";
 
 type IssueState = "open" | "closed" | "all";
 
@@ -116,7 +118,7 @@ function getRepoNameFromUrl(url: string): string {
 }
 
 export default function GitHubIssuesSearch() {
-  const [searchQuery, setSearchQuery] = useState("is:issue");
+  const [searchQuery, setSearchQuery] = useState("org:agillo-net is:issue");
   const [debouncedQuery] = useDebounce(searchQuery, 500);
   const [issues, setIssues] = useState<GitHubIssue[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -126,6 +128,10 @@ export default function GitHubIssuesSearch() {
   );
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [onlyAssigned, setOnlyAssigned] = useState<boolean>(false);
+  
+  // State for session modal
+  const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
+  const [selectedIssue, setSelectedIssue] = useState<GitHubIssue | null>(null);
 
   // Search issues when the query changes
   useEffect(() => {
@@ -168,9 +174,13 @@ export default function GitHubIssuesSearch() {
 
   // Handle starting a work session for an issue
   const handleStartSession = (issue: GitHubIssue) => {
-    console.log("Starting work session for issue:", issue);
-    // Add your logic to start a work session here
-    // This could involve opening a modal or navigating to a timer page
+    setSelectedIssue(issue);
+    setIsSessionModalOpen(true);
+  };
+
+  const handleSessionStarted = (sessionId: string) => {
+    toast.success("Work session started successfully!");
+    // Additional logic after session is created, if needed
   };
 
   return (
@@ -342,6 +352,14 @@ export default function GitHubIssuesSearch() {
           </TableBody>
         </Table>
       )}
+
+      {/* Add the session start modal */}
+      <SessionStartModal
+        issue={selectedIssue}
+        open={isSessionModalOpen}
+        onClose={() => setIsSessionModalOpen(false)}
+        onSessionStarted={handleSessionStarted}
+      />
     </div>
   );
 }

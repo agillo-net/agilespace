@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { GitHubOrg, GitHubUser } from "@/lib/github";
 import {
   Sidebar,
   SidebarContent,
@@ -12,23 +11,45 @@ import {
 import { OrgSwitcher } from "@/components/sidebar/org-switcher";
 import { NavMain } from "@/components/sidebar/nav-main";
 import { NavUser } from "@/components/sidebar/nav-user";
+import { SquareChartGantt, Users, Settings, FileClock } from "lucide-react";
 
-interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  user: GitHubUser;
-  orgs: GitHubOrg[];
-}
+export function AppSidebar({
+  activeOrgLogin,
+  ...props
+}: { activeOrgLogin: string } & React.ComponentProps<typeof Sidebar>) {
+  const sidebarItems = [
+    {
+      title: "Overview",
+      icon: SquareChartGantt,
+      href: `/dashboard/${activeOrgLogin}/overview`,
+    },
+    {
+      title: "Sessions",
+      icon: FileClock,
+      href: `/dashboard/${activeOrgLogin}/sessions`,
+    },
+    {
+      title: "Team",
+      icon: Users,
+      href: `/dashboard/${activeOrgLogin}/team`,
+    },
+    {
+      title: "Settings",
+      icon: Settings,
+      href: `/dashboard/${activeOrgLogin}/settings`,
+    },
+  ];
 
-export function AppSidebar({ user, orgs, ...props }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <OrgSwitcher orgs={orgs} />
+        <OrgSwitcher activeOrgLogin={activeOrgLogin} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={[]} />
+        <NavMain items={sidebarItems} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

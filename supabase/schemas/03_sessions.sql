@@ -1,6 +1,8 @@
+-- Sessions table for work sessions
 CREATE TABLE sessions (
-  github_issue_link TEXT NOT NULL,
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  github_issue_link TEXT NOT NULL,
   notes TEXT, -- markdown content
   start_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   end_time TIMESTAMPTZ,
@@ -12,6 +14,7 @@ CREATE TABLE sessions (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Session participants table
 CREATE TABLE session_participants (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
@@ -19,25 +22,12 @@ CREATE TABLE session_participants (
   UNIQUE(session_id, user_id)
 );
 
-CREATE TABLE labels (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL UNIQUE,
-  color TEXT NOT NULL,
-  description TEXT
-);
-
-CREATE TABLE session_labels (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
-  label_id UUID REFERENCES labels(id) ON DELETE CASCADE,
-  UNIQUE(session_id, label_id)
-);
-
+-- Function to start a new session
 CREATE OR REPLACE FUNCTION start_session(
+  p_organization_id UUID,
   p_github_issue_link TEXT,
   p_notes TEXT,
-  p_participants UUID[],
-  p_labels UUID[]
+  p_participants UUID[]
 )
 RETURNS UUID AS $$
 DECLARE
@@ -52,9 +42,9 @@ BEGIN
   JOIN profiles ON auth.users.id = profiles.id
   WHERE auth.users.id = ANY(p_participants)
   AND EXISTS (
-    SELECT 1 FROM sessions ws
-    JOIN session_participants wsp ON ws.id = wsp.session_id
-    WHERE wsp.user_id = auth.users.id AND ws.status = 'active'
+    SELECT 1 FROM sessions s
+    JOIN session_participants sp ON s.id = sp.session_id
+    WHERE sp.user_id = auth.users.id AND s.status = 'active'
   );
 
   IF array_length(v_active_sessions, 1) > 0 THEN
@@ -62,28 +52,22 @@ BEGIN
   END IF;
 
   -- Create the session
-  INSERT INTO sessions (github_issue_link, notes, status, creator_id)
-  VALUES (p_github_issue_link, p_notes, 'active', v_user_id)
+  INSERT INTO sessions (organization_id, github_issue_link, notes, status, creator_id)
+  VALUES (p_organization_id, p_github_issue_link, p_notes, 'active', v_user_id)
   RETURNING id INTO v_session_id;
 
   -- Add participants (including creator who is the first participant)
   INSERT INTO session_participants (session_id, user_id)
   SELECT v_session_id, unnest(p_participants);
 
-  -- Add labels if provided
-  IF p_labels IS NOT NULL AND array_length(p_labels, 1) > 0 THEN
-    INSERT INTO session_labels (session_id, label_id)
-    SELECT v_session_id, unnest(p_labels);
-  END IF;
-
   RETURN v_session_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Function to pause a session
 CREATE OR REPLACE FUNCTION pause_session(p_session_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
-  v_user_id UUID = auth.uid();
   v_duration INTERVAL;
 BEGIN
   -- Calculate duration since start or last unpause
@@ -109,10 +93,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Function to resume a session
 CREATE OR REPLACE FUNCTION resume_session(p_session_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
-  v_user_id UUID = auth.uid();
   v_active_sessions TEXT[];
   v_participants UUID[];
 BEGIN
@@ -129,11 +113,11 @@ BEGIN
   JOIN profiles ON auth.users.id = profiles.id
   WHERE auth.users.id = ANY(v_participants)
   AND EXISTS (
-    SELECT 1 FROM sessions ws
-    JOIN session_participants wsp ON ws.id = wsp.session_id
-    WHERE wsp.user_id = auth.users.id 
-    AND ws.status = 'active'
-    AND ws.id <> p_session_id
+    SELECT 1 FROM sessions s
+    JOIN session_participants sp ON s.id = sp.session_id
+    WHERE sp.user_id = auth.users.id 
+    AND s.status = 'active'
+    AND s.id <> p_session_id
   );
 
   IF array_length(v_active_sessions, 1) > 0 THEN
@@ -151,6 +135,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Function to complete a session
 CREATE OR REPLACE FUNCTION complete_session(p_session_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -183,49 +168,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE VIEW user_sessions AS
-SELECT
-  ws.*,
-  wsp.user_id,
-  p.display_name as participant_name,
-  array_agg(DISTINCT l.name) as labels,
-  CASE
-    WHEN ws.status = 'active' THEN 
-      EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - COALESCE(ws.last_paused_at, ws.start_time)) + ws.total_duration)/3600
-    ELSE
-      EXTRACT(EPOCH FROM ws.total_duration)/3600
-  END as hours
-FROM sessions ws
-JOIN session_participants wsp ON ws.id = wsp.session_id
-JOIN profiles p ON wsp.user_id = p.id
-LEFT JOIN session_labels wsl ON ws.id = wsl.session_id
-LEFT JOIN labels l ON wsl.label_id = l.id
-GROUP BY ws.id, wsp.user_id, p.display_name;
-
-CREATE VIEW dashboard_summary AS
-SELECT
-  u.display_name,
-  l.name as label,
-  DATE_TRUNC('day', ws.start_time) as day,
-  DATE_TRUNC('week', ws.start_time) as week,
-  DATE_TRUNC('month', ws.start_time) as month,
-  EXTRACT(EPOCH FROM SUM(
-    CASE
-      WHEN ws.status = 'completed' THEN ws.total_duration
-      WHEN ws.status = 'paused' THEN ws.total_duration
-      WHEN ws.status = 'active' THEN 
-        (CURRENT_TIMESTAMP - COALESCE(ws.last_paused_at, ws.start_time)) + ws.total_duration
-    END
-  ))/3600 as total_hours
-FROM sessions ws
-JOIN session_participants wsp ON ws.id = wsp.session_id
-JOIN profiles u ON wsp.user_id = u.id
-LEFT JOIN session_labels wsl ON ws.id = wsl.session_id
-LEFT JOIN labels l ON wsl.label_id = l.id
-GROUP BY u.display_name, l.name, day, week, month;
-
--- Only allow users to see sessions they participate in
-CREATE POLICY "Users can view their own sessions"
+-- Policies for sessions
+CREATE POLICY "Users can view sessions they participate in"
 ON sessions FOR SELECT
 USING (
   EXISTS (
@@ -235,7 +179,6 @@ USING (
   )
 );
 
--- Only allow users to update their active or paused sessions
 CREATE POLICY "Users can update their non-completed sessions"
 ON sessions FOR UPDATE
 USING (
@@ -243,14 +186,12 @@ USING (
   AND status <> 'completed'
 );
 
--- Allow updates to labels even for completed sessions
-CREATE POLICY "Users can update session labels"
-ON session_labels FOR ALL
+CREATE POLICY "Users can manage session participants"
+ON session_participants FOR ALL
 USING (
   EXISTS (
-    SELECT 1 FROM sessions ws
-    JOIN session_participants wsp ON ws.id = wsp.session_id
-    WHERE ws.id = session_labels.session_id 
-    AND wsp.user_id = auth.uid()
+    SELECT 1 FROM sessions 
+    WHERE id = session_participants.session_id 
+    AND creator_id = auth.uid()
   )
 );

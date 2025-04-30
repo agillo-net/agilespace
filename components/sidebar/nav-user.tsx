@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { GitHubUser } from "@/lib/github";
+import { useEffect, useState } from "react";
+import { GitHubUser, server, client } from "@/lib/github";
 import { ChevronsUpDown, LogOut } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 import {
@@ -21,8 +22,30 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-export function NavUser({ user }: { user: GitHubUser }) {
+export function NavUser() {
   const { isMobile } = useSidebar();
+
+  const [user, setUser] = useState<GitHubUser | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const fetchedUser = await client.getCurrentUser();
+      setUser(fetchedUser);
+    };
+    fetchUser();
+  }, []);
+
+  if (!user) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" disabled>
+            Loading...
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    );
+  }
 
   return (
     <SidebarMenu>

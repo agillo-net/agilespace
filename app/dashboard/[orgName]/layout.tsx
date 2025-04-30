@@ -1,19 +1,30 @@
 "use client";
 
-import { SidebarInset } from "@/components/ui/sidebar";
-import { OrgSidebar } from "@/components/org-sidebar";
+import { useParams } from "next/navigation";
+import { AppHeader } from "@/components/app-header";
+import { AppSidebar } from "@/components/sidebar/app-sidebar";
+import { TimerInitializer } from "@/components/timer-initializer";
+import { WorkSessionModal } from "@/components/work-session-modal";
+import { RefreshPreventionDialog } from "@/components/refresh-prevention-dialog";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function OrgLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { orgName }: { orgName: string } = useParams();
+
   return (
-    <div className="flex flex-1">
-      <OrgSidebar />
+    <SidebarProvider>
+      <AppSidebar activeOrgLogin={orgName} />
       <SidebarInset>
-        <div className="container mx-auto py-6">{children}</div>
+        <TimerInitializer />
+        <AppHeader />
+        {children}
       </SidebarInset>
-    </div>
+      <WorkSessionModal />
+      <RefreshPreventionDialog />
+    </SidebarProvider>
   );
 }

@@ -5,18 +5,14 @@ import { createClient } from "@/lib/supabase/client";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 
-import { ActiveSessionCard } from "./active-session-card";
 import { SessionHistory } from "./session-history";
 import { Session, Label } from "./types";
 
 export default function SessionsPage() {
   const params = useParams();
   const supabase = createClient();
-  const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [completedSessions, setCompletedSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [allLabels, setAllLabels] = useState<Label[]>([]);
@@ -34,25 +30,18 @@ export default function SessionsPage() {
       if (orgsError || !orgs)
         throw orgsError || new Error("Organization not found");
 
-      // Get current user's sessions in this organization
+      // Get current user's completed sessions in this organization
       const { data: userSessions, error: sessionsError } = await supabase
         .from("user_sessions")
         .select("*")
         .eq("organization_id", orgs.id)
         .eq("user_id", (await supabase.auth.getUser()).data.user?.id)
+        .eq("status", "completed")
         .order("created_at", { ascending: false });
 
       if (sessionsError) throw sessionsError;
 
-      // Split into active/paused and completed sessions
-      const active =
-        userSessions.find(
-          (s) => s.status === "active" || s.status === "paused"
-        ) || null;
-      const completed = userSessions.filter((s) => s.status === "completed");
-
-      setActiveSession(active);
-      setCompletedSessions(completed);
+      setCompletedSessions(userSessions || []);
 
       // Load all available labels
       const { data: labels, error: labelsError } = await supabase
@@ -72,15 +61,6 @@ export default function SessionsPage() {
 
   useEffect(() => {
     loadSessions();
-
-    // Set up a poll interval to refresh the active session timer
-    const pollInterval = setInterval(() => {
-      if (activeSession) {
-        loadSessions();
-      }
-    }, 30000); // Refresh every 30 seconds
-
-    return () => clearInterval(pollInterval);
   }, [loadSessions]);
 
   if (loading) {
@@ -94,41 +74,10 @@ export default function SessionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-tight">Work Sessions</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Session History</h1>
       </div>
 
-      <Tabs defaultValue="active">
-        <TabsList>
-          <TabsTrigger value="active">
-            Active Session
-            {activeSession && (
-              <Badge variant="secondary" className="ml-2">
-                1
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="history">
-            History
-            {completedSessions.length > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {completedSessions.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="active" className="space-y-4 mt-4">
-          <ActiveSessionCard
-            session={activeSession}
-            allLabels={allLabels}
-            onSessionUpdated={loadSessions}
-          />
-        </TabsContent>
-
-        <TabsContent value="history" className="space-y-4 mt-4">
-          <SessionHistory sessions={completedSessions} allLabels={allLabels} />
-        </TabsContent>
-      </Tabs>
+      <SessionHistory sessions={completedSessions} allLabels={allLabels} />
     </div>
   );
 }

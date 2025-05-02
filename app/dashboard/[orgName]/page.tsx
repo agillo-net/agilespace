@@ -1,11 +1,9 @@
 "use client";
 
-import { IssueSearch } from "@/components/issue-search";
+import { redirect, useParams } from "next/navigation";
 
 export default function OrgPage() {
-  return (
-    <div className="container mx-auto py-6">
-      <IssueSearch />
-    </div>
-  );
+  const { orgName }: { orgName: string } = useParams();
+
+  redirect(`/dashboard/${orgName}/overview`);
 }

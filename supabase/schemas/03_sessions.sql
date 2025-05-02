@@ -33,22 +33,22 @@ RETURNS UUID AS $$
 DECLARE
   v_session_id UUID;
   v_user_id UUID = auth.uid();
-  v_active_sessions TEXT[];
+  v_non_completed_sessions TEXT[];
 BEGIN
-  -- Check if any participant has an active session
+  -- Check if any participant has a non-completed session (active or paused)
   SELECT array_agg(profiles.display_name)
-  INTO v_active_sessions
+  INTO v_non_completed_sessions
   FROM auth.users
   JOIN profiles ON auth.users.id = profiles.id
   WHERE auth.users.id = ANY(p_participants)
   AND EXISTS (
     SELECT 1 FROM sessions s
     JOIN session_participants sp ON s.id = sp.session_id
-    WHERE sp.user_id = auth.users.id AND s.status = 'active'
+    WHERE sp.user_id = auth.users.id AND s.status IN ('active', 'paused')
   );
 
-  IF array_length(v_active_sessions, 1) > 0 THEN
-    RAISE EXCEPTION 'The following users already have active sessions: %', array_to_string(v_active_sessions, ', ');
+  IF array_length(v_non_completed_sessions, 1) > 0 THEN
+    RAISE EXCEPTION 'The following users already have non-completed sessions: %', array_to_string(v_non_completed_sessions, ', ');
   END IF;
 
   -- Create the session
@@ -97,7 +97,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION resume_session(p_session_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
-  v_active_sessions TEXT[];
+  v_non_completed_sessions TEXT[];
   v_participants UUID[];
 BEGIN
   -- Get all participants of this session
@@ -106,9 +106,9 @@ BEGIN
   FROM session_participants
   WHERE session_id = p_session_id;
   
-  -- Check if any participant has another active session
+  -- Check if any participant has another non-completed session
   SELECT array_agg(profiles.display_name)
-  INTO v_active_sessions
+  INTO v_non_completed_sessions
   FROM auth.users
   JOIN profiles ON auth.users.id = profiles.id
   WHERE auth.users.id = ANY(v_participants)
@@ -116,12 +116,12 @@ BEGIN
     SELECT 1 FROM sessions s
     JOIN session_participants sp ON s.id = sp.session_id
     WHERE sp.user_id = auth.users.id 
-    AND s.status = 'active'
+    AND s.status IN ('active', 'paused')
     AND s.id <> p_session_id
   );
 
-  IF array_length(v_active_sessions, 1) > 0 THEN
-    RAISE EXCEPTION 'The following users already have active sessions: %', array_to_string(v_active_sessions, ', ');
+  IF array_length(v_non_completed_sessions, 1) > 0 THEN
+    RAISE EXCEPTION 'The following users already have non-completed sessions: %', array_to_string(v_non_completed_sessions, ', ');
   END IF;
 
   UPDATE sessions

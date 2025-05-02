@@ -14,6 +14,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { ActiveSessionPanel } from "@/components/sessions/active-session-panel";
+import { SidePanel } from "@/components/panel/side-panel";
 
 export default function OrgLayout({
   children,
@@ -30,20 +31,33 @@ export default function OrgLayout({
   return (
     <SidebarProvider>
       <AppSidebar activeOrgLogin={orgName} />
-      <SidebarInset>
+      <SidebarInset className="flex flex-col h-screen">
         <TimerInitializer />
         <AppHeader toggleSecondPanel={toggleSecondPanel} />
-        <ResizablePanelGroup direction="horizontal">
-          <ResizablePanel>{children}</ResizablePanel>
-          {isSidePanelOpen && (
-            <>
-              <ResizableHandle />
-              <ResizablePanel defaultSize={30}>
-                <ActiveSessionPanel />
-              </ResizablePanel>
-            </>
-          )}
-        </ResizablePanelGroup>
+        <div className="flex-1 overflow-hidden flex">
+          <ResizablePanelGroup direction="horizontal" className="h-full w-full">
+            <ResizablePanel className="min-h-0" defaultSize={70} minSize={50}>
+              <div className="h-full overflow-auto">
+                {children}
+              </div>
+            </ResizablePanel>
+            {isSidePanelOpen && (
+              <>
+                <ResizableHandle />
+                <ResizablePanel 
+                  defaultSize={30} 
+                  minSize={20} 
+                  maxSize={50} 
+                  className="min-h-0"
+                >
+                  <div className="h-full overflow-hidden">
+                    <SidePanel orgName={orgName} />
+                  </div>
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
+        </div>
       </SidebarInset>
       <WorkSessionModal />
       <RefreshPreventionDialog />

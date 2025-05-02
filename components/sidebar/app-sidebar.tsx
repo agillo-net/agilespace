@@ -11,7 +11,13 @@ import {
 import { OrgSwitcher } from "@/components/sidebar/org-switcher";
 import { NavMain } from "@/components/sidebar/nav-main";
 import { NavUser } from "@/components/sidebar/nav-user";
-import { SquareChartGantt, Users, Settings, FileClock } from "lucide-react";
+import {
+  SquareChartGantt,
+  Users,
+  Settings,
+  FileClock,
+  CircleDot,
+} from "lucide-react";
 
 export function AppSidebar({
   activeOrgLogin,
@@ -22,6 +28,11 @@ export function AppSidebar({
       title: "Overview",
       icon: SquareChartGantt,
       href: `/dashboard/${activeOrgLogin}/overview`,
+    },
+    {
+      title: "Issues",
+      icon: CircleDot,
+      href: `/dashboard/${activeOrgLogin}/issues`,
     },
     {
       title: "Sessions",

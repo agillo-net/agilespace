@@ -58,7 +58,7 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.3",
     "sonner": "^2.0.3",
-    "tailwind-merge": "^3.0.2",
+    "tailwind-merge": "^3.2.0",
     "tailwindcss-animate": "^1.0.7",
     "use-debounce": "^10.0.4",
     "vaul": "^1.1.2",
@@ -75,6 +75,7 @@
     "eslint-config-next": "15.2.1-canary.2",
     "supabase": "^2.20.12",
     "tailwindcss": "^4",
+    "tw-animate-css": "^1.2.8",
     "typescript": "^5"
   }
 }

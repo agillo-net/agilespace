@@ -99,6 +99,7 @@ RETURNS BOOLEAN AS $$
 DECLARE
   v_non_completed_sessions TEXT[];
   v_participants UUID[];
+  v_total_duration INTERVAL;
 BEGIN
   -- Get all participants of this session
   SELECT array_agg(user_id)
@@ -124,6 +125,15 @@ BEGIN
     RAISE EXCEPTION 'The following users already have non-completed sessions: %', array_to_string(v_non_completed_sessions, ', ');
   END IF;
 
+  -- Get current total_duration
+  SELECT total_duration INTO v_total_duration
+  FROM sessions
+  WHERE id = p_session_id AND status = 'paused';
+
+  -- Update session: 
+  -- 1. Set status to active
+  -- 2. Adjust start_time to account for accumulated duration
+  -- 3. Clear last_paused_at
   UPDATE sessions
   SET 
     status = 'active',

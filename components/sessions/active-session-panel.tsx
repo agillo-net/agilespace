@@ -59,6 +59,7 @@ import { Label, Session } from "./types";
 interface Participant {
   username: string;
   avatarUrl: string;
+  displayName?: string;
 }
 
 interface WorkSessionProps {
@@ -83,15 +84,7 @@ const formatTime = (seconds: number) => {
 export function ActiveSessionPanel({
   session,
   allLabels = [],
-  participants = [
-    {
-      username: "sarahjohnson",
-      avatarUrl: "/placeholder.svg?height=40&width=40",
-    },
-    { username: "mikebrown", avatarUrl: "/placeholder.svg?height=40&width=40" },
-    { username: "emilywong", avatarUrl: "/placeholder.svg?height=40&width=40" },
-    { username: "alexsmith", avatarUrl: "/placeholder.svg?height=40&width=40" },
-  ],
+  participants = [],
   onSessionUpdated = () => {},
   orgName,
 }: WorkSessionProps) {
@@ -118,25 +111,33 @@ export function ActiveSessionPanel({
 
   // Initialize selected labels when session changes
   useEffect(() => {
-    if (session) {
-      // Load the actual label IDs from session_labels
-      const fetchSessionLabels = async () => {
-        const { data: sessionLabels } = await supabase
-          .from("session_labels")
-          .select("label_id")
-          .eq("session_id", session.id);
-
-        if (sessionLabels) {
-          setSelectedLabels(sessionLabels.map((sl) => sl.label_id));
-        }
-      };
-
-      fetchSessionLabels();
-      setNotes(session.notes || "");
-      setSavedNotes(session.notes || "");
+    if (!session) return;
+    
+    // Initialize the elapsed time correctly based on session status
+    if (session.status === "active") {
+      setIsRunning(true);
       setElapsedTime(Math.floor(session.hours * 3600));
-      setIsRunning(session.status === "active");
+    } else if (session.status === "paused") {
+      setIsRunning(false);
+      setElapsedTime(Math.floor(session.hours * 3600));
     }
+    
+    setNotes(session.notes || "");
+    setSavedNotes(session.notes || "");
+    
+    // Set selected labels
+    const fetchSessionLabels = async () => {
+      const { data: sessionLabels } = await supabase
+        .from("session_labels")
+        .select("label_id")
+        .eq("session_id", session.id);
+
+      if (sessionLabels) {
+        setSelectedLabels(sessionLabels.map((sl) => sl.label_id));
+      }
+    };
+
+    fetchSessionLabels();
   }, [session?.id, session?.status, session?.hours, session?.notes, supabase]);
 
   useEffect(() => {
@@ -264,12 +265,24 @@ export function ActiveSessionPanel({
 
     setNotesLoading(true);
     try {
-      const { error } = await supabase.rpc("add_session_labels", {
-        p_session_id: session.id,
-        p_labels: selectedLabels,
-      });
+      // First, remove all existing labels for this session
+      // Then add the currently selected labels
+      const { error: removeError } = await supabase
+        .from("session_labels")
+        .delete()
+        .eq("session_id", session.id);
 
-      if (error) throw error;
+      if (removeError) throw removeError;
+
+      if (selectedLabels.length > 0) {
+        // Only add labels if there are any selected
+        const { error: addError } = await supabase.rpc("add_session_labels", {
+          p_session_id: session.id,
+          p_labels: selectedLabels,
+        });
+
+        if (addError) throw addError;
+      }
 
       toast.success("Labels updated successfully");
       setManageLabelsOpen(false);
@@ -392,37 +405,43 @@ export function ActiveSessionPanel({
           </div>
           <div className="flex">
             <TooltipProvider>
-              {participants.map((participant, index) => (
-                <Tooltip key={participant.username}>
-                  <TooltipTrigger asChild>
-                    <div
-                      className={cn(
-                        "transition-transform hover:-translate-y-1 hover:z-10",
-                        index > 0 ? "-ml-2" : ""
-                      )}
-                      style={{ zIndex: participants.length - index }}
-                    >
-                      <Avatar
+              {participants.length > 0 ? (
+                participants.map((participant, index) => (
+                  <Tooltip key={participant.username || index}>
+                    <TooltipTrigger asChild>
+                      <div
                         className={cn(
-                          "border-2 w-8 h-8",
-                          isDark ? "border-[#0d1117]" : "border-white"
+                          "transition-transform hover:-translate-y-1 hover:z-10",
+                          index > 0 ? "-ml-2" : ""
                         )}
+                        style={{ zIndex: participants.length - index }}
                       >
-                        <AvatarImage
-                          src={participant.avatarUrl || "/placeholder.svg"}
-                          alt={participant.username}
-                        />
-                        <AvatarFallback>
-                          {participant.username.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>@{participant.username}</p>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
+                        <Avatar
+                          className={cn(
+                            "border-2 w-8 h-8",
+                            isDark ? "border-[#0d1117]" : "border-white"
+                          )}
+                        >
+                          <AvatarImage
+                            src={participant.avatarUrl || "/placeholder.svg"}
+                            alt={participant.displayName || participant.username || "User"}
+                          />
+                          <AvatarFallback>
+                            {(participant.displayName || participant.username || "U").substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{participant.displayName || `@${participant.username}`}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))
+              ) : (
+                <div className={cn("text-xs italic", isDark ? "text-[#8b949e]" : "text-[#57606a]")}>
+                  No participants in this session
+                </div>
+              )}
             </TooltipProvider>
           </div>
         </div>

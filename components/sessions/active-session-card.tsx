@@ -113,17 +113,21 @@ export function ActiveSessionCard({
 
       fetchSessionLabels();
       setNotes(session.notes || "");
+      
+      // Initialize elapsed time based on session status
       setElapsedTime(session.hours);
+      
+      // Only set timer active if session status is active
       setTimerActive(session.status === "active");
     }
-  }, [session?.id, session?.status, session?.hours]);
+  }, [session?.id, session?.status, session?.hours, session?.notes]);
 
   // Real-time timer for active sessions
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
 
     if (timerActive && session?.status === "active") {
-      // Start a timer that updates every second
+      // Start a timer that updates every second (1/3600 hours)
       intervalId = setInterval(() => {
         setElapsedTime((prevTime) => {
           // Add 1/3600 hours (1 second)

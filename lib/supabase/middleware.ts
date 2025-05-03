@@ -57,7 +57,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (
-    !user &&
+    (!session?.provider_token || !user) &&
     !request.nextUrl.pathname.startsWith("/login") &&
     !request.nextUrl.pathname.startsWith("/auth")
   ) {

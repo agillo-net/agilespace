@@ -13,15 +13,12 @@ export function SidePanel({ orgName }: { orgName: string }) {
 
   const loadSessionData = async () => {
     try {
-      console.log("Fetching active session...");
       // Get current organization ID
       const { data: orgs, error: orgsError } = await supabase
         .from("organizations")
         .select("id")
         .eq("name", orgName)
         .single();
-
-      console.log(orgs);
 
       if (orgsError || !orgs)
         throw orgsError || new Error("Organization not found");
@@ -35,8 +32,6 @@ export function SidePanel({ orgName }: { orgName: string }) {
         .or("status.eq.active,status.eq.paused");
 
       if (sessionsError) throw sessionsError;
-
-      console.log(userSessions);
       
       // Get all available labels
       const { data: labels, error: labelsError } = await supabase

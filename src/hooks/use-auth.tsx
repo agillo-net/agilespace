@@ -5,7 +5,7 @@ import {
   createContext,
   type ReactNode,
 } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { getSupabaseClient } from "@/lib/supabase/client";
 import type { Session, User, AuthChangeEvent } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -18,7 +18,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const [user, setUser] = useState<User | null>(null);
   const [githubToken, setGithubToken] = useState<string | null>(null);
 
@@ -58,6 +58,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loginWithGitHub = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "github",
+      options: {
+        scopes: "repo,read:user,user:email,read:org",
+      },
     });
     if (error) {
       console.error("GitHub login failed:", error.message);

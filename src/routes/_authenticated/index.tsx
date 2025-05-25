@@ -6,14 +6,14 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { createOrganizationWithMember } from '@/lib/supabase/mutations';
+import { createOrgMutation, joinOrgMutation } from '@/lib/supabase/mutations';
 import { getOrganizationAndMemberStatus } from '@/lib/supabase/queries';
 import { toast } from 'sonner';
 import { githubRedirect } from '@/lib/utils';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OrganizationsListSkeleton } from '@/components/skeleton/OrganizationsList';
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute("/_authenticated/")({
   component: RouteComponent,
 })
 
@@ -66,53 +66,37 @@ function RouteComponent() {
   }, [organizations, orgStatusQueries]);
 
   // Create organization mutation
-  const createOrgMutation = useMutation({
+  const createOrgMutationHook = useMutation({
     mutationFn: async (org: any) => {
       if (!user) throw new Error('User not available');
-      return await createOrganizationWithMember({
-        name: org.login,
-        slug: org.login.toLowerCase(),
-        avatar_url: org.avatar_url,
-        github_org_id: org.id.toString(),
-        user_id: user.id,
-      });
+      return await createOrgMutation(org, user.id);
     },
     onMutate: (org) => {
       setLoadingStates(prev => ({ ...prev, [org.id]: true }));
     },
     onSuccess: (_, org) => {
-      queryClient.invalidateQueries(['orgStatus', org.id, user?.id]);
+      queryClient.invalidateQueries({ queryKey: ['orgStatus', org.id, user?.id] });
       toast.success(`Organization ${org.login} created successfully`);
     },
     onError: (error: Error, org) => {
       toast.error(`Failed to create organization ${org.login}: ${error.message}`);
     },
-    onSettled: (_, error, org) => {
+    onSettled: (_, _2, org) => {
       setLoadingStates(prev => ({ ...prev, [org.id]: false }));
     },
   });
 
   // Join organization mutation
-  const joinOrgMutation = useMutation({
+  const joinOrgMutationHook = useMutation({
     mutationFn: async (org: any) => {
       if (!user) throw new Error('User not available');
-      const existingOrg = await getOrganizationAndMemberStatus(org.id.toString(), user.id);
-      if (!existingOrg.exists) {
-        throw new Error(`Organization ${org.login} doesn't exist yet. Create it first.`);
-      }
-      return await createOrganizationWithMember({
-        name: org.login,
-        slug: org.login.toLowerCase(),
-        avatar_url: org.avatar_url,
-        github_org_id: org.id.toString(),
-        user_id: user.id,
-      });
+      return await joinOrgMutation(org, user.id);
     },
     onMutate: (org) => {
       setLoadingStates(prev => ({ ...prev, [org.id]: true }));
     },
     onSuccess: (_, org) => {
-      queryClient.invalidateQueries(['orgStatus', org.id, user?.id]);
+      queryClient.invalidateQueries({ queryKey: ['orgStatus', org.id, user?.id] });
       toast.success(`Joined organization ${org.login} successfully`);
     },
     onError: (error: Error, org) => {
@@ -122,7 +106,7 @@ function RouteComponent() {
         toast.error(`Failed to join organization ${org.login}: ${error.message}`);
       }
     },
-    onSettled: (_, error, org) => {
+    onSettled: (_, _2, org) => {
       setLoadingStates(prev => ({ ...prev, [org.id]: false }));
     },
   });
@@ -148,7 +132,7 @@ function RouteComponent() {
         <div className="text-center py-10">
           <h2 className="text-2xl font-bold text-red-600 mb-2">Error</h2>
           <p className="text-muted-foreground">{(organizationsError as Error).message}</p>
-          <Button className="mt-4" onClick={() => queryClient.refetchQueries(['userOrgs'])}>
+          <Button className="mt-4" onClick={() => queryClient.refetchQueries({ queryKey: ['userOrgs'] })}>
             Retry
           </Button>
         </div>
@@ -179,7 +163,7 @@ function RouteComponent() {
           return (
             <Card
               key={org.login}
-              className="cursor-pointer hover:shadow-md transition-shadow"
+              className="hover:shadow-md transition-shadow"
               onClick={() => navigateToOrg(org)}
             >
               <CardHeader>
@@ -216,7 +200,7 @@ function RouteComponent() {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    createOrgMutation.mutate(org);
+                    createOrgMutationHook.mutate(org);
                   }}
                   disabled={isLoading || status.exists}
                 >
@@ -227,7 +211,7 @@ function RouteComponent() {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    joinOrgMutation.mutate(org);
+                    joinOrgMutationHook.mutate(org);
                   }}
                   disabled={isLoading || status.isMember || !status.exists}
                 >

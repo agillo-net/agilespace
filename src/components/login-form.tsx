@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,14 +8,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const { loginWithGitHub } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { loginWithGitHub } = useAuth();
 
   const handleSocialLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +24,7 @@ export function LoginForm({
     setError(null);
 
     try {
+      setIsLoading(true);
       await loginWithGitHub();
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");

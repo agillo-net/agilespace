@@ -1,5 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
-import { getOrganizationByGithubId } from "./queries";
+import { getOrganizationByGithubId, getOrganizationAndMemberStatus } from "./queries";
 
 export async function createProfile({
   id,
@@ -118,4 +118,45 @@ export async function createOrganizationWithMember({
   });
 
   return newOrg;
+}
+
+export async function createOrgMutation(org: any, userId: string) {
+  if (!userId) throw new Error('User not available');
+  return await createOrganizationWithMember({
+    name: org.login,
+    slug: org.login.toLowerCase(),
+    avatar_url: org.avatar_url,
+    github_org_id: org.id.toString(),
+    user_id: userId,
+  });
+}
+
+export async function joinOrgMutation(org: any, userId: string) {
+  if (!userId) throw new Error('User not available');
+  const existingOrg = await getOrganizationAndMemberStatus(org.id.toString(), userId);
+  if (!existingOrg.exists) {
+    throw new Error(`Organization ${org.login} doesn't exist yet. Create it first.`);
+  }
+  return await createOrganizationWithMember({
+    name: org.login,
+    slug: org.login.toLowerCase(),
+    avatar_url: org.avatar_url,
+    github_org_id: org.id.toString(),
+    user_id: userId,
+  });
+}
+
+export async function loginWithGitHubMutation(): Promise<void> {
+  const { error } = await getSupabaseClient().auth.signInWithOAuth({
+    provider: "github",
+    options: {
+      scopes: "repo,read:user,user:email,read:org",
+    },
+  });
+  if (error) throw error;
+}
+
+export async function logoutMutation(): Promise<void> {
+  const { error } = await getSupabaseClient().auth.signOut();
+  if (error) throw error;
 }

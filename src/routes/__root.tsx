@@ -31,9 +31,6 @@ function App() {
         <Link to="/about" className="[&.active]:font-bold">
           About
         </Link>
-        <Link to="/orgs" className="[&.active]:font-bold">
-          Orgs
-        </Link>
       </div>
       <hr />
       <Outlet />

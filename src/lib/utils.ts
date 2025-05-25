@@ -4,3 +4,12 @@ import { twMerge } from "tailwind-merge"
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+export function githubRedirect() {
+  const githubURL = "https://github.com"
+  return {
+    accountOrOrg(org: string) {
+      return `${githubURL}/${org}`
+    },
+  }
+}

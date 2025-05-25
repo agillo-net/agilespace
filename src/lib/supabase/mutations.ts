@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { getOrganizationByGithubId } from "./queries";
 
 export async function createProfile({
   id,
@@ -55,4 +56,66 @@ export async function createOrganizationMember({
     role,
   });
   if (error) throw new Error(error.message);
+}
+
+
+export async function createOrganizationWithMember({
+  name,
+  slug,
+  avatar_url,
+  github_org_id,
+  user_id,
+}: {
+  name: string;
+  slug: string;
+  avatar_url: string;
+  github_org_id: string;
+  user_id: string;
+}) {
+  const supabase = getSupabaseClient();
+
+  // First check if organization exists
+  const existingOrg = await getOrganizationByGithubId(github_org_id);
+  if (existingOrg) {
+    // Check if user is already a member
+    const { data: existingMember } = await supabase
+      .from("organization_members")
+      .select("*")
+      .eq("organization_id", existingOrg.id)
+      .eq("user_id", user_id)
+      .single();
+
+    if (!existingMember) {
+      // Add user as member if not already a member
+      await createOrganizationMember({
+        organization_id: existingOrg.id,
+        user_id,
+        role: "admin",
+      });
+    }
+    return existingOrg;
+  }
+
+  // Create new organization
+  const { data: newOrg, error: orgError } = await supabase
+    .from("organizations")
+    .insert({
+      name,
+      slug,
+      avatar_url,
+      github_org_id,
+    })
+    .select()
+    .single();
+
+  if (orgError) throw new Error(orgError.message);
+
+  // Add user as member
+  await createOrganizationMember({
+    organization_id: newOrg.id,
+    user_id,
+    role: "admin",
+  });
+
+  return newOrg;
 }

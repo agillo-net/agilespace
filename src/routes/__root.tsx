@@ -1,21 +1,22 @@
-import { useAuth } from "@/hooks/use-auth";
-import {
-  createRootRoute,
-  Link,
-  Outlet,
-  redirect,
-} from "@tanstack/react-router";
+import { createRootRoute, Link, Outlet, redirect } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { getSupabaseClient } from "@/lib/supabase/client";
+import { Toaster } from "sonner";
 
 export const Route = createRootRoute({
-  loader: () => {
-    const { user } = useAuth();
+  loader: async () => {
+    const supabase = getSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
 
-    if (!user) {
+    // Don't redirect if we're already on the login page
+    const isLoginPage = window.location.pathname === '/login';
+    if (!session?.user && !isLoginPage) {
       throw redirect({
         to: "/login",
       });
     }
+
+    return { user: session?.user };
   },
   component: App,
 });
@@ -30,9 +31,14 @@ function App() {
         <Link to="/about" className="[&.active]:font-bold">
           About
         </Link>
+        <Link to="/orgs" className="[&.active]:font-bold">
+          Orgs
+        </Link>
       </div>
       <hr />
       <Outlet />
+      <Toaster />
+
       <TanStackRouterDevtools />
     </>
   );

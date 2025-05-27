@@ -1,95 +1,69 @@
-import {
-  useEffect,
-  useState,
-  useContext,
-  createContext,
-  type ReactNode,
-} from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { getSupabaseClient } from "@/lib/supabase/client";
-import type { Session, User, AuthChangeEvent } from "@supabase/supabase-js";
+import React from "react";
+import { toast } from "sonner";
+import { useRouter } from "@tanstack/react-router";
+import { loginWithGitHubMutation, logoutMutation } from "@/lib/supabase/mutations";
 
-interface AuthContextType {
-  user: User | null;
-  githubToken: string | null;
-  loginWithGitHub: () => Promise<void>;
-  logout: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export function useAuth() {
+  const router = useRouter();
+  const { queryClient } = router.options.context.auth;
   const supabase = getSupabaseClient();
-  const [user, setUser] = useState<User | null>(null);
-  const [githubToken, setGithubToken] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadSession = async () => {
+  const { data: session, isLoading } = useQuery({
+    queryKey: ["auth", "session"],
+    queryFn: async () => {
       const { data, error } = await supabase.auth.getSession();
-      console.log("Session data:", data);
-      console.log("Session error:", error);
-      if (error) {
-        console.error("Error loading session:", error);
-        return;
-      }
+      if (error) throw error;
+      return data.session;
+    },
+  });
 
-      const session = data.session;
-      if (session?.user) {
-        setUser(session.user);
-        const token = session.provider_token ?? null;
-        setGithubToken(token);
-      }
-    };
+  const { data: user } = useQuery({
+    queryKey: ["auth", "user"],
+    queryFn: async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return user;
+    },
+    enabled: !!session,
+  });
 
-    loadSession();
+  const login = useMutation({
+    mutationKey: ["auth", "login"],
+    mutationFn: loginWithGitHubMutation
+  });
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event: AuthChangeEvent, session: Session | null) => {
-        setUser(session?.user ?? null);
-        const token = session?.provider_token ?? null;
-        setGithubToken(token);
+  const logout = useMutation({
+    mutationKey: ["auth", "logout"],
+    mutationFn: logoutMutation,
+    onSuccess: () => {
+      toast.success("Logged out");
+      router.invalidate();
+      queryClient.clear();
+    },
+  });
+
+  // Set up auth state change listener
+  React.useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event) => {
+        if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+          queryClient.invalidateQueries({ queryKey: ["auth", "session"] });
+          queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
+        }
       }
     );
 
     return () => {
-      listener?.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
-  const loginWithGitHub = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "github",
-      options: {
-        scopes: "repo,read:user,user:email,read:org",
-      },
-    });
-    if (error) {
-      console.error("GitHub login failed:", error.message);
-    }
+  return {
+    user: user ?? null,
+    githubToken: session?.provider_token ?? null,
+    loginWithGitHub: () => login.mutate(),
+    logout: () => logout.mutate(),
   };
-
-  const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("Logout failed:", error.message);
-    } else {
-      setUser(null);
-      setGithubToken(null);
-    }
-  };
-
-  return (
-    <AuthContext.Provider
-      value={{ user, githubToken, loginWithGitHub, logout }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
+}

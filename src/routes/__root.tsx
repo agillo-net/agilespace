@@ -1,39 +1,25 @@
-import { useAuth } from "@/hooks/use-auth";
-import {
-  createRootRoute,
-  Link,
-  Outlet,
-  redirect,
-} from "@tanstack/react-router";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { Toaster } from "sonner";
+import { QueryClient } from "@tanstack/react-query";
+import { isDev } from "@/lib/utils";
 
-export const Route = createRootRoute({
-  loader: () => {
-    const { user } = useAuth();
+interface RouterContext {
+  auth: {
+    queryClient: QueryClient;
+  };
+}
 
-    if (!user) {
-      throw redirect({
-        to: "/login",
-      });
-    }
-  },
+export const Route = createRootRouteWithContext<RouterContext>()({
   component: App,
 });
 
 function App() {
   return (
     <>
-      <div className="p-2 flex gap-2">
-        <Link to="/" className="[&.active]:font-bold">
-          Home
-        </Link>{" "}
-        <Link to="/about" className="[&.active]:font-bold">
-          About
-        </Link>
-      </div>
-      <hr />
       <Outlet />
-      <TanStackRouterDevtools />
+      <Toaster />
+      {isDev && <TanStackRouterDevtools />}
     </>
   );
 }

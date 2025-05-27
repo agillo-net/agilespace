@@ -1,8 +1,10 @@
 import { LoginForm } from "@/components/login-form";
+import { withoutAuth } from "@/lib/guards/auth-guard";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
+  beforeLoad: withoutAuth,
 });
 
 function RouteComponent() {

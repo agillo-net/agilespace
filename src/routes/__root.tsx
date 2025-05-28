@@ -1,15 +1,15 @@
-import { createRootRoute, Link, Outlet, redirect } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { getSupabaseClient } from "@/lib/supabase/client";
 import { Toaster } from "sonner";
+import { getSupabaseClient } from "@/lib/supabase/client";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { createRootRoute, redirect, Outlet } from "@tanstack/react-router";
 
 export const Route = createRootRoute({
   loader: async ({ location }) => {
     const supabase = getSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data } = await supabase.auth.getSession();
 
-    const isAuthenticated = !!session?.user;
-    const isLoginPage = location.pathname === '/login';
+    const isAuthenticated = !!data?.session?.user;
+    const isLoginPage = location.pathname === "/login";
 
     // If user is authenticated and trying to access login page, redirect to home
     if (isAuthenticated && isLoginPage) {
@@ -25,7 +25,7 @@ export const Route = createRootRoute({
       });
     }
 
-    return { user: session?.user || null };
+    return { user: data?.session?.user || null };
   },
   component: App,
 });
@@ -33,18 +33,8 @@ export const Route = createRootRoute({
 function App() {
   return (
     <>
-      <div className="p-2 flex gap-2">
-        <Link to="/" className="[&.active]:font-bold">
-          Home
-        </Link>{" "}
-        <Link to="/about" className="[&.active]:font-bold">
-          About
-        </Link>
-      </div>
-      <hr />
       <Outlet />
       <Toaster />
-
       <TanStackRouterDevtools />
     </>
   );

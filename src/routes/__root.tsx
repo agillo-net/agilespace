@@ -4,19 +4,28 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 import { Toaster } from "sonner";
 
 export const Route = createRootRoute({
-  loader: async () => {
+  loader: async ({ location }) => {
     const supabase = getSupabaseClient();
     const { data: { session } } = await supabase.auth.getSession();
 
-    // Don't redirect if we're already on the login page
-    const isLoginPage = window.location.pathname === '/login';
-    if (!session?.user && !isLoginPage) {
+    const isAuthenticated = !!session?.user;
+    const isLoginPage = location.pathname === '/login';
+
+    // If user is authenticated and trying to access login page, redirect to home
+    if (isAuthenticated && isLoginPage) {
+      throw redirect({
+        to: "/",
+      });
+    }
+
+    // If user is not authenticated and not on login page, redirect to login
+    if (!isAuthenticated && !isLoginPage) {
       throw redirect({
         to: "/login",
       });
     }
 
-    return { user: session?.user };
+    return { user: session?.user || null };
   },
   component: App,
 });

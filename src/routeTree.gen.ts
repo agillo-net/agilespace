@@ -13,8 +13,9 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as LoginImport } from './routes/login'
 import { Route as SpacesRouteImport } from './routes/spaces/route'
+import { Route as SpaceRouteImport } from './routes/space/route'
 import { Route as IndexImport } from './routes/index'
-import { Route as SpacesSpaceSlugImport } from './routes/spaces/$spaceSlug'
+import { Route as SpaceSlugImport } from './routes/space/$slug'
 
 // Create/Update Routes
 
@@ -30,16 +31,22 @@ const SpacesRouteRoute = SpacesRouteImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const SpaceRouteRoute = SpaceRouteImport.update({
+  id: '/space',
+  path: '/space',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRoute,
 } as any)
 
-const SpacesSpaceSlugRoute = SpacesSpaceSlugImport.update({
-  id: '/$spaceSlug',
-  path: '/$spaceSlug',
-  getParentRoute: () => SpacesRouteRoute,
+const SpaceSlugRoute = SpaceSlugImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => SpaceRouteRoute,
 } as any)
 
 // Populate the FileRoutesByPath interface
@@ -51,6 +58,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/space': {
+      id: '/space'
+      path: '/space'
+      fullPath: '/space'
+      preLoaderRoute: typeof SpaceRouteImport
       parentRoute: typeof rootRoute
     }
     '/spaces': {
@@ -67,70 +81,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
-    '/spaces/$spaceSlug': {
-      id: '/spaces/$spaceSlug'
-      path: '/$spaceSlug'
-      fullPath: '/spaces/$spaceSlug'
-      preLoaderRoute: typeof SpacesSpaceSlugImport
-      parentRoute: typeof SpacesRouteImport
+    '/space/$slug': {
+      id: '/space/$slug'
+      path: '/$slug'
+      fullPath: '/space/$slug'
+      preLoaderRoute: typeof SpaceSlugImport
+      parentRoute: typeof SpaceRouteImport
     }
   }
 }
 
 // Create and export the route tree
 
-interface SpacesRouteRouteChildren {
-  SpacesSpaceSlugRoute: typeof SpacesSpaceSlugRoute
+interface SpaceRouteRouteChildren {
+  SpaceSlugRoute: typeof SpaceSlugRoute
 }
 
-const SpacesRouteRouteChildren: SpacesRouteRouteChildren = {
-  SpacesSpaceSlugRoute: SpacesSpaceSlugRoute,
+const SpaceRouteRouteChildren: SpaceRouteRouteChildren = {
+  SpaceSlugRoute: SpaceSlugRoute,
 }
 
-const SpacesRouteRouteWithChildren = SpacesRouteRoute._addFileChildren(
-  SpacesRouteRouteChildren,
+const SpaceRouteRouteWithChildren = SpaceRouteRoute._addFileChildren(
+  SpaceRouteRouteChildren,
 )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/spaces': typeof SpacesRouteRouteWithChildren
+  '/space': typeof SpaceRouteRouteWithChildren
+  '/spaces': typeof SpacesRouteRoute
   '/login': typeof LoginRoute
-  '/spaces/$spaceSlug': typeof SpacesSpaceSlugRoute
+  '/space/$slug': typeof SpaceSlugRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/spaces': typeof SpacesRouteRouteWithChildren
+  '/space': typeof SpaceRouteRouteWithChildren
+  '/spaces': typeof SpacesRouteRoute
   '/login': typeof LoginRoute
-  '/spaces/$spaceSlug': typeof SpacesSpaceSlugRoute
+  '/space/$slug': typeof SpaceSlugRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
-  '/spaces': typeof SpacesRouteRouteWithChildren
+  '/space': typeof SpaceRouteRouteWithChildren
+  '/spaces': typeof SpacesRouteRoute
   '/login': typeof LoginRoute
-  '/spaces/$spaceSlug': typeof SpacesSpaceSlugRoute
+  '/space/$slug': typeof SpaceSlugRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/spaces' | '/login' | '/spaces/$spaceSlug'
+  fullPaths: '/' | '/space' | '/spaces' | '/login' | '/space/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/spaces' | '/login' | '/spaces/$spaceSlug'
-  id: '__root__' | '/' | '/spaces' | '/login' | '/spaces/$spaceSlug'
+  to: '/' | '/space' | '/spaces' | '/login' | '/space/$slug'
+  id: '__root__' | '/' | '/space' | '/spaces' | '/login' | '/space/$slug'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  SpacesRouteRoute: typeof SpacesRouteRouteWithChildren
+  SpaceRouteRoute: typeof SpaceRouteRouteWithChildren
+  SpacesRouteRoute: typeof SpacesRouteRoute
   LoginRoute: typeof LoginRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  SpacesRouteRoute: SpacesRouteRouteWithChildren,
+  SpaceRouteRoute: SpaceRouteRouteWithChildren,
+  SpacesRouteRoute: SpacesRouteRoute,
   LoginRoute: LoginRoute,
 }
 
@@ -145,6 +164,7 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/space",
         "/spaces",
         "/login"
       ]
@@ -152,18 +172,21 @@ export const routeTree = rootRoute
     "/": {
       "filePath": "index.tsx"
     },
-    "/spaces": {
-      "filePath": "spaces/route.tsx",
+    "/space": {
+      "filePath": "space/route.tsx",
       "children": [
-        "/spaces/$spaceSlug"
+        "/space/$slug"
       ]
+    },
+    "/spaces": {
+      "filePath": "spaces/route.tsx"
     },
     "/login": {
       "filePath": "login.tsx"
     },
-    "/spaces/$spaceSlug": {
-      "filePath": "spaces/$spaceSlug.tsx",
-      "parent": "/spaces"
+    "/space/$slug": {
+      "filePath": "space/$slug.tsx",
+      "parent": "/space"
     }
   }
 }

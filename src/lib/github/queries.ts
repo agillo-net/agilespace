@@ -7,7 +7,8 @@ export async function getCurrentUser() {
 
 export async function getUserOrgs() {
   const octokit = await getOctokitClient();
-  return octokit.rest.orgs.listForAuthenticatedUser();
+  // TODO: Handle octokit client response status
+  return (await octokit.rest.orgs.listForAuthenticatedUser()).data;
 }
 
 export async function searchIssues(query: string, options: {}) {

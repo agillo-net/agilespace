@@ -1,5 +1,16 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
 
+export const getUser = async () => {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    console.error("Error loading session:", error);
+    return null;
+  }
+
+  return data.session?.user;
+};
+
 export const getProfile = async (userId: string | undefined) => {
   if (!userId) {
     throw new Error("User ID is required");
@@ -31,26 +42,32 @@ export const getOrganizationByGithubId = async (github_org_id: string) => {
   return data;
 };
 
-export const getUserOrganizations = async (userId: string | undefined) => {
+export const getUserSpaces = async () => {
+  const user = await getUser();
+  const userId = user?.id;
   if (!userId) throw new Error("User ID is required");
+
   const supabase = getSupabaseClient();
+
   // Get organizations where the user is a member
   const { data, error } = await supabase
-    .from("organization_members")
-    .select(`
-      organization:organizations(*),
-      role
-    `)
+    .from("space_members")
+    .select(`space:spaces(*), role`)
     .eq("user_id", userId);
   if (error) throw new Error(error.message);
   // Flatten the organizations and include role
-  return data?.map((row: any) => ({
-    ...row.organization,
-    member_role: row.role
-  })) || [];
+  return (
+    data?.map((row: any) => ({
+      ...row.space,
+      member_role: row.role,
+    })) || []
+  );
 };
 
-export const getOrganizationAndMemberStatus = async (github_org_id: string, user_id: string) => {
+export const getOrganizationAndMemberStatus = async (
+  github_org_id: string,
+  user_id: string
+) => {
   const supabase = getSupabaseClient();
 
   // Get organization
@@ -60,7 +77,8 @@ export const getOrganizationAndMemberStatus = async (github_org_id: string, user
     .eq("github_org_id", github_org_id)
     .single();
 
-  if (orgError && orgError.code !== "PGRST116") throw new Error(orgError.message);
+  if (orgError && orgError.code !== "PGRST116")
+    throw new Error(orgError.message);
 
   if (!org) {
     return { exists: false, isMember: false };
@@ -74,11 +92,12 @@ export const getOrganizationAndMemberStatus = async (github_org_id: string, user
     .eq("user_id", user_id)
     .single();
 
-  if (memberError && memberError.code !== "PGRST116") throw new Error(memberError.message);
+  if (memberError && memberError.code !== "PGRST116")
+    throw new Error(memberError.message);
 
   return {
     exists: true,
     isMember: !!member,
-    role: member?.role
+    role: member?.role,
   };
 };

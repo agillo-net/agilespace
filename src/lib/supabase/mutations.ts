@@ -19,7 +19,7 @@ export async function createProfile({
   if (error) throw new Error(error.message);
 }
 
-export async function createOrganization({
+export async function createSpace({
   name,
   slug,
   avatar_url,
@@ -31,7 +31,7 @@ export async function createOrganization({
   github_org_id: string;
 }) {
   const supabase = getSupabaseClient();
-  const { error } = await supabase.from("organizations").insert({
+  const { error } = await supabase.from("spaces").insert({
     name,
     slug,
     avatar_url,
@@ -40,18 +40,18 @@ export async function createOrganization({
   if (error) throw new Error(error.message);
 }
 
-export async function createOrganizationMember({
-  organization_id,
+export async function createSpaceMember({
+  space_id,
   user_id,
   role = "admin",
 }: {
-  organization_id: string;
+  space_id: string;
   user_id: string;
   role?: "admin" | "member" | "observer";
 }) {
   const supabase = getSupabaseClient();
-  const { error } = await supabase.from("organization_members").insert({
-    organization_id,
+  const { error } = await supabase.from("space_members").insert({
+    space_id,
     user_id,
     role,
   });

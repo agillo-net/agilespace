@@ -12,10 +12,9 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as LoginImport } from './routes/login'
-import { Route as AboutImport } from './routes/about'
-import { Route as DashboardRouteImport } from './routes/dashboard/route'
+import { Route as SpacesRouteImport } from './routes/spaces/route'
 import { Route as IndexImport } from './routes/index'
-import { Route as DashboardOrgSlugImport } from './routes/dashboard/$orgSlug'
+import { Route as SpacesSpaceSlugImport } from './routes/spaces/$spaceSlug'
 
 // Create/Update Routes
 
@@ -25,15 +24,9 @@ const LoginRoute = LoginImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const AboutRoute = AboutImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const DashboardRouteRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const SpacesRouteRoute = SpacesRouteImport.update({
+  id: '/spaces',
+  path: '/spaces',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -43,10 +36,10 @@ const IndexRoute = IndexImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const DashboardOrgSlugRoute = DashboardOrgSlugImport.update({
-  id: '/$orgSlug',
-  path: '/$orgSlug',
-  getParentRoute: () => DashboardRouteRoute,
+const SpacesSpaceSlugRoute = SpacesSpaceSlugImport.update({
+  id: '/$spaceSlug',
+  path: '/$spaceSlug',
+  getParentRoute: () => SpacesRouteRoute,
 } as any)
 
 // Populate the FileRoutesByPath interface
@@ -60,18 +53,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutImport
+    '/spaces': {
+      id: '/spaces'
+      path: '/spaces'
+      fullPath: '/spaces'
+      preLoaderRoute: typeof SpacesRouteImport
       parentRoute: typeof rootRoute
     }
     '/login': {
@@ -81,81 +67,70 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
-    '/dashboard/$orgSlug': {
-      id: '/dashboard/$orgSlug'
-      path: '/$orgSlug'
-      fullPath: '/dashboard/$orgSlug'
-      preLoaderRoute: typeof DashboardOrgSlugImport
-      parentRoute: typeof DashboardRouteImport
+    '/spaces/$spaceSlug': {
+      id: '/spaces/$spaceSlug'
+      path: '/$spaceSlug'
+      fullPath: '/spaces/$spaceSlug'
+      preLoaderRoute: typeof SpacesSpaceSlugImport
+      parentRoute: typeof SpacesRouteImport
     }
   }
 }
 
 // Create and export the route tree
 
-interface DashboardRouteRouteChildren {
-  DashboardOrgSlugRoute: typeof DashboardOrgSlugRoute
+interface SpacesRouteRouteChildren {
+  SpacesSpaceSlugRoute: typeof SpacesSpaceSlugRoute
 }
 
-const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
-  DashboardOrgSlugRoute: DashboardOrgSlugRoute,
+const SpacesRouteRouteChildren: SpacesRouteRouteChildren = {
+  SpacesSpaceSlugRoute: SpacesSpaceSlugRoute,
 }
 
-const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
-  DashboardRouteRouteChildren,
+const SpacesRouteRouteWithChildren = SpacesRouteRoute._addFileChildren(
+  SpacesRouteRouteChildren,
 )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/about': typeof AboutRoute
+  '/spaces': typeof SpacesRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/dashboard/$orgSlug': typeof DashboardOrgSlugRoute
+  '/spaces/$spaceSlug': typeof SpacesSpaceSlugRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/about': typeof AboutRoute
+  '/spaces': typeof SpacesRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/dashboard/$orgSlug': typeof DashboardOrgSlugRoute
+  '/spaces/$spaceSlug': typeof SpacesSpaceSlugRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/about': typeof AboutRoute
+  '/spaces': typeof SpacesRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/dashboard/$orgSlug': typeof DashboardOrgSlugRoute
+  '/spaces/$spaceSlug': typeof SpacesSpaceSlugRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/about' | '/login' | '/dashboard/$orgSlug'
+  fullPaths: '/' | '/spaces' | '/login' | '/spaces/$spaceSlug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/about' | '/login' | '/dashboard/$orgSlug'
-  id:
-    | '__root__'
-    | '/'
-    | '/dashboard'
-    | '/about'
-    | '/login'
-    | '/dashboard/$orgSlug'
+  to: '/' | '/spaces' | '/login' | '/spaces/$spaceSlug'
+  id: '__root__' | '/' | '/spaces' | '/login' | '/spaces/$spaceSlug'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
-  AboutRoute: typeof AboutRoute
+  SpacesRouteRoute: typeof SpacesRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRouteRoute: DashboardRouteRouteWithChildren,
-  AboutRoute: AboutRoute,
+  SpacesRouteRoute: SpacesRouteRouteWithChildren,
   LoginRoute: LoginRoute,
 }
 
@@ -170,29 +145,25 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/dashboard",
-        "/about",
+        "/spaces",
         "/login"
       ]
     },
     "/": {
       "filePath": "index.tsx"
     },
-    "/dashboard": {
-      "filePath": "dashboard/route.tsx",
+    "/spaces": {
+      "filePath": "spaces/route.tsx",
       "children": [
-        "/dashboard/$orgSlug"
+        "/spaces/$spaceSlug"
       ]
-    },
-    "/about": {
-      "filePath": "about.tsx"
     },
     "/login": {
       "filePath": "login.tsx"
     },
-    "/dashboard/$orgSlug": {
-      "filePath": "dashboard/$orgSlug.tsx",
-      "parent": "/dashboard"
+    "/spaces/$spaceSlug": {
+      "filePath": "spaces/$spaceSlug.tsx",
+      "parent": "/spaces"
     }
   }
 }

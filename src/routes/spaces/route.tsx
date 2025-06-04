@@ -1,65 +1,38 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { getUserOrgs } from "@/lib/github/queries";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { Search } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { createOrganizationWithMember } from "@/lib/supabase/mutations";
-import { getOrganizationAndMemberStatus } from "@/lib/supabase/queries";
-import { toast } from "sonner";
-import { githubRedirect } from "@/lib/utils";
-import {
-  useQuery,
-  useQueries,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { OrganizationsListSkeleton } from "@/components/skeleton/OrganizationsList";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useLoaderData } from "@tanstack/react-router";
+import { queryClient } from "@/main";
 
-export const Route = createFileRoute("/")({
-  loader: () => {
-    throw redirect({
-      to: "/spaces",
+export const Route = createFileRoute("/spaces")({
+  loader: async () => {
+    const data = await queryClient.ensureQueryData({
+      queryKey: ["getUserOrgs"],
+      queryFn: getUserOrgs,
     });
+
+    console.log("Fetched organizations:", data);
+
+    return data;
   },
   component: RouteComponent,
 });
 
-interface OrgStatus {
-  exists: boolean;
-  isMember: boolean;
-  role?: string;
-}
-
 function RouteComponent() {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>(
-    {}
-  );
+  const loaderData = useLoaderData({ from: Route.path });
 
-  // Fetch user organizations
+  console.log("Loader data:", loaderData);
+
+  return <h1>Hello! {loaderData.data.toString()}</h1>;
+
+  const queryClient = useQueryClient();
+
   const {
     data: organizations,
     error: organizationsError,
     isLoading: isLoadingOrganizations,
   } = useQuery({
-    queryKey: ["userOrgs"],
-    queryFn: async () => {
-      const orgsData = await getUserOrgs();
-      return orgsData.data;
-    },
+    queryKey: ["getUserOrgs"],
+    queryFn: getUserOrgs,
   });
 
   // Fetch status for each organization

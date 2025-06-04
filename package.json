@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "supabase:start": "supabase start",
+    "supabase": "supabase"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
@@ -85,6 +87,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@tailwindcss/oxide",
+      "esbuild",
       "supabase"
     ]
   }

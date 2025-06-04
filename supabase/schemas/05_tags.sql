@@ -1,11 +1,11 @@
 create table tags (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid references organizations(id) on delete cascade,
+  space_id uuid references spaces(id) on delete cascade,
   name text not null,
   color text,
   created_at timestamp with time zone default now(),
 
-  unique (organization_id, name)
+  unique (space_id, name)
 );
 
 create table session_tags (

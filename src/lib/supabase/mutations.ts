@@ -1,5 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
-import { getOrganizationByGithubId } from "./queries";
+import { getOrganizationByGithubId, getUser } from "./queries";
 
 export async function createProfile({
   id,
@@ -28,31 +28,39 @@ export async function createSpace({
   name: string;
   slug: string;
   avatar_url: string;
-  github_org_id: string;
+  github_org_id: number;
 }) {
   const supabase = getSupabaseClient();
-  const { error } = await supabase.from("spaces").insert({
-    name,
-    slug,
-    avatar_url,
-    github_org_id,
-  });
+  const { data, error } = await supabase
+    .from("spaces")
+    .insert({
+      name,
+      slug,
+      avatar_url,
+      github_org_id,
+    })
+    .select()
+    .single();
   if (error) throw new Error(error.message);
+  return data;
 }
 
 export async function createSpaceMember({
   space_id,
-  user_id,
   role = "admin",
 }: {
   space_id: string;
-  user_id: string;
   role?: "admin" | "member" | "observer";
 }) {
+  const user = await getUser();
+  const userId = user?.id;
+  if (!userId) throw new Error("User ID is required");
+
   const supabase = getSupabaseClient();
+
   const { error } = await supabase.from("space_members").insert({
     space_id,
-    user_id,
+    user_id: userId,
     role,
   });
   if (error) throw new Error(error.message);

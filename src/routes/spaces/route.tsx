@@ -45,13 +45,6 @@ function RouteComponent() {
   );
   const { userOrgs } = useLoaderData({ from: "/spaces" });
 
-  // Refetch spacesWithMemberStatus when the component mounts
-  // This ensures we have the latest data when the component loads
-  queryClient.ensureQueryData({
-    queryKey: ["getSpacesWithMembershipStatus"],
-    queryFn: getSpacesWithMembershipStatus,
-  });
-
   // We use a query to fetch spaces with membership status 
   // This will automatically refetch when the component mounts
   // We set this here not in the loader because if it's in the loader, it won't refetch when the component mounts

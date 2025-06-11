@@ -25,10 +25,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const loadSession = async () => {
       const { data, error } = await supabase.auth.getSession();
-      console.log("Session data:", data);
-      console.log("Session error:", error);
       if (error) {
-        console.error("Error loading session:", error);
         return;
       }
 

@@ -1,5 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
-import { getOrganizationByGithubId } from "./queries";
+import { getUser } from "./queries";
 
 export async function createProfile({
   id,
@@ -28,77 +28,11 @@ export async function createSpace({
   name: string;
   slug: string;
   avatar_url: string;
-  github_org_id: string;
+  github_org_id: number;
 }) {
   const supabase = getSupabaseClient();
-  const { error } = await supabase.from("spaces").insert({
-    name,
-    slug,
-    avatar_url,
-    github_org_id,
-  });
-  if (error) throw new Error(error.message);
-}
-
-export async function createSpaceMember({
-  space_id,
-  user_id,
-  role = "admin",
-}: {
-  space_id: string;
-  user_id: string;
-  role?: "admin" | "member" | "observer";
-}) {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase.from("space_members").insert({
-    space_id,
-    user_id,
-    role,
-  });
-  if (error) throw new Error(error.message);
-}
-
-
-export async function createOrganizationWithMember({
-  name,
-  slug,
-  avatar_url,
-  github_org_id,
-  user_id,
-}: {
-  name: string;
-  slug: string;
-  avatar_url: string;
-  github_org_id: string;
-  user_id: string;
-}) {
-  const supabase = getSupabaseClient();
-
-  // First check if organization exists
-  const existingOrg = await getOrganizationByGithubId(github_org_id);
-  if (existingOrg) {
-    // Check if user is already a member
-    const { data: existingMember } = await supabase
-      .from("organization_members")
-      .select("*")
-      .eq("organization_id", existingOrg.id)
-      .eq("user_id", user_id)
-      .single();
-
-    if (!existingMember) {
-      // Add user as member if not already a member
-      await createOrganizationMember({
-        organization_id: existingOrg.id,
-        user_id,
-        role: "admin",
-      });
-    }
-    return existingOrg;
-  }
-
-  // Create new organization
-  const { data: newOrg, error: orgError } = await supabase
-    .from("organizations")
+  const { data, error } = await supabase
+    .from("spaces")
     .insert({
       name,
       slug,
@@ -107,15 +41,27 @@ export async function createOrganizationWithMember({
     })
     .select()
     .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
 
-  if (orgError) throw new Error(orgError.message);
+export async function createSpaceMember({
+  space_id,
+  role = "admin",
+}: {
+  space_id: string;
+  role?: "admin" | "member" | "observer";
+}) {
+  const user = await getUser();
+  const userId = user?.id;
+  if (!userId) throw new Error("User ID is required");
 
-  // Add user as member
-  await createOrganizationMember({
-    organization_id: newOrg.id,
-    user_id,
-    role: "admin",
+  const supabase = getSupabaseClient();
+
+  const { error } = await supabase.from("space_members").insert({
+    space_id,
+    user_id: userId,
+    role,
   });
-
-  return newOrg;
+  if (error) throw new Error(error.message);
 }

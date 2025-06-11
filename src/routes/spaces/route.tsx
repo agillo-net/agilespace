@@ -20,7 +20,7 @@ import {
 import { useState } from "react";
 import { generatePath } from "@/lib/routes";
 import type { SpaceWithMembership } from "@/lib/supabase/queries.type";
-import { Button } from "@/components/Button";
+import { ButtonWithLoading } from "@/components/ButtonWithLoading";
 import { OrganizationsListSkeleton } from "@/components/skeleton/OrganizationsList";
 
 export const Route = createFileRoute("/spaces")({
@@ -153,7 +153,7 @@ function RouteComponent() {
                   </a>
                 </CardContent>
                 <CardFooter className="flex flex-col items-stretch gap-2">
-                  <Button
+                  <ButtonWithLoading
                     onClick={(e) => {
                       e.stopPropagation();
                       createSpaceMutation.mutate({
@@ -167,8 +167,8 @@ function RouteComponent() {
                     disabled={!!space || loadingStates[org.id]}
                   >
                     {loadingStates[org.id] ? "Creating..." : space ? "Created" : "Create Space"}
-                  </Button>
-                  <Button
+                  </ButtonWithLoading>
+                  <ButtonWithLoading
                     onClick={(e) => {
                       e.stopPropagation();
                       createSpaceMemberMutation.mutate({
@@ -184,15 +184,15 @@ function RouteComponent() {
                       : space?.is_member
                         ? `Joined (${space.member_role})`
                         : "Join Space"}
-                  </Button>
-                  <Button
+                  </ButtonWithLoading>
+                  <ButtonWithLoading
                     onClick={() => {
                       navigateToSpace(org.login, space);
                     }}
                     disabled={!space?.is_member}
                   >
                     View
-                  </Button>
+                  </ButtonWithLoading>
                 </CardFooter>
               </Card>
             );

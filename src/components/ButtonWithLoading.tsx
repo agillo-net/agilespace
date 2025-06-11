@@ -13,7 +13,7 @@ export interface ButtonProps
     loading?: boolean
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+const ButtonWithLoading = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ({ className, variant, size, asChild = false, loading = false, children, disabled, ...props }, ref) => {
         const Comp = asChild ? Slot : "button"
 
@@ -32,6 +32,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         )
     }
 )
-Button.displayName = "Button"
+ButtonWithLoading.displayName = "Button"
 
-export { Button }
+export { ButtonWithLoading }

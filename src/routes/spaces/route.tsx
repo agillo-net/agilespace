@@ -20,7 +20,7 @@ import {
 import { useState } from "react";
 import { generatePath } from "@/lib/routes";
 import type { SpaceWithMembership } from "@/lib/supabase/queries.type";
-import { ButtonWithLoading } from "@/components/ButtonWithLoading";
+import { ButtonWithLoading } from "@/components/button-with-loading";
 import { OrganizationsListSkeleton } from "@/components/skeleton/OrganizationsList";
 
 export const Route = createFileRoute("/spaces")({

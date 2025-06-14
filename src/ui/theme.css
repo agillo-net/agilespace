@@ -1,0 +1,162 @@
+@theme {
+  /* Colors */
+  --color-brand-50: rgb(7, 40, 48);
+  --color-brand-100: rgb(7, 48, 59);
+  --color-brand-200: rgb(7, 56, 68);
+  --color-brand-300: rgb(6, 65, 80);
+  --color-brand-400: rgb(4, 80, 99);
+  --color-brand-500: rgb(0, 100, 125);
+  --color-brand-600: rgb(5, 162, 194);
+  --color-brand-700: rgb(0, 177, 204);
+  --color-brand-800: rgb(0, 194, 215);
+  --color-brand-900: rgb(225, 248, 250);
+  --color-neutral-0: rgb(3, 7, 18);
+  --color-neutral-50: rgb(17, 24, 39);
+  --color-neutral-100: rgb(31, 41, 55);
+  --color-neutral-200: rgb(55, 65, 81);
+  --color-neutral-300: rgb(75, 85, 99);
+  --color-neutral-400: rgb(107, 114, 128);
+  --color-neutral-500: rgb(156, 163, 175);
+  --color-neutral-600: rgb(209, 213, 219);
+  --color-neutral-700: rgb(229, 231, 235);
+  --color-neutral-800: rgb(243, 244, 246);
+  --color-neutral-900: rgb(249, 250, 251);
+  --color-neutral-950: rgb(255, 255, 255);
+  --color-error-50: rgb(58, 24, 47);
+  --color-error-100: rgb(69, 26, 55);
+  --color-error-200: rgb(80, 27, 63);
+  --color-error-300: rgb(96, 29, 72);
+  --color-error-400: rgb(122, 29, 90);
+  --color-error-500: rgb(167, 24, 115);
+  --color-error-600: rgb(214, 64, 159);
+  --color-error-700: rgb(227, 75, 169);
+  --color-error-800: rgb(246, 92, 182);
+  --color-error-900: rgb(254, 235, 247);
+  --color-warning-50: rgb(44, 33, 0);
+  --color-warning-100: rgb(53, 40, 0);
+  --color-warning-200: rgb(62, 48, 0);
+  --color-warning-300: rgb(73, 60, 0);
+  --color-warning-400: rgb(89, 74, 5);
+  --color-warning-500: rgb(112, 94, 0);
+  --color-warning-600: rgb(245, 217, 10);
+  --color-warning-700: rgb(255, 239, 92);
+  --color-warning-800: rgb(240, 192, 0);
+  --color-warning-900: rgb(255, 250, 209);
+  --color-success-50: rgb(15, 41, 30);
+  --color-success-100: rgb(17, 49, 35);
+  --color-success-200: rgb(19, 57, 41);
+  --color-success-300: rgb(22, 68, 48);
+  --color-success-400: rgb(27, 84, 58);
+  --color-success-500: rgb(35, 110, 74);
+  --color-success-600: rgb(48, 164, 108);
+  --color-success-700: rgb(60, 177, 121);
+  --color-success-800: rgb(76, 195, 138);
+  --color-success-900: rgb(229, 251, 235);
+  --color-brand-primary: rgb(5, 162, 194);
+  --color-default-font: rgb(249, 250, 251);
+  --color-subtext-color: rgb(156, 163, 175);
+  --color-neutral-border: rgb(55, 65, 81);
+  --color-black: rgb(3, 7, 18);
+  --color-default-background: rgb(3, 7, 18);
+
+  /* Fonts */
+  --text-caption: 12px;
+  --text-caption--font-weight: 400;
+  --text-caption--letter-spacing: 0em;
+  --text-caption--line-height: 16px;
+  --text-caption-bold: 12px;
+  --text-caption-bold--font-weight: 500;
+  --text-caption-bold--letter-spacing: 0em;
+  --text-caption-bold--line-height: 16px;
+  --text-body: 14px;
+  --text-body--font-weight: 400;
+  --text-body--letter-spacing: 0em;
+  --text-body--line-height: 20px;
+  --text-body-bold: 14px;
+  --text-body-bold--font-weight: 500;
+  --text-body-bold--letter-spacing: 0em;
+  --text-body-bold--line-height: 20px;
+  --text-heading-3: 16px;
+  --text-heading-3--font-weight: 600;
+  --text-heading-3--letter-spacing: 0em;
+  --text-heading-3--line-height: 20px;
+  --text-heading-2: 20px;
+  --text-heading-2--font-weight: 600;
+  --text-heading-2--letter-spacing: 0em;
+  --text-heading-2--line-height: 24px;
+  --text-heading-1: 30px;
+  --text-heading-1--font-weight: 600;
+  --text-heading-1--letter-spacing: 0em;
+  --text-heading-1--line-height: 36px;
+  --text-monospace-body: 14px;
+  --text-monospace-body--font-weight: 400;
+  --text-monospace-body--letter-spacing: 0em;
+  --text-monospace-body--line-height: 20px;
+
+  /* Font families */
+  --font-caption: "IBM Plex Mono";
+  --font-caption-bold: "IBM Plex Mono";
+  --font-body: "IBM Plex Mono";
+  --font-body-bold: "IBM Plex Mono";
+  --font-heading-3: "IBM Plex Mono";
+  --font-heading-2: "IBM Plex Mono";
+  --font-heading-1: "IBM Plex Mono";
+  --font-monospace-body: monospace;
+
+  /* Box shadows */
+  --shadow-sm: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --shadow-default: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0px 4px 16px -2px rgba(0, 0, 0, 0.08),
+    0px 2px 4px -1px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0px 12px 32px -4px rgba(0, 0, 0, 0.08),
+    0px 4px 8px -2px rgba(0, 0, 0, 0.08);
+  --shadow-overlay: 0px 12px 32px -4px rgba(0, 0, 0, 0.08),
+    0px 4px 8px -2px rgba(0, 0, 0, 0.08);
+
+  /* Border radiuses */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-DEFAULT: 0px;
+  --radius-lg: 0px;
+  --radius-full: 9999px;
+
+  /* Spacing */
+  --spacing-112: 28rem;
+  --spacing-144: 36rem;
+  --spacing-192: 48rem;
+  --spacing-256: 64rem;
+  --spacing-320: 80rem;
+}
+
+/* Container */
+@utility container {
+  padding-left: 16px;
+  padding-right: 16px;
+
+  @media (width >= theme(--breakpoint-sm)) {
+    padding-left: calc((100vw + 16px - 640px) / 2);
+    padding-right: calc((100vw + 16px - 640px) / 2);
+  }
+
+  @media (width >= theme(--breakpoint-md)) {
+    padding-left: calc((100vw + 16px - 768px) / 2);
+    padding-right: calc((100vw + 16px - 768px) / 2);
+  }
+
+  @media (width >= theme(--breakpoint-lg)) {
+    padding-left: calc((100vw + 16px - 1024px) / 2);
+    padding-right: calc((100vw + 16px - 1024px) / 2);
+  }
+
+  @media (width >= theme(--breakpoint-xl)) {
+    padding-left: calc((100vw + 16px - 1280px) / 2);
+    padding-right: calc((100vw + 16px - 1280px) / 2);
+  }
+
+  @media (width >= theme(--breakpoint-2xl)) {
+    padding-left: calc((100vw + 16px - 1536px) / 2);
+    padding-right: calc((100vw + 16px - 1536px) / 2);
+  }
+}
+
+@custom-variant mobile (@media (max-width: 767px));

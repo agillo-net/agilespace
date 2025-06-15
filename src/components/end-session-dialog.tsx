@@ -9,6 +9,7 @@ import type { Tag } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { X } from 'lucide-react'
 import { cn, isLightColor } from '@/lib/utils'
+import { useQuery } from '@tanstack/react-query'
 
 interface EndSessionDialogProps {
     open: boolean
@@ -30,9 +31,14 @@ export function EndSessionDialog({
     spaceId
 }: EndSessionDialogProps) {
     const [skipComment, setSkipComment] = useState(false)
-    const [tags, setTags] = useState<Tag[]>([])
     const [selectedTags, setSelectedTags] = useState<Tag[]>([])
     const canSubmit = skipComment || message.trim().length > 0
+
+    const { data: tags = [] } = useQuery({
+        queryKey: ['tags', spaceId],
+        queryFn: () => getTags(spaceId),
+        enabled: open && !!spaceId
+    })
 
     useEffect(() => {
         if (!open) {
@@ -41,20 +47,6 @@ export function EndSessionDialog({
             onMessageChange('')
         }
     }, [open, onMessageChange])
-
-    useEffect(() => {
-        const loadTags = async () => {
-            try {
-                const data = await getTags(spaceId)
-                setTags(data)
-            } catch (error) {
-                console.error('Failed to load tags:', error)
-            }
-        }
-        if (open && spaceId) {
-            loadTags()
-        }
-    }, [open, spaceId])
 
     const toggleTag = (tag: Tag) => {
         setSelectedTags(prev =>

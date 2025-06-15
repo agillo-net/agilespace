@@ -19,9 +19,9 @@ import {
 } from "@/components/ui/card";
 import { useState } from "react";
 import { generatePath } from "@/lib/routes";
-import type { SpaceWithMembership } from "@/lib/supabase/queries.type";
 import { ButtonWithLoading } from "@/components/button-with-loading";
-import { OrganizationsListSkeleton } from "@/components/skeleton/OrganizationsList";
+import { OrganizationsListSkeleton } from "@/components/skeleton/organizations-list-skeleton";
+import type { SpaceWithMembership } from "@/types";
 
 export const Route = createFileRoute("/spaces")({
   loader: async () => {

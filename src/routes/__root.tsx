@@ -2,6 +2,8 @@ import { Toaster } from "sonner";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { createRootRoute, redirect, Outlet } from "@tanstack/react-router";
+import { getProfile } from "@/lib/supabase/queries";
+import { createProfile } from "@/lib/supabase/mutations";
 
 export const Route = createRootRoute({
   loader: async ({ location }) => {
@@ -23,6 +25,16 @@ export const Route = createRootRoute({
       throw redirect({
         to: "/login",
       });
+    }
+
+    // If user is authenticated, check and create profile if needed
+    if (isAuthenticated && data?.session?.user) {
+      try {
+        await getProfile();
+      } catch (error) {
+        // If profile does not exist, create it
+        await createProfile();
+      }
     }
 
     return { user: data?.session?.user || null };

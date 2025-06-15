@@ -36,7 +36,7 @@ const RadioCard = React.forwardRef<HTMLElement, RadioCardProps>(
             )}
           >
             <div className="flex h-4 w-4 flex-none flex-col items-center justify-center gap-2 rounded-full border-2 border-solid border-neutral-300 group-aria-[checked=true]/502d4919:border-2 group-aria-[checked=true]/502d4919:border-solid group-aria-[checked=true]/502d4919:border-brand-600 group-disabled/502d4919:border-2 group-disabled/502d4919:border-solid group-disabled/502d4919:border-neutral-300 group-disabled/502d4919:bg-neutral-100">
-              <div className="hidden h-2 w-2 flex-none flex-col items-start gap-2 rounded-full bg-black group-aria-[checked=true]/502d4919:flex group-aria-[checked=true]/502d4919:bg-brand-600 group-disabled/502d4919:bg-neutral-300" />
+              <div className="hidden h-2 w-2 flex-none flex-col items-start gap-2 rounded-full bg-white group-aria-[checked=true]/502d4919:flex group-aria-[checked=true]/502d4919:bg-brand-600 group-disabled/502d4919:bg-neutral-300" />
             </div>
           </div>
           {children ? (

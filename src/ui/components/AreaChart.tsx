@@ -25,14 +25,13 @@ const AreaChartRoot = React.forwardRef<HTMLElement, AreaChartRootProps>(
         ref={ref as any}
         stacked={stacked}
         colors={[
-          "#00647d",
-          "#073844",
-          "#05a2c2",
-          "#064150",
-          "#00b1cc",
-          "#045063",
+          "#737373",
+          "#e5e5e5",
+          "#262626",
+          "#d4d4d4",
+          "#404040",
+          "#a3a3a3",
         ]}
-        dark={true}
         {...otherProps}
       />
     );

@@ -27,7 +27,7 @@ const TooltipRoot = React.forwardRef<HTMLElement, TooltipRootProps>(
         {...otherProps}
       >
         {children ? (
-          <span className="text-caption font-caption text-black">
+          <span className="text-caption font-caption text-white">
             {children}
           </span>
         ) : null}

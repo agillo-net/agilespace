@@ -80,12 +80,12 @@ const ButtonRoot = React.forwardRef<HTMLElement, ButtonRootProps>(
         {icon ? (
           <SubframeCore.IconWrapper
             className={SubframeUtils.twClassNames(
-              "text-body font-body text-black group-disabled/3b777358:text-neutral-400",
+              "text-body font-body text-white group-disabled/3b777358:text-neutral-400",
               {
                 hidden: loading,
                 "text-body font-body": size === "small",
                 "text-heading-3 font-heading-3": size === "large",
-                "text-black": variant === "inverse",
+                "text-white": variant === "inverse",
                 "text-error-700":
                   variant === "destructive-tertiary" ||
                   variant === "destructive-secondary",
@@ -109,7 +109,7 @@ const ButtonRoot = React.forwardRef<HTMLElement, ButtonRootProps>(
         >
           <SubframeCore.Loader
             className={SubframeUtils.twClassNames(
-              "text-caption font-caption text-black group-disabled/3b777358:text-neutral-400",
+              "text-caption font-caption text-white group-disabled/3b777358:text-neutral-400",
               {
                 "inline-block font-['Inter'] text-[12px] font-[400] leading-[20px] tracking-normal":
                   loading,
@@ -130,12 +130,12 @@ const ButtonRoot = React.forwardRef<HTMLElement, ButtonRootProps>(
         {children ? (
           <span
             className={SubframeUtils.twClassNames(
-              "whitespace-nowrap text-body-bold font-body-bold text-black group-disabled/3b777358:text-neutral-400",
+              "whitespace-nowrap text-body-bold font-body-bold text-white group-disabled/3b777358:text-neutral-400",
               {
                 hidden: loading,
                 "text-caption-bold font-caption-bold": size === "small",
                 "text-body-bold font-body-bold": size === "large",
-                "text-black": variant === "inverse",
+                "text-white": variant === "inverse",
                 "text-error-700":
                   variant === "destructive-tertiary" ||
                   variant === "destructive-secondary",
@@ -154,11 +154,11 @@ const ButtonRoot = React.forwardRef<HTMLElement, ButtonRootProps>(
         {iconRight ? (
           <SubframeCore.IconWrapper
             className={SubframeUtils.twClassNames(
-              "text-body font-body text-black group-disabled/3b777358:text-neutral-400",
+              "text-body font-body text-white group-disabled/3b777358:text-neutral-400",
               {
                 "text-body font-body": size === "small",
                 "text-heading-3 font-heading-3": size === "large",
-                "text-black": variant === "inverse",
+                "text-white": variant === "inverse",
                 "text-error-700":
                   variant === "destructive-tertiary" ||
                   variant === "destructive-secondary",

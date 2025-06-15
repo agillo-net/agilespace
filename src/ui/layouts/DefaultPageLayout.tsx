@@ -49,7 +49,7 @@ const DefaultPageLayoutRoot = React.forwardRef<
           <div className="flex flex-col items-center justify-center gap-2 px-1 py-1">
             <img
               className="h-6 w-6 flex-none object-cover"
-              src="https://res.cloudinary.com/subframe/image/upload/v1711417507/shared/y2rsnhq3mex4auk54aye.png"
+              src="https://res.cloudinary.com/subframe/image/upload/v1711417511/shared/t4qorgih4yjwudzjfkxq.png"
             />
           </div>
         }
@@ -109,11 +109,13 @@ const DefaultPageLayoutRoot = React.forwardRef<
           Projects
         </SidebarRailWithIcons.NavItem>
       </SidebarRailWithIcons>
-      {children ? (
-        <div className="flex grow shrink-0 basis-0 flex-col items-start gap-2 self-stretch overflow-y-auto bg-default-background">
-          {children}
-        </div>
-      ) : null}
+      <div className="flex grow shrink-0 basis-0 items-center gap-2 self-stretch">
+        {children ? (
+          <div className="flex grow shrink-0 basis-0 flex-col items-start gap-2 self-stretch overflow-y-auto bg-default-background">
+            {children}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 });

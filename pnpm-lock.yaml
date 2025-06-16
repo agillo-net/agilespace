@@ -205,8 +205,8 @@ importers:
         specifier: ^16.0.0
         version: 16.1.0
       supabase:
-        specifier: ^2.22.12
-        version: 2.22.12
+        specifier: ^2.24.3
+        version: 2.24.3
       tw-animate-css:
         specifier: ^1.2.9
         version: 1.2.9
@@ -2874,8 +2874,8 @@ packages:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
 
-  supabase@2.22.12:
-    resolution: {integrity: sha512-PWQT+uzwAXcamM/FK60CaWRjVwsX2SGW5vF7edbiTQC6vsNvTBnSIvd1yiXsIpq32uzQFu+iOrayxaTQytNiTw==}
+  supabase@2.24.3:
+    resolution: {integrity: sha512-mh9pi4C5pM159GyYE+Rv9qL8kg1kqzimQ4FBr6UH/WhzB/VcDaA+vpn/VeRC3CGVKr+d89Ra5MjDWg+/UoPpXg==}
     engines: {npm: '>=8'}
     hasBin: true
 
@@ -5831,7 +5831,7 @@ snapshots:
 
   strip-json-comments@3.1.1: {}
 
-  supabase@2.22.12:
+  supabase@2.24.3:
     dependencies:
       bin-links: 5.0.0
       https-proxy-agent: 7.0.6

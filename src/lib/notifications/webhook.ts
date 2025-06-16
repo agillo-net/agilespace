@@ -1,27 +1,21 @@
+import { getSupabaseClient } from '../supabase/client'
+
 export async function sendGoogleChatNotification(message: string) {
-    const webhookUrl = import.meta.env.VITE_GOOGLE_CHAT_WEBHOOK_URL;
-
-    if (!webhookUrl) {
-        console.warn('Google Chat webhook URL not configured');
-        return;
-    }
-
     try {
-        const response = await fetch(webhookUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                text: message
-            }),
-        });
+        const supabase = getSupabaseClient()
+        const { data, error } = await supabase.functions.invoke('google-chat-webhook', {
+            body: { message }
+        })
 
-        if (!response.ok) {
-            throw new Error(`Failed to send notification: ${response.statusText}`);
+        if (error) {
+            throw new Error(error.message)
+        }
+
+        if (!data.success) {
+            throw new Error('Failed to send notification')
         }
     } catch (error) {
-        console.error('Error sending Google Chat notification:', error);
-        throw error;
+        console.error('Error sending Google Chat notification:', error)
+        throw error
     }
 } 

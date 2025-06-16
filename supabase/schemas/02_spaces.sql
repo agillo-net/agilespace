@@ -15,6 +15,9 @@ create table space_members (
   user_id uuid references auth.users(id) on delete cascade,
   role text check (role in ('admin', 'member', 'observer')) not null,
   nickname text,
+  status text check (status in ('online', 'offline')) default 'offline',
+  location text check (location in ('office', 'remote')) default null,
   joined_at timestamp with time zone default now(),
-  last_active_at timestamp with time zone
+  last_active_at timestamp with time zone,
+  last_status_update_at timestamp with time zone default now()
 );

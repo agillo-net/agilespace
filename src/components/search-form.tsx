@@ -16,14 +16,26 @@ export function SearchForm({
     return (
         <div className="bg-white rounded-lg shadow p-6">
             <form onSubmit={onSubmit} className="flex gap-4">
-                <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => onSearchQueryChange(e.target.value)}
-                    placeholder="Search issues to start a new session..."
-                    className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={isDisabled}
-                />
+                <div className="relative flex-1">
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => onSearchQueryChange(e.target.value)}
+                        placeholder="Search issues to start a new session..."
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        disabled={isDisabled}
+                    />
+                    {searchQuery && (
+                        <button
+                            type="button"
+                            onClick={() => onSearchQueryChange('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            disabled={isDisabled}
+                        >
+                            ×
+                        </button>
+                    )}
+                </div>
                 <button
                     type="submit"
                     disabled={isSearching || isDisabled}

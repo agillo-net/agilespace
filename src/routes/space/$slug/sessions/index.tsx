@@ -100,7 +100,6 @@ function SessionsPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['activeSession', slug] })
             queryClient.invalidateQueries({ queryKey: ['closedSessions', spaceData?.space?.id] })
-            queryClient.invalidateQueries({ queryKey: ['issues', slug, debouncedSearchQuery] })
             setShowEndSessionDialog(false)
             setEndSessionMessage('')
             toast.success("Session ended successfully")
@@ -131,7 +130,6 @@ function SessionsPage() {
                 space_member_id: spaceData.space_member.id,
             })
             // Clear search results
-            setSearchQuery('')
             queryClient.invalidateQueries({ queryKey: ['activeSession', slug] })
             toast.success("Track created and session started")
         } catch (error) {

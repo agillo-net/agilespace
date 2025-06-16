@@ -61,8 +61,6 @@ export async function createSpaceMember({
   const userId = user?.id;
   if (!userId) throw new Error("User ID is required");
 
-
-
   const { error } = await supabase.from("space_members").insert({
     space_id,
     user_id: userId,
@@ -196,3 +194,59 @@ export async function unlinkTagFromSession(sessionId: string, tagId: string) {
 
   if (error) throw error
 }
+
+/**
+ * Updates the status and location of the current user in the space_members table.
+ * This function is used to set the user's online/offline status and their current working location (office/remote).
+ * @param {Object} params - The parameters for the update.
+ * @param {string} params.status - The online/offline status to set for the user.
+ * @param {string} params.location - The working location to set for the user (office/remote).
+ * @returns {Promise<Object>} The updated space member data.
+ * @throws {Error} If the user ID is not found, or if the status/location is invalid, or if the update fails.
+ * @example
+ * // Update the current user's status to online and location to office
+ * const updatedMember = await updateMemberStatus({
+ *   status: 'online',
+ *   location: 'office'
+ * });
+ */
+export async function updateMemberStatus({
+  status,
+  location,
+}: {
+  status: string
+  location: string
+}) {
+  // Get the current user
+  const user = await getUser();
+  const userId = user?.id;
+  if (!userId) throw new Error("User ID is required");
+
+  // Validate status and location
+  if (!status || !location) {
+    throw new Error("Status and location are required");
+  }
+
+  // Check if status and location is valid (online, offline) | (office, remote)
+  const validStatuses = ['online', 'offline'];
+  const validLocations = ['office', 'remote'];
+  if (!validStatuses.includes(status) || !validLocations.includes(location)) {
+    throw new Error("Invalid status or location");
+  }
+
+  // Update the space member's status and location
+  const { data, error } = await supabase
+    .from('space_members')
+    .update({
+      status,
+      location,
+      last_status_update_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+

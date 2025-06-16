@@ -141,27 +141,36 @@ export type Database = {
           id: string
           joined_at: string | null
           last_active_at: string | null
+          last_status_update_at: string | null
+          location: string | null
           nickname: string | null
           role: string
           space_id: string | null
+          status: string | null
           user_id: string | null
         }
         Insert: {
           id?: string
           joined_at?: string | null
           last_active_at?: string | null
+          last_status_update_at?: string | null
+          location?: string | null
           nickname?: string | null
           role: string
           space_id?: string | null
+          status?: string | null
           user_id?: string | null
         }
         Update: {
           id?: string
           joined_at?: string | null
           last_active_at?: string | null
+          last_status_update_at?: string | null
+          location?: string | null
           nickname?: string | null
           role?: string
           space_id?: string | null
+          status?: string | null
           user_id?: string | null
         }
         Relationships: [

@@ -10,7 +10,7 @@ import { useParams } from "@tanstack/react-router"
 import { createIssueComment } from "@/lib/github/mutations"
 import { EndSessionDialog } from "@/components/end-session-dialog"
 import type { Tag } from "@/types"
-import { formatSessionComment } from "@/lib/utils"
+import { formatSessionComment, getGitHubIssueUrl } from "@/lib/utils"
 
 export function Timer() {
     const [time, setTime] = React.useState(0)
@@ -65,7 +65,8 @@ export function Timer() {
             }
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["activeSession", slug] })
+            queryClient.invalidateQueries({ queryKey: ['activeSession', slug] })
+            queryClient.invalidateQueries({ queryKey: ['closedSessions', spaceData?.space?.id] })
             setIsRunning(false)
             setTime(0)
             setShowEndSessionDialog(false)
@@ -134,19 +135,13 @@ export function Timer() {
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
     }
 
-    const getGitHubIssueUrl = () => {
-        if (!activeSession?.track) return ""
-        const { repo_owner, repo_name, issue_number } = activeSession.track
-        return `https://github.com/${repo_owner}/${repo_name}/issues/${issue_number}`
-    }
-
     return (
         <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
                 {activeSession?.track && (
                     <div className="flex items-center gap-2">
                         <a
-                            href={getGitHubIssueUrl()}
+                            href={getGitHubIssueUrl(activeSession.track)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm font-medium hover:underline"

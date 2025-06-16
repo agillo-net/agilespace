@@ -12,6 +12,7 @@ export async function createIssueComment({
     body: string;
 }) {
     const octokit = await getOctokitClient();
+    if (!octokit) throw new Error("Octokit client not initialized");
     try {
         const response = await octokit.rest.issues.createComment({
             owner,

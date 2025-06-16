@@ -7,7 +7,6 @@ import {
 } from "react";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import type { Session, User, AuthChangeEvent } from "@supabase/supabase-js";
-import { Octokit } from "octokit";
 import { getOctokitClient } from "@/lib/github/client";
 
 interface AuthContextType {
@@ -34,6 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Test if the token is still valid
       const octokit = await getOctokitClient();
+      if (!octokit) throw new Error("Octokit not initialized");
       await octokit.rest.users.getAuthenticated();
       return githubToken;
     } catch (error: any) {
@@ -112,7 +112,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         githubToken,
         loginWithGitHub,
         logout,
-        getValidGithubToken
+        getValidGithubToken,
+        refreshSession: async () => {},
       }}
     >
       {children}

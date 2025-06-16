@@ -5,27 +5,19 @@ import { LoginForm } from "@/components/login-form";
 import { CreateProfile } from "@/components/create-profile";
 import { getProfile } from "@/lib/supabase/queries";
 import { getUserOrgs } from "./lib/github/queries";
-import { CreateOrgButton } from "@/components/create-org-button";
-import { getUserOrganizations } from "@/lib/supabase/queries";
 
 function App() {
   const { user, logout } = useAuth();
 
   const getProfileQuery = useQuery({
     queryKey: ["profile", user?.id],
-    queryFn: () => getProfile(user?.id),
+    queryFn: () => getProfile(),
     enabled: !!user,
   });
 
   const getGithubOrgsQuery = useQuery({
     queryKey: ["github_orgs"],
     queryFn: () => getUserOrgs(),
-    enabled: !!user,
-  });
-
-  const userOrgsQuery = useQuery({
-    queryKey: ["user_organizations", user?.id],
-    queryFn: () => getUserOrganizations(user?.id),
     enabled: !!user,
   });
 
@@ -44,7 +36,7 @@ function App() {
       <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
         <div className="w-full max-w-sm">
           <h2 className="text-xl mb-4 text-center">Create your profile</h2>
-          <CreateProfile userId={user.id} />
+          <CreateProfile />
         </div>
       </div>
     );
@@ -59,41 +51,17 @@ function App() {
   }
   if (getGithubOrgsQuery.isError) {
     return (
-      <div className="flex min-h-svh w-full items-center justify-center text-red-500">
-        {getGithubOrgsQuery.error.message}
+      <div className="flex min-h-svh w-full items-center justify-center">
+        Error loading organizations
       </div>
     );
   }
 
-  if (getGithubOrgsQuery.data?.data.length === 0) {
+  if (getGithubOrgsQuery.data && getGithubOrgsQuery.data.length === 0) {
     return (
-      <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-        <div className="w-full max-w-md">
-          <h2 className="text-xl mb-4 text-center">
-            Select a GitHub Organization to create
-          </h2>
-          {getGithubOrgsQuery.data.data.length === 0 && (
-            <div>No GitHub organizations found.</div>
-          )}
-          {getGithubOrgsQuery.data.data &&
-            getGithubOrgsQuery.data.data.length > 0 && (
-              <ul className="space-y-4">
-                {getGithubOrgsQuery.data.data.map((org: any) => (
-                  <li
-                    key={org.id}
-                    className="flex items-center gap-4 border rounded p-3"
-                  >
-                    <img
-                      src={org.avatar_url}
-                      alt={org.login}
-                      className="w-10 h-10 rounded-full"
-                    />
-                    <span className="font-medium">{org.login}</span>
-                    <CreateOrgButton org={org} />
-                  </li>
-                ))}
-              </ul>
-            )}
+      <div className="flex min-h-svh w-full items-center justify-center">
+        <div className="w-full max-w-md text-center">
+          <h2 className="text-xl mb-4">No organizations found</h2>
         </div>
       </div>
     );
@@ -110,15 +78,8 @@ function App() {
       <div className="mb-4">
         <h2 className="text-lg font-semibold mb-2">Your Organizations</h2>
         <ul className="space-y-2">
-          {userOrgsQuery.isLoading && <li>Loading organizations...</li>}
-          {userOrgsQuery.isError && (
-            <li className="text-red-500">{userOrgsQuery.error.message}</li>
-          )}
-          {userOrgsQuery.data && userOrgsQuery.data.length === 0 && (
-            <li>No organizations found.</li>
-          )}
-          {userOrgsQuery.data &&
-            userOrgsQuery.data.map((org: any) => (
+          {getGithubOrgsQuery.data &&
+            getGithubOrgsQuery.data.map((org: any) => (
               <li key={org.id} className="flex items-center gap-2">
                 <img
                   src={org.avatar_url}

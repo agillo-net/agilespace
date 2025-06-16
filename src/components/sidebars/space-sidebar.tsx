@@ -10,7 +10,6 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-    SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
 import { useAuth } from "@/hooks/use-auth";

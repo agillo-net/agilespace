@@ -8,10 +8,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
 
 export function CreateProfile({
-  userId,
   onCreated,
 }: {
-  userId: string;
   onCreated?: () => void;
 }) {
   const { user } = useAuth();
@@ -33,11 +31,7 @@ export function CreateProfile({
 
   const mutation = useMutation({
     mutationFn: async () => {
-      await createProfile({
-        id: userId,
-        full_name: fullName,
-        github_username: githubUsername,
-      });
+      await createProfile();
     },
     onSuccess: () => {
       setLoading(false);

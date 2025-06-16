@@ -46,6 +46,7 @@ function TracksPage() {
     const createTrackMutation = useMutation({
         mutationFn: async (issue: GitHubIssue) => {
             if (!spaceData?.space || !hasValidRepository(issue)) return
+            if (!spaceData.space_member) throw new Error("space_member is null");
             const track = await createTrack({
                 space_id: spaceData.space.id,
                 repo_owner: issue.repository.owner || '',
@@ -204,4 +205,4 @@ function TracksPage() {
             </div>
         </div>
     )
-} 
+}

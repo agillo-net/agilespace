@@ -3,17 +3,21 @@ import type { GitHubIssue } from "@/types";
 
 export { getOctokitClient }
 
-const octokit = await getOctokitClient();
-
 export async function getCurrentUser() {
+  const octokit = await getOctokitClient();
+  if (!octokit) throw new Error("Octokit client not initialized");
   return octokit.rest.users.getAuthenticated();
 }
 
 export async function getUserOrgs() {
+  const octokit = await getOctokitClient();
+  if (!octokit) throw new Error("Octokit client not initialized");
   return (await octokit.rest.orgs.listForAuthenticatedUser()).data;
 }
 
 export async function getRepo(org: string, repo: string) {
+  const octokit = await getOctokitClient();
+  if (!octokit) throw new Error("Octokit client not initialized");
   try {
     return await octokit.rest.repos.get({ owner: org, repo });
   } catch (error) {
@@ -23,6 +27,8 @@ export async function getRepo(org: string, repo: string) {
 }
 
 export async function searchIssues(orgs: string[] | string, query: string = '', options: {} = {}): Promise<GitHubIssue[]> {
+  const octokit = await getOctokitClient();
+  if (!octokit) throw new Error("Octokit client not initialized");
   if (!orgs || orgs.length === 0) {
     throw new Error("At least one organization is required");
   }
@@ -57,9 +63,9 @@ export async function searchIssues(orgs: string[] | string, query: string = '', 
     const repoUrls = results.data.items.map(issue => issue.repository_url);
     const uniqueRepoUrls = Array.from(new Set(repoUrls));
     const repoDetails = await Promise.all(
-      uniqueRepoUrls.map(url => {
+      uniqueRepoUrls.map(async url => {
         const [owner, repo] = url.split('/').slice(-2);
-        return octokit.rest.repos.get({ owner, repo });
+        return (await octokit.rest.repos.get({ owner, repo }));
       })
     );
 
@@ -82,6 +88,8 @@ export async function searchIssues(orgs: string[] | string, query: string = '', 
 }
 
 export async function getUser(userId: number) {
+  const octokit = await getOctokitClient();
+  if (!octokit) throw new Error("Octokit client not initialized");
   try {
     return await octokit.rest.users.getById({ account_id: userId });
   } catch (error) {

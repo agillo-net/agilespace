@@ -50,7 +50,6 @@ function TagsPage() {
     const [newTagColor, setNewTagColor] = useState('#000000')
     const [editingTag, setEditingTag] = useState<Tag | null>(null)
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [editingTagId, setEditingTagId] = useState<string | null>(null)
 
     // Query for fetching tags
@@ -79,7 +78,7 @@ function TagsPage() {
             queryClient.invalidateQueries({ queryKey: ['tags', space?.id] })
             setEditingTag(null)
             setEditingTagId(null)
-            setIsEditDialogOpen(false)
+            setIsCreateDialogOpen(false)
         },
     })
 
@@ -325,4 +324,4 @@ function TagsPage() {
             </div>
         </div>
     )
-} 
+}

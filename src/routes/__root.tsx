@@ -4,6 +4,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { createRootRoute, redirect, Outlet } from "@tanstack/react-router";
 import { getProfile } from "@/lib/supabase/queries";
 import { createProfile } from "@/lib/supabase/mutations";
+import { NotFound } from "@/components/not-found";
 
 export const Route = createRootRoute({
   loader: async ({ location }) => {
@@ -40,6 +41,7 @@ export const Route = createRootRoute({
     return { user: data?.session?.user || null };
   },
   component: App,
+  notFoundComponent: NotFound
 });
 
 function App() {

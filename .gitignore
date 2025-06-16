@@ -26,7 +26,7 @@ dist-ssr
 # Supabase
 .branches
 .temp
-supabase/functions/.env
+supabase/functions/**/.env
 
 # dotenvx
 .env.keys

@@ -6,6 +6,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { handleErrorMessage } from "../../utils"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -69,7 +70,7 @@ serve(async (req) => {
     )
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: handleErrorMessage(error) }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

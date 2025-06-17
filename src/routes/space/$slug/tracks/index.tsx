@@ -9,6 +9,8 @@ import { TracksListSkeleton } from '@/components/skeleton/tracks-list-skeleton'
 import { useDebounce } from '@/hooks/use-debounce'
 import { createSession } from '@/lib/supabase/mutations'
 import { toast } from 'sonner'
+import { DEBOUNCE_TIME } from '@/constants'
+import { SearchForm } from '@/components/search-form'
 
 export const Route = createFileRoute('/space/$slug/tracks/')({
     component: TracksPage,
@@ -20,7 +22,7 @@ export const Route = createFileRoute('/space/$slug/tracks/')({
 function TracksPage() {
     const { slug } = Route.useParams()
     const [searchQuery, setSearchQuery] = useState('')
-    const debouncedSearchQuery = useDebounce(searchQuery, 1000)
+    const [debouncedSearchQuery, setValue] = useDebounce(searchQuery, DEBOUNCE_TIME)
     const queryClient = useQueryClient()
 
     // Load space and tracks data
@@ -33,10 +35,9 @@ function TracksPage() {
     const {
         data: searchResults,
         isLoading: isSearching,
-        refetch: refetchSearch,
         error: searchError
     } = useQuery({
-        queryKey: ['issues', slug, debouncedSearchQuery],
+        queryKey: ['tracks', 'issues', slug, debouncedSearchQuery],
         queryFn: () => searchIssues(slug, debouncedSearchQuery),
         enabled: !!debouncedSearchQuery.trim(), // Only run when there's a non-empty search query
         retry: false
@@ -76,8 +77,7 @@ function TracksPage() {
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!searchQuery.trim()) return
-        // Force immediate search when Enter is pressed
-        refetchSearch()
+        setValue(searchQuery, true)
     }
 
     const hasValidRepository = (issue: GitHubIssue): issue is GitHubIssue & { repository: NonNullable<GitHubIssue['repository']> } => {
@@ -110,35 +110,14 @@ function TracksPage() {
             <h1 className="text-3xl font-bold">Tracks</h1>
 
             {/* Search Form */}
-            <div className="bg-white rounded-lg shadow p-6">
-                <form onSubmit={handleSearch} className="flex gap-4">
-                    <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search issues..."
-                        className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                        type="submit"
-                        disabled={isSearching}
-                        className="px-6 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                    >
-                        {isSearching ? 'Searching...' : 'Search'}
-                    </button>
-                </form>
-            </div>
-
-            {/* Search Error */}
-            {searchError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p className="text-red-700">
-                        {searchError instanceof Error
-                            ? searchError.message
-                            : 'Failed to search issues. Please try again.'}
-                    </p>
-                </div>
-            )}
+            <SearchForm
+                searchQuery={searchQuery}
+                onSearchQueryChange={setSearchQuery}
+                onSubmit={handleSearch}
+                isSearching={isSearching}
+                isDisabled={false}
+                error={searchError}
+            />
 
             {/* Search Results */}
             {searchResults && searchResults.length > 0 && (

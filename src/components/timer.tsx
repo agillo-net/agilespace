@@ -41,6 +41,11 @@ export function Timer() {
         mutationFn: async ({ sessionId, message, skipSummary, selectedTags }: { sessionId: string, message: string, skipSummary: boolean, selectedTags: Tag[] }) => {
             if (!activeSession?.track) throw new Error("No active track found")
 
+            // Calculate duration using proper Date objects
+            const startDate = new Date(activeSession.started_at)
+            const endDate = new Date()
+            const duration = endDate.getTime() - startDate.getTime()
+
             let commentUrl: string | undefined
             if (!skipSummary) {
                 // Create GitHub issue comment
@@ -49,7 +54,7 @@ export function Timer() {
                     repo: activeSession.track.repo_name,
                     issue_number: activeSession.track.issue_number,
                     body: formatSessionComment(
-                        new Date().getTime() - new Date(activeSession.started_at).getTime(),
+                        duration,
                         message,
                     )
                 })
@@ -57,7 +62,7 @@ export function Timer() {
             }
 
             // End the session and link tags
-            await endSession(sessionId, commentUrl, skipSummary)
+            await endSession(sessionId, commentUrl, skipSummary, endDate.toISOString())
 
             // Link selected tags to the session
             for (const tag of selectedTags) {

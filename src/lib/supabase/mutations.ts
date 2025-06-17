@@ -130,11 +130,11 @@ export async function createSession({
   return data;
 }
 
-export async function endSession(session_id: string, comment_url?: string, skip_summary?: boolean) {
+export async function endSession(session_id: string, comment_url?: string, skip_summary?: boolean, ended_at: string = new Date().toISOString()) {
   const { data, error } = await supabase
     .from("sessions")
     .update({
-      ended_at: new Date().toISOString(),
+      ended_at,
       comment_url,
       skipped_summary: skip_summary
     })

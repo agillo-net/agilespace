@@ -4,6 +4,7 @@ interface SearchFormProps {
     onSubmit: (e: React.FormEvent) => void
     isSearching: boolean
     isDisabled: boolean
+    error?: Error | null
 }
 
 export function SearchForm({
@@ -11,7 +12,8 @@ export function SearchForm({
     onSearchQueryChange,
     onSubmit,
     isSearching,
-    isDisabled
+    isDisabled,
+    error,
 }: SearchFormProps) {
     return (
         <div className="bg-white rounded-lg shadow p-6">
@@ -48,6 +50,15 @@ export function SearchForm({
                 <p className="mt-2 text-sm text-gray-500">
                     Please end your current session before starting a new one.
                 </p>
+            )}
+            {error && (
+                <div className="mt-2 bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-red-700">
+                        {error instanceof Error
+                            ? error.message
+                            : 'Failed to search issues. Please try again.'}
+                    </p>
+                </div>
             )}
         </div>
     )

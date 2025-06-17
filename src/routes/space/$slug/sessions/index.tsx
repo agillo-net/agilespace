@@ -14,6 +14,13 @@ import { SessionCard } from '@/components/session-card'
 import { formatTime, getSessionDuration } from '@/lib/utils'
 import { formatSessionComment } from '@/lib/utils'
 import { DEBOUNCE_TIME } from '@/constants'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import React from 'react'
+import { MultiSelect } from '@/components/ui/multi-select'
+import { useAuth } from '@/hooks/use-auth'
 
 export const Route = createFileRoute('/space/$slug/sessions/')({
     component: SessionsPage,
@@ -28,7 +35,11 @@ function SessionsPage() {
     const [debouncedSearchQuery, setValue] = useDebounce(searchQuery, DEBOUNCE_TIME)
     const [showEndSessionDialog, setShowEndSessionDialog] = useState(false)
     const [endSessionMessage, setEndSessionMessage] = useState('')
+    const [selectedMembers, setSelectedMembers] = useState<string[]>([])
+    const [timeFilter, setTimeFilter] = useState<'all' | 'day' | 'week'>('all')
+    const [sessionLimit, setSessionLimit] = useState<number>(10)
     const queryClient = useQueryClient()
+    const { user } = useAuth()
 
     // Load space and tracks data
     const { data: spaceData, isLoading: isLoadingSpace } = useQuery({
@@ -54,7 +65,6 @@ function SessionsPage() {
     const {
         data: searchResults,
         isLoading: isSearching,
-        refetch: refetchSearch,
         error: searchError
     } = useQuery({
         queryKey: ['sessions', 'issues', slug, debouncedSearchQuery],
@@ -196,6 +206,72 @@ function SessionsPage() {
         return activeSession?.track.id === trackId
     }
 
+    // Filter closed sessions based on selected filters
+    const filteredClosedSessions = React.useMemo(() => {
+        if (!closedSessions) return []
+
+        let filtered = [...closedSessions]
+
+        // Filter by members
+        if (selectedMembers.length > 0) {
+            filtered = filtered.filter(session =>
+                session.space_member?.user_id && selectedMembers.includes(session.space_member.user_id)
+            )
+        }
+
+        // Filter by time period
+        const now = new Date()
+        if (timeFilter === 'day') {
+            const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+            filtered = filtered.filter(session =>
+                new Date(session.ended_at!) >= oneDayAgo
+            )
+        } else if (timeFilter === 'week') {
+            const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+            filtered = filtered.filter(session =>
+                new Date(session.ended_at!) >= oneWeekAgo
+            )
+        }
+
+        // Apply limit
+        return filtered.slice(0, sessionLimit)
+    }, [closedSessions, selectedMembers, timeFilter, sessionLimit])
+
+    // Get unique members from closed sessions
+    const uniqueMembers = React.useMemo(() => {
+        if (!closedSessions) return []
+        const members = new Map()
+        closedSessions.forEach(session => {
+            if (session.space_member?.user_id && session.space_member?.profile) {
+                members.set(session.space_member.user_id, session.space_member.profile)
+            }
+        })
+        return Array.from(members.entries())
+    }, [closedSessions])
+
+    // Prepare member options for MultiSelect
+    const memberOptions = React.useMemo(() => {
+        // Sort members to put current user first
+        const sortedMembers = [...uniqueMembers].sort(([idA], [idB]) => {
+            if (idA === user?.id) return -1
+            if (idB === user?.id) return 1
+            return 0
+        })
+
+        return sortedMembers.map(([id, profile]) => ({
+            label: `${profile.full_name || 'Unknown User'}${id === user?.id ? ' (Me)' : ''}`,
+            value: id,
+            icon: () => (
+                <Avatar className="h-4 w-4">
+                    <AvatarImage src={profile.avatar_url || undefined} />
+                    <AvatarFallback className="text-xs">
+                        {profile.full_name?.charAt(0) || '?'}
+                    </AvatarFallback>
+                </Avatar>
+            )
+        }))
+    }, [uniqueMembers, user?.id])
+
     if (isLoadingSpace || isLoadingSessions) {
         return (
             <div className="space-y-6">
@@ -298,10 +374,50 @@ function SessionsPage() {
 
             {/* Closed Sessions */}
             <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold mb-4">Closed Sessions</h2>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold">Closed Sessions</h2>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <Label htmlFor="member-filter">Members:</Label>
+                            <MultiSelect
+                                options={memberOptions}
+                                value={selectedMembers}
+                                onValueChange={setSelectedMembers}
+                                placeholder="Select members"
+                                maxCount={3}
+                                className="w-[300px]"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Label htmlFor="time-filter">Time Period:</Label>
+                            <Select value={timeFilter} onValueChange={(value: 'all' | 'day' | 'week') => setTimeFilter(value)}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Select time period" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Time</SelectItem>
+                                    <SelectItem value="day">Last 24 Hours</SelectItem>
+                                    <SelectItem value="week">Last 7 Days</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Label htmlFor="session-limit">Limit:</Label>
+                            <Input
+                                id="session-limit"
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={sessionLimit}
+                                onChange={(e) => setSessionLimit(Math.max(1, Math.min(100, parseInt(e.target.value) || 10)))}
+                                className="w-[100px]"
+                            />
+                        </div>
+                    </div>
+                </div>
                 <div className="space-y-4">
-                    {closedSessions && closedSessions.length > 0 ? (
-                        closedSessions.map((session) => (
+                    {filteredClosedSessions.length > 0 ? (
+                        filteredClosedSessions.map((session) => (
                             <SessionCard
                                 key={session.id}
                                 track={session.track}
@@ -311,6 +427,7 @@ function SessionsPage() {
                                 commentUrl={session.comment_url}
                                 skippedSummary={session.skipped_summary}
                                 tags={session.tags}
+                                spaceMember={session.space_member}
                             />
                         ))
                     ) : (

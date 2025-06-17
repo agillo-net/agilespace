@@ -35,7 +35,6 @@ function TracksPage() {
     const {
         data: searchResults,
         isLoading: isSearching,
-        refetch: refetchSearch,
         error: searchError
     } = useQuery({
         queryKey: ['tracks', 'issues', slug, debouncedSearchQuery],

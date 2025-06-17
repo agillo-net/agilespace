@@ -363,22 +363,51 @@ export async function getClosedSessions(spaceId: string) {
   const userId = user?.id;
   if (!userId) throw new Error("User ID is required");
 
-  const { data, error } = await supabase
+  // First get all sessions with space members
+  const { data: sessions, error: sessionsError } = await supabase
     .from("sessions")
     .select(`
       *,
-      space_member:space_members!inner(*),
       track:tracks!inner(*),
+      space_member:space_members!inner(*),
       tags:session_tags(
         tag:tags(*)
       )
     `)
     .eq('tracks.space_id', spaceId)
-    .eq('space_members.user_id', userId)
     .not('ended_at', 'is', null)
     .order('ended_at', { ascending: false });
-  if (error) throw new Error(error.message);
-  return data || [];
+
+  if (sessionsError) throw new Error(sessionsError.message);
+  if (!sessions) return [];
+
+  // Get unique user IDs from space members
+  const uniqueUserIds = [...new Set(sessions
+    .map(session => session.space_member?.user_id)
+    .filter((id): id is string => id !== null)
+  )];
+
+  // Fetch profiles for all unique users
+  const { data: profiles, error: profilesError } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url")
+    .in("id", uniqueUserIds);
+
+  if (profilesError) throw new Error(profilesError.message);
+
+  // Create a map of user IDs to profiles for quick lookup
+  const profileMap = new Map(
+    (profiles || []).map(profile => [profile.id, profile])
+  );
+
+  // Combine the data
+  return sessions.map(session => ({
+    ...session,
+    space_member: session.space_member ? {
+      ...session.space_member,
+      profile: session.space_member.user_id ? profileMap.get(session.space_member.user_id) : null
+    } : null
+  }));
 }
 
 export async function getTrackSessionStats(trackIds: string[]) {

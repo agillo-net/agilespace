@@ -232,7 +232,6 @@ function SessionsPage() {
                 isSearching={isSearching}
                 isDisabled={!!activeSession}
                 error={searchError}
-                refetch={refetchSearch}
             />
 
             {/* Search Results */}

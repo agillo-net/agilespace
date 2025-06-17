@@ -118,7 +118,6 @@ function TracksPage() {
                 isSearching={isSearching}
                 isDisabled={false}
                 error={searchError}
-                refetch={refetchSearch}
             />
 
             {/* Search Results */}

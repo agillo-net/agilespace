@@ -1,5 +1,3 @@
-import { useRef } from "react"
-
 interface SearchFormProps {
     searchQuery: string
     onSearchQueryChange: (query: string) => void
@@ -7,7 +5,6 @@ interface SearchFormProps {
     isSearching: boolean
     isDisabled: boolean
     error?: Error | null
-    refetch: () => void
 }
 
 export function SearchForm({
@@ -17,25 +14,15 @@ export function SearchForm({
     isSearching,
     isDisabled,
     error,
-    refetch
 }: SearchFormProps) {
-    const formRef = useRef<HTMLFormElement>(null)
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault()
-            refetch()
-        }
-    }
-
     return (
         <div className="bg-white rounded-lg shadow p-6">
-            <form onSubmit={onSubmit} className="flex gap-4" ref={formRef}>
+            <form onSubmit={onSubmit} className="flex gap-4">
                 <div className="relative flex-1">
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => onSearchQueryChange(e.target.value)}
-                        onKeyDown={handleKeyDown}
                         placeholder="Search issues to start a new session..."
                         className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         disabled={isDisabled}

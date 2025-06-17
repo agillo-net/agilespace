@@ -3,78 +3,81 @@
 // This enables autocomplete, go to definition, etc.
 
 // Setup type definitions for built-in Supabase Runtime APIs
-import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { handleErrorMessage } from "../../utils"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+const handleErrorMessage = (error: unknown): string | unknown => {
+  if (error instanceof Error) {
+    return error.message;
+  } else if (typeof error === "string") {
+    return error;
+  } else if (error && typeof error === "object" && "message" in error) {
+    return error.message;
+  } else {
+    return "An unknown error occurred";
+  }
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     // Get the message from the request body
-    const { message } = await req.json()
+    const { message } = await req.json();
 
     if (!message) {
-      return new Response(
-        JSON.stringify({ error: 'Message is required' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      return new Response(JSON.stringify({ error: "Message is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Get the webhook URL from environment variables or use default for local development
-    const webhookUrl = Deno.env.get('GOOGLE_CHAT_WEBHOOK_URL')
+    const webhookUrl = Deno.env.get("GOOGLE_CHAT_WEBHOOK_URL");
 
     if (!webhookUrl) {
       return new Response(
-        JSON.stringify({ error: 'Webhook URL not configured' }),
+        JSON.stringify({ error: "Webhook URL not configured" }),
         {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
-      )
+      );
     }
 
     // Send the notification to Google Chat
     const response = await fetch(webhookUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        text: message
+        text: message,
       }),
-    })
+    });
 
     if (!response.ok) {
-      throw new Error(`Failed to send notification: ${response.statusText}`)
+      throw new Error(`Failed to send notification: ${response.statusText}`);
     }
 
-    return new Response(
-      JSON.stringify({ success: true }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: handleErrorMessage(error) }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    return new Response(JSON.stringify({ error: handleErrorMessage(error) }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
-})
+});

@@ -13,6 +13,7 @@ import { SearchForm } from '@/components/search-form'
 import { SessionCard } from '@/components/session-card'
 import { formatTime, getSessionDuration } from '@/lib/utils'
 import { formatSessionComment } from '@/lib/utils'
+import { DEBOUNCE_TIME } from '@/constants'
 
 export const Route = createFileRoute('/space/$slug/sessions/')({
     component: SessionsPage,
@@ -24,7 +25,7 @@ export const Route = createFileRoute('/space/$slug/sessions/')({
 function SessionsPage() {
     const { slug } = Route.useParams()
     const [searchQuery, setSearchQuery] = useState('')
-    const debouncedSearchQuery = useDebounce(searchQuery, 500)
+    const [debouncedSearchQuery, setValue] = useDebounce(searchQuery, DEBOUNCE_TIME)
     const [showEndSessionDialog, setShowEndSessionDialog] = useState(false)
     const [endSessionMessage, setEndSessionMessage] = useState('')
     const queryClient = useQueryClient()
@@ -56,8 +57,9 @@ function SessionsPage() {
         refetch: refetchSearch,
         error: searchError
     } = useQuery({
-        queryKey: ['issues', slug, debouncedSearchQuery],
+        queryKey: ['sessions', 'issues', slug, debouncedSearchQuery],
         queryFn: () => searchIssues(slug, debouncedSearchQuery),
+
         enabled: !!debouncedSearchQuery.trim(),
         retry: false
     })
@@ -74,6 +76,11 @@ function SessionsPage() {
         mutationFn: async ({ sessionId, message, skipSummary, selectedTags }: { sessionId: string, message: string, skipSummary: boolean, selectedTags: Tag[] }) => {
             if (!activeSession?.track) throw new Error("No active track found")
 
+            // Calculate duration using proper Date objects
+            const startDate = new Date(activeSession.started_at)
+            const endDate = new Date()
+            const duration = endDate.getTime() - startDate.getTime()
+
             let commentUrl: string | undefined
             if (!skipSummary) {
                 // Create GitHub issue comment
@@ -82,7 +89,7 @@ function SessionsPage() {
                     repo: activeSession.track.repo_name,
                     issue_number: activeSession.track.issue_number,
                     body: formatSessionComment(
-                        new Date().getTime() - new Date(activeSession.started_at).getTime(),
+                        duration,
                         message,
                     )
                 })
@@ -90,7 +97,7 @@ function SessionsPage() {
             }
 
             // End the session and link tags
-            await endSession(sessionId, commentUrl, skipSummary)
+            await endSession(sessionId, commentUrl, skipSummary, endDate.toISOString())
 
             // Link selected tags to the session
             for (const tag of selectedTags) {
@@ -112,7 +119,7 @@ function SessionsPage() {
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!searchQuery.trim()) return
-        refetchSearch()
+        setValue(searchQuery, true)
     }
 
     const handleCreateTrack = async (issue: GitHubIssue) => {
@@ -224,18 +231,9 @@ function SessionsPage() {
                 onSubmit={handleSearch}
                 isSearching={isSearching}
                 isDisabled={!!activeSession}
+                error={searchError}
+                refetch={refetchSearch}
             />
-
-            {/* Search Error */}
-            {searchError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p className="text-red-700">
-                        {searchError instanceof Error
-                            ? searchError.message
-                            : 'Failed to search issues. Please try again.'}
-                    </p>
-                </div>
-            )}
 
             {/* Search Results */}
             {searchResults && searchResults.length > 0 && (

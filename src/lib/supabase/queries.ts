@@ -352,22 +352,29 @@ export async function getActiveSession() {
     `)
     .eq('space_members.user_id', userId)
     .is("ended_at", null)
-    .single();
-  if (error && error.code !== "PGRST116") throw new Error(error.message); // PGRST116 is "no rows returned"
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
   return data;
 }
 
 export async function getClosedSessions(spaceId: string) {
+  const user = await getUser();
+  const userId = user?.id;
+  if (!userId) throw new Error("User ID is required");
+
   const { data, error } = await supabase
     .from("sessions")
     .select(`
       *,
+      space_member:space_members!inner(*),
       track:tracks!inner(*),
       tags:session_tags(
         tag:tags(*)
       )
     `)
     .eq('tracks.space_id', spaceId)
+    .eq('space_members.user_id', userId)
     .not('ended_at', 'is', null)
     .order('ended_at', { ascending: false });
   if (error) throw new Error(error.message);

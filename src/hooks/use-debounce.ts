@@ -1,7 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
-export function useDebounce<T>(value: T, delay: number): T {
+export function useDebounce<T>(value: T, delay: number): [T, (newValue: T, immediate?: boolean) => void] {
     const [debouncedValue, setDebouncedValue] = useState<T>(value)
+
+    const setValue = useCallback((newValue: T, immediate: boolean = false) => {
+        if (immediate) {
+            setDebouncedValue(newValue)
+        } else {
+            setDebouncedValue(value)
+        }
+    }, [value])
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -13,5 +21,5 @@ export function useDebounce<T>(value: T, delay: number): T {
         }
     }, [value, delay])
 
-    return debouncedValue
+    return [debouncedValue, setValue]
 } 

@@ -1,9 +1,13 @@
+import { useRef } from "react"
+
 interface SearchFormProps {
     searchQuery: string
     onSearchQueryChange: (query: string) => void
     onSubmit: (e: React.FormEvent) => void
     isSearching: boolean
     isDisabled: boolean
+    error?: Error | null
+    refetch: () => void
 }
 
 export function SearchForm({
@@ -11,16 +15,27 @@ export function SearchForm({
     onSearchQueryChange,
     onSubmit,
     isSearching,
-    isDisabled
+    isDisabled,
+    error,
+    refetch
 }: SearchFormProps) {
+    const formRef = useRef<HTMLFormElement>(null)
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault()
+            refetch()
+        }
+    }
+
     return (
         <div className="bg-white rounded-lg shadow p-6">
-            <form onSubmit={onSubmit} className="flex gap-4">
+            <form onSubmit={onSubmit} className="flex gap-4" ref={formRef}>
                 <div className="relative flex-1">
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => onSearchQueryChange(e.target.value)}
+                        onKeyDown={handleKeyDown}
                         placeholder="Search issues to start a new session..."
                         className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         disabled={isDisabled}
@@ -48,6 +63,15 @@ export function SearchForm({
                 <p className="mt-2 text-sm text-gray-500">
                     Please end your current session before starting a new one.
                 </p>
+            )}
+            {error && (
+                <div className="mt-2 bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-red-700">
+                        {error instanceof Error
+                            ? error.message
+                            : 'Failed to search issues. Please try again.'}
+                    </p>
+                </div>
             )}
         </div>
     )

@@ -338,10 +338,10 @@ export const getSpaceMembersWithProfiles = async (spaceSlug: string): Promise<{
   });
 };
 
-export async function getActiveSession() {
-  const user = await getUser();
-  const userId = user?.id;
-  if (!userId) throw new Error("User ID is required");
+export async function getActiveSession(userId?: string) {
+  const user = userId ? { id: userId } : await getUser();
+  const currentUserId = user?.id;
+  if (!currentUserId) throw new Error("User ID is required");
 
   const { data, error } = await supabase
     .from("sessions")
@@ -350,7 +350,7 @@ export async function getActiveSession() {
       space_member:space_members!inner(*),
       track:tracks!inner(*)
     `)
-    .eq('space_members.user_id', userId)
+    .eq('space_members.user_id', currentUserId)
     .is("ended_at", null)
     .maybeSingle();
 

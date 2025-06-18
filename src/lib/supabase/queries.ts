@@ -450,3 +450,46 @@ export async function getTags(spaceId: string) {
   if (error) throw error
   return data as Tag[]
 }
+
+export async function getSpaceActiveSessions(spaceId: string) {
+  const { data, error } = await supabase
+    .from("sessions")
+    .select(`
+      *,
+      space_member:space_members!inner(*),
+      track:tracks!inner(*)
+    `)
+    .eq('tracks.space_id', spaceId)
+    .is("ended_at", null);
+
+  if (error) throw new Error(error.message);
+  if (!data) return [];
+
+  // Get unique user IDs from space members
+  const uniqueUserIds = [...new Set(data
+    .map(session => session.space_member?.user_id)
+    .filter((id): id is string => id !== null)
+  )];
+
+  // Fetch profiles for all unique users
+  const { data: profiles, error: profilesError } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url")
+    .in("id", uniqueUserIds);
+
+  if (profilesError) throw new Error(profilesError.message);
+
+  // Create a map of user IDs to profiles for quick lookup
+  const profileMap = new Map(
+    (profiles || []).map(profile => [profile.id, profile])
+  );
+
+  // Combine the data
+  return data.map(session => ({
+    ...session,
+    space_member: session.space_member ? {
+      ...session.space_member,
+      profile: session.space_member.user_id ? profileMap.get(session.space_member.user_id) : null
+    } : null
+  }));
+}

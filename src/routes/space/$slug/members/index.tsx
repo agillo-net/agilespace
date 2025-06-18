@@ -9,8 +9,10 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { getSpaceMembersWithProfiles } from '@/lib/supabase/queries'
+import { getSpaceMembersWithProfiles, getActiveSession } from '@/lib/supabase/queries'
 import { MembersListSkeleton } from '@/components/skeleton/members-list-skeleton'
+import { Badge } from '@/components/ui/badge'
+import { getGitHubIssueUrl, getSessionDuration } from '@/lib/utils'
 
 export const Route = createFileRoute('/space/$slug/members/')({
     component: MembersPage,
@@ -18,10 +20,31 @@ export const Route = createFileRoute('/space/$slug/members/')({
 
 function MembersPage() {
     const { slug } = Route.useParams()
+    const showDuration = false // Control visibility of duration display
 
     const { data: members, isLoading } = useQuery({
         queryKey: ['getSpaceMembers', slug],
         queryFn: () => getSpaceMembersWithProfiles(slug),
+    })
+
+    // Fetch active sessions for all members
+    const { data: activeSessions } = useQuery({
+        queryKey: ['activeSessions', slug],
+        queryFn: async () => {
+            const sessions = await Promise.all(
+                members?.map(async ({ member }) => {
+                    try {
+                        if (!member.user_id) return null
+                        const session = await getActiveSession(member.user_id)
+                        return session
+                    } catch (error) {
+                        return null
+                    }
+                }) || []
+            )
+            return sessions.filter(Boolean)
+        },
+        enabled: !!members,
     })
 
     if (isLoading) {
@@ -40,6 +63,7 @@ function MembersPage() {
                             <TableHead>Member</TableHead>
                             <TableHead>Role</TableHead>
                             <TableHead>Joined</TableHead>
+                            <TableHead>Active Ticket</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -48,6 +72,10 @@ function MembersPage() {
                             const joinedDate = member.joined_at ? new Date(member.joined_at).toLocaleString() : 'N/A'
                             const avatarUrl = profile.avatar_url || 'https://www.gravatar.com/avatar/' + btoa(name.trim().toLowerCase())
                             const avatarFallback = name.slice(0, 2).toUpperCase()
+
+                            // Find active session for this member
+                            const activeSession = activeSessions?.find(session => session?.space_member.user_id === member.user_id)
+                            const sessionDuration = activeSession ? getSessionDuration(activeSession.started_at, new Date().toISOString()) : null
 
                             return (
                                 <TableRow key={member.id}>
@@ -62,6 +90,32 @@ function MembersPage() {
                                     </TableCell>
                                     <TableCell className="capitalize">{member.role}</TableCell>
                                     <TableCell>{joinedDate}</TableCell>
+                                    <TableCell>
+                                        {activeSession ? (
+                                            <div className={showDuration ? "flex flex-col gap-1" : "flex items-center gap-2"}>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="secondary" className="bg-green-50 text-green-700 hover:bg-green-100">
+                                                        Active
+                                                    </Badge>
+                                                    <a
+                                                        href={getGitHubIssueUrl(activeSession.track)}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                                                    >
+                                                        {activeSession.track.title}
+                                                    </a>
+                                                </div>
+                                                {showDuration && (
+                                                    <span className="text-sm text-gray-500">
+                                                        Working for {sessionDuration}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-sm text-gray-500">No active ticket</span>
+                                        )}
+                                    </TableCell>
                                 </TableRow>
                             )
                         })}

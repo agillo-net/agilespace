@@ -89,6 +89,8 @@ export function EndSessionDialog({
                         <MDEditor
                             value={message}
                             onChange={(value) => onMessageChange(value || '')}
+                            hideToolbar={isPreview}
+                            extraCommands={[]}
                             preview={isPreview ? "preview" : "edit"}
                             height={200}
                             enableScroll={!skipComment}

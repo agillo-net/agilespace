@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Activity, Users, Calendar, Tag, Edit2, Check, X } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getSpaceAndTracks, getActiveSession, getClosedSessions, getTrackSessionStats } from '@/lib/supabase/queries'
+import { getUserMemberSpace, getActiveSession, getClosedSessions, getIssueSessionStats } from '@/lib/supabase/queries'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import React from 'react'
 import { updateMemberStatus } from '@/lib/supabase/mutations'
@@ -38,10 +38,10 @@ function SpaceHome() {
   // Watch status value to control location field
   const status = form.watch('status')
 
-  // Load space and tracks data
+  // Load space and member data
   const { data: spaceData } = useQuery({
     queryKey: ['space', slug],
-    queryFn: () => getSpaceAndTracks(slug)
+    queryFn: () => getUserMemberSpace(slug)
   })
 
   // Update form values when spaceData changes
@@ -68,11 +68,17 @@ function SpaceHome() {
     enabled: !!spaceData?.space?.id
   })
 
-  // Load session stats for tracks
+  // Get unique issue URLs from closed sessions to fetch stats
+  const issueUrls = React.useMemo(() => {
+    if (!closedSessions) return []
+    return [...new Set(closedSessions.map(session => session.github_issue_url))]
+  }, [closedSessions])
+
+  // Load session stats for issue URLs
   const { data: sessionStats } = useQuery({
-    queryKey: ['sessionStats', spaceData?.tracks?.map(t => t.id)],
-    queryFn: () => getTrackSessionStats(spaceData?.tracks?.map(t => t.id) || []),
-    enabled: !!spaceData?.tracks?.length
+    queryKey: ['sessionStats', issueUrls],
+    queryFn: () => getIssueSessionStats(issueUrls),
+    enabled: issueUrls.length > 0
   })
 
   // Update member status mutation
@@ -98,8 +104,8 @@ function SpaceHome() {
   const totalSessions = closedSessions?.length || 0
   const activeSessions = activeSession ? 1 : 0
 
-  // Calculate total tracks
-  const totalTracks = spaceData?.tracks?.length || 0
+  // Calculate total issues being tracked
+  const totalIssues = issueUrls.length
 
   // Calculate total members
   const totalMembers = 0 // TODO: Implement member count
@@ -125,15 +131,21 @@ function SpaceHome() {
     })).slice(-7) // Show last 7 days
   }, [closedSessions])
 
-  // Prepare track statistics data for the bar chart
-  const trackStatsData = React.useMemo(() => {
-    if (!spaceData?.tracks || !sessionStats) return []
+  // Prepare issue statistics data for the bar chart
+  const issueStatsData = React.useMemo(() => {
+    if (!sessionStats || issueUrls.length === 0) return []
 
-    return spaceData.tracks.map(track => ({
-      name: track.title,
-      sessions: sessionStats.counts[track.id] || 0
-    }))
-  }, [spaceData?.tracks, sessionStats])
+    return issueUrls.map(url => {
+      // Extract issue info from URL for display
+      const match = url.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/)
+      const issueDisplay = match ? `${match[1]}/${match[2]}#${match[3]}` : url
+
+      return {
+        name: issueDisplay,
+        sessions: sessionStats.counts[url] || 0
+      }
+    }).slice(0, 10) // Show top 10 most active issues
+  }, [issueUrls, sessionStats])
 
   const onSubmit = (data: StatusUpdate) => {
     updateStatusMutation.mutate(data)
@@ -280,14 +292,14 @@ function SpaceHome() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Tracks
+              Total Issues
             </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalTracks}</div>
+            <div className="text-2xl font-bold">{totalIssues}</div>
             <p className="text-xs text-muted-foreground">
-              Learning tracks available
+              Issues being tracked
             </p>
           </CardContent>
         </Card>
@@ -344,15 +356,15 @@ function SpaceHome() {
         </Card>
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>Track Statistics</CardTitle>
+            <CardTitle>Issue Statistics</CardTitle>
             <CardDescription>
-              Sessions per track
+              Sessions per issue
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={trackStatsData}>
+                <BarChart data={issueStatsData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
                   <YAxis />

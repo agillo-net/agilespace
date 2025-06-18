@@ -16,7 +16,6 @@ import { Route as SpacesRouteImport } from './routes/spaces/route'
 import { Route as IndexImport } from './routes/index'
 import { Route as SpaceSlugRouteImport } from './routes/space/$slug/route'
 import { Route as SpaceSlugIndexImport } from './routes/space/$slug/index'
-import { Route as SpaceSlugTracksIndexImport } from './routes/space/$slug/tracks/index'
 import { Route as SpaceSlugTagsIndexImport } from './routes/space/$slug/tags/index'
 import { Route as SpaceSlugSessionsIndexImport } from './routes/space/$slug/sessions/index'
 import { Route as SpaceSlugMembersIndexImport } from './routes/space/$slug/members/index'
@@ -50,12 +49,6 @@ const SpaceSlugRouteRoute = SpaceSlugRouteImport.update({
 const SpaceSlugIndexRoute = SpaceSlugIndexImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => SpaceSlugRouteRoute,
-} as any)
-
-const SpaceSlugTracksIndexRoute = SpaceSlugTracksIndexImport.update({
-  id: '/tracks/',
-  path: '/tracks/',
   getParentRoute: () => SpaceSlugRouteRoute,
 } as any)
 
@@ -137,13 +130,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SpaceSlugTagsIndexImport
       parentRoute: typeof SpaceSlugRouteImport
     }
-    '/space/$slug/tracks/': {
-      id: '/space/$slug/tracks/'
-      path: '/tracks'
-      fullPath: '/space/$slug/tracks'
-      preLoaderRoute: typeof SpaceSlugTracksIndexImport
-      parentRoute: typeof SpaceSlugRouteImport
-    }
   }
 }
 
@@ -154,7 +140,6 @@ interface SpaceSlugRouteRouteChildren {
   SpaceSlugMembersIndexRoute: typeof SpaceSlugMembersIndexRoute
   SpaceSlugSessionsIndexRoute: typeof SpaceSlugSessionsIndexRoute
   SpaceSlugTagsIndexRoute: typeof SpaceSlugTagsIndexRoute
-  SpaceSlugTracksIndexRoute: typeof SpaceSlugTracksIndexRoute
 }
 
 const SpaceSlugRouteRouteChildren: SpaceSlugRouteRouteChildren = {
@@ -162,7 +147,6 @@ const SpaceSlugRouteRouteChildren: SpaceSlugRouteRouteChildren = {
   SpaceSlugMembersIndexRoute: SpaceSlugMembersIndexRoute,
   SpaceSlugSessionsIndexRoute: SpaceSlugSessionsIndexRoute,
   SpaceSlugTagsIndexRoute: SpaceSlugTagsIndexRoute,
-  SpaceSlugTracksIndexRoute: SpaceSlugTracksIndexRoute,
 }
 
 const SpaceSlugRouteRouteWithChildren = SpaceSlugRouteRoute._addFileChildren(
@@ -178,7 +162,6 @@ export interface FileRoutesByFullPath {
   '/space/$slug/members': typeof SpaceSlugMembersIndexRoute
   '/space/$slug/sessions': typeof SpaceSlugSessionsIndexRoute
   '/space/$slug/tags': typeof SpaceSlugTagsIndexRoute
-  '/space/$slug/tracks': typeof SpaceSlugTracksIndexRoute
 }
 
 export interface FileRoutesByTo {
@@ -189,7 +172,6 @@ export interface FileRoutesByTo {
   '/space/$slug/members': typeof SpaceSlugMembersIndexRoute
   '/space/$slug/sessions': typeof SpaceSlugSessionsIndexRoute
   '/space/$slug/tags': typeof SpaceSlugTagsIndexRoute
-  '/space/$slug/tracks': typeof SpaceSlugTracksIndexRoute
 }
 
 export interface FileRoutesById {
@@ -202,7 +184,6 @@ export interface FileRoutesById {
   '/space/$slug/members/': typeof SpaceSlugMembersIndexRoute
   '/space/$slug/sessions/': typeof SpaceSlugSessionsIndexRoute
   '/space/$slug/tags/': typeof SpaceSlugTagsIndexRoute
-  '/space/$slug/tracks/': typeof SpaceSlugTracksIndexRoute
 }
 
 export interface FileRouteTypes {
@@ -216,7 +197,6 @@ export interface FileRouteTypes {
     | '/space/$slug/members'
     | '/space/$slug/sessions'
     | '/space/$slug/tags'
-    | '/space/$slug/tracks'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -226,7 +206,6 @@ export interface FileRouteTypes {
     | '/space/$slug/members'
     | '/space/$slug/sessions'
     | '/space/$slug/tags'
-    | '/space/$slug/tracks'
   id:
     | '__root__'
     | '/'
@@ -237,7 +216,6 @@ export interface FileRouteTypes {
     | '/space/$slug/members/'
     | '/space/$slug/sessions/'
     | '/space/$slug/tags/'
-    | '/space/$slug/tracks/'
   fileRoutesById: FileRoutesById
 }
 
@@ -286,8 +264,7 @@ export const routeTree = rootRoute
         "/space/$slug/",
         "/space/$slug/members/",
         "/space/$slug/sessions/",
-        "/space/$slug/tags/",
-        "/space/$slug/tracks/"
+        "/space/$slug/tags/"
       ]
     },
     "/space/$slug/": {
@@ -304,10 +281,6 @@ export const routeTree = rootRoute
     },
     "/space/$slug/tags/": {
       "filePath": "space/$slug/tags/index.tsx",
-      "parent": "/space/$slug"
-    },
-    "/space/$slug/tracks/": {
-      "filePath": "space/$slug/tracks/index.tsx",
       "parent": "/space/$slug"
     }
   }

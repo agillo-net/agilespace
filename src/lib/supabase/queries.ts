@@ -1,5 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
-import type { Profile, Space, SpaceMember, SpaceWithMembership, Tag, Track } from "@/types";
+import type { Profile, Space, SpaceMember, SpaceWithMembership, Tag } from "@/types";
 
 const supabase = getSupabaseClient();
 
@@ -84,10 +84,14 @@ export const getUserSpaces = async () => {
   if (error) throw new Error(error.message);
   // Flatten the organizations and include role
   return (
-    data?.map((row: any) => ({
-      ...row.space,
-      member_role: row.role,
-    })) || []
+    data?.map((row: { space: Space | Space[]; role: string }) => {
+      // Handle case where space might be an array due to Supabase query structure
+      const space = Array.isArray(row.space) ? row.space[0] : row.space;
+      return {
+        ...space,
+        member_role: row.role,
+      };
+    }) || []
   );
 };
 
@@ -206,50 +210,9 @@ export const getSpaceBySlug = async (slug: string): Promise<Space | null> => {
  * @function getUserMemberSpace
  * @param {string} spaceSlug - The slug of the space to retrieve and check membership for.
  * @throws {Error} If the user ID is not found or if the query fails.
- * @return {Promise<{ space: Space | null, isMember: boolean }>} A promise that resolves to an object containing the space data and a boolean indicating if the user is a member of the space.
+ * @return {Promise<{ space: Space | null, space_member: SpaceMember | null }>} A promise that resolves to an object containing the space data and space member info.
  */
-export const getUserMemberSpace = async (spaceSlug: string): Promise<{ space: Space | null, isMember: boolean }> => {
-  const user = await getUser();
-  const userId = user?.id;
-  if (!userId) throw new Error("User ID is required");
-
-  const { data: spaceData, error: spaceError } = await supabase
-    .from("spaces")
-    .select("*")
-    .eq("slug", spaceSlug)
-    .single();
-
-  if (spaceError) {
-    if (spaceError.code === "PGRST116") return { space: null, isMember: false }; // Not found
-    throw new Error(spaceError.message);
-  }
-
-  const { data: memberData, error: memberError } = await supabase
-    .from("space_members")
-    .select("*")
-    .eq("space_id", spaceData.id)
-    .eq("user_id", userId)
-    .single();
-
-  if (memberError && memberError.code !== "PGRST116") throw new Error(memberError.message);
-
-  return { space: spaceData, isMember: memberData !== null };
-}
-
-export const getSpaceTracks = async (spaceId: string) => {
-  const { data, error } = await supabase
-    .from('tracks')
-    .select('*')
-    .eq('space_id', spaceId);
-  if (error) throw new Error(error.message);
-  return data || [];
-};
-
-export const getSpaceAndTracks = async (spaceSlug: string): Promise<{
-  space: Space | null;
-  tracks: Track[] | [];
-  space_member: SpaceMember | null;
-}> => {
+export const getUserMemberSpace = async (spaceSlug: string): Promise<{ space: Space | null, space_member: SpaceMember | null }> => {
   const user = await getUser();
   const userId = user?.id;
   if (!userId) throw new Error("User ID is required");
@@ -261,11 +224,9 @@ export const getSpaceAndTracks = async (spaceSlug: string): Promise<{
     .single();
 
   if (spaceError) {
-    if (spaceError.code === "PGRST116") return { space: null, tracks: [], space_member: null }; // Not found
+    if (spaceError.code === "PGRST116") return { space: null, space_member: null }; // Not found
     throw new Error(spaceError.message);
   }
-
-  const tracks = await getSpaceTracks(spaceData.id);
 
   // Get space member info
   const { data: memberData, error: memberError } = await supabase
@@ -279,7 +240,6 @@ export const getSpaceAndTracks = async (spaceSlug: string): Promise<{
 
   return {
     space: spaceData,
-    tracks,
     space_member: memberData
   };
 }
@@ -347,8 +307,7 @@ export async function getActiveSession() {
     .from("sessions")
     .select(`
       *,
-      space_member:space_members!inner(*),
-      track:tracks!inner(*)
+      space_member:space_members!inner(*)
     `)
     .eq('space_members.user_id', userId)
     .is("ended_at", null)
@@ -363,18 +322,17 @@ export async function getClosedSessions(spaceId: string) {
   const userId = user?.id;
   if (!userId) throw new Error("User ID is required");
 
-  // First get all sessions with space members
+  // First get all sessions with space members for this space
   const { data: sessions, error: sessionsError } = await supabase
     .from("sessions")
     .select(`
       *,
-      track:tracks!inner(*),
       space_member:space_members!inner(*),
       tags:session_tags(
         tag:tags(*)
       )
     `)
-    .eq('tracks.space_id', spaceId)
+    .eq('space_members.space_id', spaceId)
     .not('ended_at', 'is', null)
     .order('ended_at', { ascending: false });
 
@@ -410,29 +368,29 @@ export async function getClosedSessions(spaceId: string) {
   }));
 }
 
-export async function getTrackSessionStats(trackIds: string[]) {
+export async function getIssueSessionStats(issueUrls: string[]) {
   const { data, error } = await supabase
     .from("sessions")
     .select("*")
-    .in("track_id", trackIds);
+    .in("github_issue_url", issueUrls);
   if (error) throw new Error(error.message);
 
-  // Calculate both counts and durations per track
-  const stats = trackIds.reduce((acc, trackId) => {
-    const trackSessions = data?.filter(session => session.track_id === trackId) || [];
+  // Calculate both counts and durations per issue URL
+  const stats = issueUrls.reduce((acc, issueUrl) => {
+    const issueSessions = data?.filter(session => session.github_issue_url === issueUrl) || [];
 
     // Calculate count
-    acc.counts[trackId] = trackSessions.length;
+    acc.counts[issueUrl] = issueSessions.length;
 
     // Calculate duration (only for completed sessions)
-    const totalDuration = trackSessions
+    const totalDuration = issueSessions
       .filter(session => session.ended_at)
       .reduce((total, session) => {
         const start = new Date(session.started_at).getTime();
         const end = new Date(session.ended_at!).getTime();
         return total + (end - start);
       }, 0);
-    acc.durations[trackId] = totalDuration;
+    acc.durations[issueUrl] = totalDuration;
 
     return acc;
   }, { counts: {}, durations: {} } as { counts: Record<string, number>, durations: Record<string, number> });

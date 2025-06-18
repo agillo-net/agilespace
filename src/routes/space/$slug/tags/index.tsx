@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
-import { getSpaceAndTracks, getTags } from '@/lib/supabase/queries'
+import { getUserMemberSpace, getTags } from '@/lib/supabase/queries'
 import type { Tag } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,7 +39,7 @@ import { TagsListSkeleton } from '@/components/skeleton/tags-list-skeleton'
 export const Route = createFileRoute('/space/$slug/tags/')({
     component: TagsPage,
     loader: async ({ params: { slug } }) => {
-        return getSpaceAndTracks(slug)
+        return getUserMemberSpace(slug)
     }
 })
 

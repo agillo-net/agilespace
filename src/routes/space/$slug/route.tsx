@@ -16,13 +16,13 @@ export const Route = createFileRoute('/space/$slug')({
       throw new Error('Space slug is required')
     }
 
-    const { space, isMember } = await getUserMemberSpace(slug)
+    const { space, space_member } = await getUserMemberSpace(slug)
 
     if (!space) {
       throw new Error('Space not found')
     }
 
-    if (!isMember) {
+    if (!space_member) {
       throw new Error('You are not a member of this space')
     }
 

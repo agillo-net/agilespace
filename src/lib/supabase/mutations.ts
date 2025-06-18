@@ -69,40 +69,6 @@ export async function createSpaceMember({
   if (error) throw new Error(error.message);
 }
 
-export async function createTrack({
-  space_id,
-  repo_owner,
-  repo_name,
-  issue_number,
-  title,
-}: {
-  space_id: string;
-  repo_owner: string;
-  repo_name: string;
-  issue_number: number;
-  title: string;
-}) {
-  const user = await getUser();
-  const userId = user?.id;
-  if (!userId) throw new Error("User ID is required");
-
-
-  const { data, error } = await supabase
-    .from("tracks")
-    .insert({
-      space_id,
-      repo_owner,
-      repo_name,
-      issue_number,
-      title,
-      created_by: userId,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(error.message);
-  return data;
-}
-
 export async function logout() {
 
   const { error } = await supabase.auth.signOut();
@@ -110,17 +76,17 @@ export async function logout() {
 }
 
 export async function createSession({
-  track_id,
+  github_issue_url,
   space_member_id,
 }: {
-  track_id: string;
+  github_issue_url: string;
   space_member_id: string;
 }) {
 
   const { data, error } = await supabase
     .from("sessions")
     .insert({
-      track_id,
+      github_issue_url,
       space_member_id,
       started_at: new Date().toISOString(),
     })

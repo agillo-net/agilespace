@@ -1,15 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getSpaceAndTracks, getClosedSessions, getActiveSession, getTrackSessionStats } from '@/lib/supabase/queries'
+import { getUserMemberSpace, getClosedSessions, getActiveSession, getIssueSessionStats } from '@/lib/supabase/queries'
 import { searchIssues } from '@/lib/github/queries'
 import type { GitHubIssue, Tag } from '@/types'
 import { useDebounce } from '@/hooks/use-debounce'
-import { createTrack, createSession, endSession, linkTagToSession } from '@/lib/supabase/mutations'
+import { createSession, endSession, linkTagToSession } from '@/lib/supabase/mutations'
 import { toast } from 'sonner'
 import { createIssueComment } from '@/lib/github/mutations'
 import { EndSessionDialog } from '@/components/end-session-dialog'
-import { SearchForm } from '@/components/search-form'
 import { SessionCard } from '@/components/session-card'
 import { formatTime, getSessionDuration } from '@/lib/utils'
 import { formatSessionComment } from '@/lib/utils'
@@ -17,15 +16,12 @@ import { DEBOUNCE_TIME } from '@/constants'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import React from 'react'
-import { MultiSelect } from '@/components/ui/multi-select'
-import { useAuth } from '@/hooks/use-auth'
 
 export const Route = createFileRoute('/space/$slug/sessions/')({
     component: SessionsPage,
     loader: async ({ params: { slug } }) => {
-        return getSpaceAndTracks(slug)
+        return getUserMemberSpace(slug)
     }
 })
 
@@ -35,16 +31,14 @@ function SessionsPage() {
     const [debouncedSearchQuery, setValue] = useDebounce(searchQuery, DEBOUNCE_TIME)
     const [showEndSessionDialog, setShowEndSessionDialog] = useState(false)
     const [endSessionMessage, setEndSessionMessage] = useState('')
-    const [selectedMembers, setSelectedMembers] = useState<string[]>([])
     const [timeFilter, setTimeFilter] = useState<'all' | 'day' | 'week'>('all')
     const [sessionLimit, setSessionLimit] = useState<number>(10)
     const queryClient = useQueryClient()
-    const { user } = useAuth()
 
-    // Load space and tracks data
+    // Load space and member data
     const { data: spaceData, isLoading: isLoadingSpace } = useQuery({
         queryKey: ['space', slug],
-        queryFn: () => getSpaceAndTracks(slug)
+        queryFn: () => getUserMemberSpace(slug)
     })
 
     // Load closed sessions
@@ -69,22 +63,40 @@ function SessionsPage() {
     } = useQuery({
         queryKey: ['sessions', 'issues', slug, debouncedSearchQuery],
         queryFn: () => searchIssues(slug, debouncedSearchQuery),
-
         enabled: !!debouncedSearchQuery.trim(),
         retry: false
     })
 
-    // Load session stats for tracks
+    // Get unique issue URLs from closed sessions to fetch stats
+    const issueUrls = React.useMemo(() => {
+        if (!closedSessions) return []
+        return [...new Set(closedSessions.map(session => session.github_issue_url))]
+    }, [closedSessions])
+
+    // Load session stats for issue URLs
     const { data: sessionStats } = useQuery({
-        queryKey: ['sessionStats', spaceData?.tracks?.map(t => t.id)],
-        queryFn: () => getTrackSessionStats(spaceData?.tracks?.map(t => t.id) || []),
-        enabled: !!spaceData?.tracks?.length
+        queryKey: ['sessionStats', issueUrls],
+        queryFn: () => getIssueSessionStats(issueUrls),
+        enabled: issueUrls.length > 0
     })
+
+    // Helper function to extract issue info from GitHub issue URL
+    const extractIssueInfo = (url: string) => {
+        const match = url.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/)
+        if (match) {
+            return {
+                owner: match[1],
+                repo: match[2],
+                issueNumber: parseInt(match[3])
+            }
+        }
+        return null
+    }
 
     // End session mutation
     const endSessionMutation = useMutation({
         mutationFn: async ({ sessionId, message, skipSummary, selectedTags }: { sessionId: string, message: string, skipSummary: boolean, selectedTags: Tag[] }) => {
-            if (!activeSession?.track) throw new Error("No active track found")
+            if (!activeSession?.github_issue_url) throw new Error("No active issue found")
 
             // Calculate duration using proper Date objects
             const startDate = new Date(activeSession.started_at)
@@ -93,17 +105,20 @@ function SessionsPage() {
 
             let commentUrl: string | undefined
             if (!skipSummary) {
-                // Create GitHub issue comment
-                const response = await createIssueComment({
-                    owner: activeSession.track.repo_owner,
-                    repo: activeSession.track.repo_name,
-                    issue_number: activeSession.track.issue_number,
-                    body: formatSessionComment(
-                        duration,
-                        message,
-                    )
-                })
-                commentUrl = response.html_url
+                const issueInfo = extractIssueInfo(activeSession.github_issue_url)
+                if (issueInfo) {
+                    // Create GitHub issue comment
+                    const response = await createIssueComment({
+                        owner: issueInfo.owner,
+                        repo: issueInfo.repo,
+                        issue_number: issueInfo.issueNumber,
+                        body: formatSessionComment(
+                            duration,
+                            message,
+                        )
+                    })
+                    commentUrl = response.html_url
+                }
             }
 
             // End the session and link tags
@@ -118,7 +133,6 @@ function SessionsPage() {
             queryClient.invalidateQueries({ queryKey: ['activeSession', slug] })
             queryClient.invalidateQueries({ queryKey: ['closedSessions', spaceData?.space?.id] })
             setShowEndSessionDialog(false)
-            setEndSessionMessage('')
             toast.success("Session ended successfully")
         },
         onError: (error) => {
@@ -132,53 +146,14 @@ function SessionsPage() {
         setValue(searchQuery, true)
     }
 
-    const handleCreateTrack = async (issue: GitHubIssue) => {
+    const handleStartSession = async (issue: GitHubIssue) => {
         if (!spaceData?.space || !spaceData?.space_member) return
         try {
-            const track = await createTrack({
-                space_id: spaceData.space.id,
-                repo_owner: issue.repository.owner || '',
-                repo_name: issue.repository.name || '',
-                issue_number: issue.number,
-                title: issue.title,
-            })
             await createSession({
-                track_id: track.id,
+                github_issue_url: issue.html_url,
                 space_member_id: spaceData.space_member.id,
             })
             // Clear search results
-            queryClient.invalidateQueries({ queryKey: ['activeSession', slug] })
-            toast.success("Track created and session started")
-        } catch (error) {
-            toast.error(`Failed to create track: ${error instanceof Error ? error.message : 'Unknown error'}`)
-        }
-    }
-
-    const handleEndSession = (skipSummary: boolean, selectedTags: Tag[]) => {
-        if (activeSession && (endSessionMessage.trim() || skipSummary)) {
-            endSessionMutation.mutate({
-                sessionId: activeSession.id,
-                message: endSessionMessage.trim(),
-                skipSummary,
-                selectedTags
-            })
-        }
-    }
-
-    const getSessionCount = (trackId: string) => {
-        if (!sessionStats) return 0
-        return sessionStats.counts[trackId] || 0
-    }
-
-    const handleStartSession = async (trackId: string) => {
-        if (!spaceData?.space_member) return
-        try {
-            await createSession({
-                track_id: trackId,
-                space_member_id: spaceData.space_member.id,
-            })
-            // Clear search results
-            setSearchQuery('')
             queryClient.invalidateQueries({ queryKey: ['activeSession', slug] })
             toast.success("Session started successfully")
         } catch (error) {
@@ -186,268 +161,234 @@ function SessionsPage() {
         }
     }
 
-    const getTrackForIssue = (issue: GitHubIssue) => {
-        if (!spaceData?.tracks) return null
-        return spaceData.tracks.find(
-            track =>
-                track.repo_owner === issue.repository.owner &&
-                track.repo_name === issue.repository.name &&
-                track.issue_number === issue.number
-        )
+    const handleEndSession = () => {
+        setShowEndSessionDialog(true)
     }
 
-    const getTotalDuration = (trackId: string) => {
-        if (!sessionStats) return '0h 0m'
-        const duration = sessionStats.durations[trackId] || 0
+    const getSessionCount = (issueUrl: string) => {
+        if (!sessionStats) return 0
+        return sessionStats.counts[issueUrl] || 0
+    }
+
+    const getTotalDuration = (issueUrl: string) => {
+        if (!sessionStats) return '0 minutes'
+        const duration = sessionStats.durations[issueUrl] || 0
         return formatTime(duration)
     }
 
-    const isCurrentSessionTrack = (trackId: string) => {
-        return activeSession?.track.id === trackId
+    const isCurrentSessionIssue = (issueUrl: string) => {
+        return activeSession?.github_issue_url === issueUrl
     }
 
-    // Filter closed sessions based on selected filters
-    const filteredClosedSessions = React.useMemo(() => {
-        if (!closedSessions) return []
+    const hasActiveSession = (issueUrl: string) => {
+        return closedSessions?.some(session => session.github_issue_url === issueUrl)
+    }
 
-        let filtered = [...closedSessions]
+    if (isLoadingSpace) {
+        return <div className="container mx-auto p-6">Loading...</div>
+    }
 
-        // Filter by members
-        if (selectedMembers.length > 0) {
-            filtered = filtered.filter(session =>
-                session.space_member?.user_id && selectedMembers.includes(session.space_member.user_id)
-            )
-        }
+    if (!spaceData?.space) {
+        return <div className="container mx-auto p-6">Space not found</div>
+    }
 
-        // Filter by time period
-        const now = new Date()
-        if (timeFilter === 'day') {
-            const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-            filtered = filtered.filter(session =>
-                new Date(session.ended_at!) >= oneDayAgo
-            )
-        } else if (timeFilter === 'week') {
-            const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-            filtered = filtered.filter(session =>
-                new Date(session.ended_at!) >= oneWeekAgo
-            )
-        }
-
-        // Apply limit
-        return filtered.slice(0, sessionLimit)
-    }, [closedSessions, selectedMembers, timeFilter, sessionLimit])
-
-    // Get unique members from closed sessions
-    const uniqueMembers = React.useMemo(() => {
-        if (!closedSessions) return []
-        const members = new Map()
-        closedSessions.forEach(session => {
-            if (session.space_member?.user_id && session.space_member?.profile) {
-                members.set(session.space_member.user_id, session.space_member.profile)
-            }
-        })
-        return Array.from(members.entries())
-    }, [closedSessions])
-
-    // Prepare member options for MultiSelect
-    const memberOptions = React.useMemo(() => {
-        // Sort members to put current user first
-        const sortedMembers = [...uniqueMembers].sort(([idA], [idB]) => {
-            if (idA === user?.id) return -1
-            if (idB === user?.id) return 1
-            return 0
-        })
-
-        return sortedMembers.map(([id, profile]) => ({
-            label: `${profile.full_name || 'Unknown User'}${id === user?.id ? ' (Me)' : ''}`,
-            value: id,
-            icon: () => (
-                <Avatar className="h-4 w-4">
-                    <AvatarImage src={profile.avatar_url || undefined} />
-                    <AvatarFallback className="text-xs">
-                        {profile.full_name?.charAt(0) || '?'}
-                    </AvatarFallback>
-                </Avatar>
-            )
-        }))
-    }, [uniqueMembers, user?.id])
-
-    if (isLoadingSpace || isLoadingSessions) {
-        return (
-            <div className="space-y-6">
-                <h1 className="text-3xl font-bold">Sessions for {slug}</h1>
-                <div className="bg-white rounded-lg shadow p-6">
-                    <p className="text-gray-600">Loading sessions...</p>
-                </div>
-            </div>
-        )
+    if (!spaceData.space_member) {
+        return <div className="container mx-auto p-6">Access denied. You are not a member of this space.</div>
     }
 
     return (
-        <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Sessions</h1>
+        <div className="container mx-auto p-6 space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold">Sessions</h1>
+            </div>
 
-            {/* Active Session */}
+            {/* Active Session Timer */}
             {activeSession && (
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold mb-4">Active Session</h2>
-                    <SessionCard
-                        track={activeSession.track}
-                        startedAt={activeSession.started_at}
-                        onEndSession={() => setShowEndSessionDialog(true)}
-                        isEnding={endSessionMutation.isPending}
-                    />
-                </div>
-            )}
-
-            {/* Search Form */}
-            <SearchForm
-                searchQuery={searchQuery}
-                onSearchQueryChange={setSearchQuery}
-                onSubmit={handleSearch}
-                isSearching={isSearching}
-                isDisabled={!!activeSession}
-                error={searchError}
-            />
-
-            {/* Search Results */}
-            {searchResults && searchResults.length > 0 && (
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold mb-4">Search Results</h2>
-                    <div className="space-y-4">
-                        {searchResults.map((issue) => {
-                            const track = getTrackForIssue(issue)
-                            return (
-                                <div
-                                    key={issue.id}
-                                    className="flex items-center justify-between p-4 border rounded-lg gap-4"
+                <div className="bg-card p-6 rounded-lg border space-y-4">
+                    <div className="flex justify-between items-start">
+                        <div className="space-y-2">
+                            <h2 className="text-xl font-semibold">Active Session</h2>
+                            <div className="flex items-center space-x-2">
+                                <span className="text-sm text-muted-foreground">Issue:</span>
+                                <a 
+                                    href={activeSession.github_issue_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
                                 >
-                                    <div>
-                                        <h3 className="font-medium">{issue.title}</h3>
-                                        <p className="text-sm text-gray-500">
-                                            {issue.repository.name} #{issue.number}
-                                        </p>
-                                    </div>
-                                    {track ? (
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex flex-col items-end gap-1">
-                                                <span className="px-3 py-1 text-sm text-green-700 bg-green-100 rounded-full">
-                                                    {getSessionCount(track.id)} Sessions
-                                                </span>
-                                                <span className="text-sm text-gray-500">
-                                                    Total time: {getTotalDuration(track.id)}
-                                                </span>
-                                            </div>
-                                            {isCurrentSessionTrack(track.id) ? (
-                                                <button
-                                                    onClick={() => setShowEndSessionDialog(true)}
-                                                    disabled={endSessionMutation.isPending}
-                                                    className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 whitespace-nowrap"
-                                                >
-                                                    {endSessionMutation.isPending ? 'Ending...' : 'End Session'}
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={() => handleStartSession(track.id)}
-                                                    disabled={!!activeSession}
-                                                    className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
-                                                >
-                                                    {activeSession ? 'End Current Session First' : 'Start New Session'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <button
-                                            onClick={() => handleCreateTrack(issue)}
-                                            disabled={!!activeSession}
-                                            className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
-                                        >
-                                            {activeSession ? 'End Current Session First' : 'Start Session'}
-                                        </button>
-                                    )}
-                                </div>
-                            )
-                        })}
+                                    {activeSession.github_issue_url}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                        <div className="space-y-1">
+                            <p className="text-sm text-muted-foreground">Time elapsed</p>
+                            <div className="flex items-center space-x-2">
+                                <span className="text-lg font-mono">
+                                    {getSessionDuration(activeSession.started_at, new Date().toISOString())}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="space-x-2">
+                            <button
+                                onClick={handleEndSession}
+                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md"
+                            >
+                                End Session
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* Closed Sessions */}
-            <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold">Closed Sessions</h2>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <Label htmlFor="member-filter">Members:</Label>
-                            <MultiSelect
-                                options={memberOptions}
-                                value={selectedMembers}
-                                onValueChange={setSelectedMembers}
-                                placeholder="Select members"
-                                maxCount={3}
-                                className="w-[300px]"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Label htmlFor="time-filter">Time Period:</Label>
-                            <Select value={timeFilter} onValueChange={(value: 'all' | 'day' | 'week') => setTimeFilter(value)}>
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Select time period" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Time</SelectItem>
-                                    <SelectItem value="day">Last 24 Hours</SelectItem>
-                                    <SelectItem value="week">Last 7 Days</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="flex items-center gap-2">
+            {/* Search Issues */}
+            <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Search Issues</h2>
+                <form onSubmit={handleSearch} className="flex gap-4">
+                    <div className="relative flex-1">
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search issues to start a new session..."
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={isSearching}
+                        className="px-6 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                        {isSearching ? 'Searching...' : 'Search'}
+                    </button>
+                </form>
+
+                {searchError && (
+                    <div className="text-red-600 p-4 bg-red-50 rounded-md">
+                        Error searching issues: {searchError instanceof Error ? searchError.message : 'Unknown error'}
+                    </div>
+                )}
+
+                {searchResults && searchResults.length > 0 && (
+                    <div className="space-y-3">
+                        {searchResults.map((issue: GitHubIssue) => (
+                            <div key={issue.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                        <h3 className="font-medium text-lg">{issue.title}</h3>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            {issue.repository.owner}/{issue.repository.name} #{issue.number}
+                                        </p>
+                                        {hasActiveSession(issue.html_url) && (
+                                            <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                                                <span>
+                                                    {getSessionCount(issue.html_url)} Sessions
+                                                </span>
+                                                <span>
+                                                    Total time: {getTotalDuration(issue.html_url)}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="ml-4">
+                                        {isCurrentSessionIssue(issue.html_url) ? (
+                                            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                                                Active
+                                            </span>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleStartSession(issue)}
+                                                disabled={!!activeSession}
+                                                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-md text-sm"
+                                            >
+                                                Start Session
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Session History */}
+            <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-semibold">Session History</h2>
+                    <div className="flex items-center space-x-4">
+                        <Select value={timeFilter} onValueChange={(value: 'all' | 'day' | 'week') => setTimeFilter(value)}>
+                            <SelectTrigger className="w-32">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All time</SelectItem>
+                                <SelectItem value="day">Today</SelectItem>
+                                <SelectItem value="week">This week</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <div className="flex items-center space-x-2">
                             <Label htmlFor="session-limit">Limit:</Label>
                             <Input
                                 id="session-limit"
                                 type="number"
+                                value={sessionLimit}
+                                onChange={(e) => setSessionLimit(parseInt(e.target.value))}
+                                className="w-20"
                                 min="1"
                                 max="100"
-                                value={sessionLimit}
-                                onChange={(e) => setSessionLimit(Math.max(1, Math.min(100, parseInt(e.target.value) || 10)))}
-                                className="w-[100px]"
                             />
                         </div>
                     </div>
                 </div>
-                <div className="space-y-4">
-                    {filteredClosedSessions.length > 0 ? (
-                        filteredClosedSessions.map((session) => (
-                            <SessionCard
-                                key={session.id}
-                                track={session.track}
-                                startedAt={session.started_at}
-                                endedAt={session.ended_at}
-                                duration={getSessionDuration(session.started_at, session.ended_at!)}
-                                commentUrl={session.comment_url}
-                                skippedSummary={session.skipped_summary}
-                                tags={session.tags}
-                                spaceMember={session.space_member}
-                            />
-                        ))
-                    ) : (
-                        <p className="text-gray-500 text-center py-4">
-                            No closed sessions found.
-                        </p>
-                    )}
-                </div>
+
+                {isLoadingSessions ? (
+                    <div>Loading sessions...</div>
+                ) : closedSessions && closedSessions.length > 0 ? (
+                    <div className="space-y-3">
+                        {closedSessions
+                            .filter((session) => {
+                                if (timeFilter === 'day') {
+                                    const today = new Date().toDateString()
+                                    return new Date(session.started_at).toDateString() === today
+                                }
+                                if (timeFilter === 'week') {
+                                    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                                    return new Date(session.started_at) >= weekAgo
+                                }
+                                return true
+                            })
+                            .slice(0, sessionLimit)
+                            .map((session) => (
+                                <SessionCard key={session.id} {...session} />
+                            ))}
+                    </div>
+                ) : (
+                    <p className="text-muted-foreground">No closed sessions found.</p>
+                )}
             </div>
 
             {/* End Session Dialog */}
-            <EndSessionDialog
-                open={showEndSessionDialog}
-                onOpenChange={setShowEndSessionDialog}
-                message={endSessionMessage}
-                onMessageChange={setEndSessionMessage}
-                onEndSession={handleEndSession}
-                isPending={endSessionMutation.isPending}
-                spaceId={spaceData?.space?.id || ''}
-            />
+            {showEndSessionDialog && activeSession && (
+                <EndSessionDialog
+                    open={showEndSessionDialog}
+                    onOpenChange={setShowEndSessionDialog}
+                    message={endSessionMessage}
+                    onMessageChange={setEndSessionMessage}
+                    onEndSession={(skipSummary, selectedTags) => {
+                        endSessionMutation.mutate({
+                            sessionId: activeSession.id,
+                            message: endSessionMessage,
+                            skipSummary,
+                            selectedTags
+                        })
+                    }}
+                    isPending={endSessionMutation.isPending}
+                    spaceId={spaceData.space!.id}
+                />
+            )}
         </div>
     )
-} 
+}

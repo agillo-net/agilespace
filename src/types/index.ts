@@ -7,8 +7,6 @@ export type SpaceMember = Database['public']['Tables']['space_members']['Row'];
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 
-export type Track = Database['public']['Tables']['tracks']['Row'];
-
 export type Session = Database['public']['Tables']['sessions']['Row'];
 
 export type Tag = Database['public']['Tables']['tags']['Row'];

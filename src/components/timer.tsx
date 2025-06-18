@@ -2,7 +2,7 @@ import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { Square } from "lucide-react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { getActiveSession, getSpaceAndTracks } from "@/lib/supabase/queries"
+import { getActiveSession, getUserMemberSpace } from "@/lib/supabase/queries"
 import { endSession, linkTagToSession } from "@/lib/supabase/mutations"
 import { toast } from "sonner"
 import { useRef } from "react"
@@ -32,14 +32,14 @@ export function Timer() {
     // Get space data for space ID
     const { data: spaceData } = useQuery({
         queryKey: ["space", slug],
-        queryFn: () => getSpaceAndTracks(slug),
+        queryFn: () => getUserMemberSpace(slug),
         enabled: !!slug,
     })
 
     // End session mutation
     const endSessionMutation = useMutation({
         mutationFn: async ({ sessionId, message, skipSummary, selectedTags }: { sessionId: string, message: string, skipSummary: boolean, selectedTags: Tag[] }) => {
-            if (!activeSession?.track) throw new Error("No active track found")
+            if (!activeSession?.github_issue_url) throw new Error("No GitHub issue URL found")
 
             // Calculate duration using proper Date objects
             const startDate = new Date(activeSession.started_at)
@@ -48,11 +48,17 @@ export function Timer() {
 
             let commentUrl: string | undefined
             if (!skipSummary) {
+                // Extract issue info from GitHub URL
+                const match = activeSession.github_issue_url.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/)
+                if (!match) throw new Error("Invalid GitHub issue URL format")
+                
+                const [, owner, repo, issueNumber] = match
+                
                 // Create GitHub issue comment
                 const response = await createIssueComment({
-                    owner: activeSession.track.repo_owner,
-                    repo: activeSession.track.repo_name,
-                    issue_number: activeSession.track.issue_number,
+                    owner,
+                    repo,
+                    issue_number: parseInt(issueNumber),
                     body: formatSessionComment(
                         duration,
                         message,

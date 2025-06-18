@@ -32,7 +32,7 @@ export const Route = createRootRoute({
     if (isAuthenticated && data?.session?.user) {
       try {
         await getProfile();
-      } catch (_) {
+      } catch {
         // If profile does not exist, create it
         await createProfile();
       }

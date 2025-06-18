@@ -36,8 +36,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!octokit) throw new Error("Octokit not initialized");
       await octokit.rest.users.getAuthenticated();
       return githubToken;
-    } catch (error: any) {
-      if (error?.status === 401) {
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401) {
         // Token is expired, trigger a new OAuth sign-in
         await loginWithGitHub();
         return null;

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
 import { useAuth } from "@/hooks/use-auth";
-import { LayoutDashboard, ListMusic, Calendar, Users, Tags } from 'lucide-react'
+import { LayoutDashboard, Calendar, Users, Tags } from 'lucide-react'
 import { Link, useRouter } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import type { User } from '@supabase/supabase-js'
@@ -30,12 +30,6 @@ const sidebarMenu = [
         icon: <LayoutDashboard />,
         tooltip: "Dashboard",
         link: "/space/$slug",
-    },
-    {
-        label: "Tracks",
-        icon: <ListMusic />,
-        tooltip: "Tracks",
-        link: "/space/$slug/tracks",
     },
     {
         label: "Sessions",

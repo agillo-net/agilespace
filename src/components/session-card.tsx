@@ -1,123 +1,161 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { ExternalLink, Clock, GitBranch } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import type { Tag } from '@/types'
+import { Badge } from '@/components/ui/badge'
+import { cn, isLightColor, getGitHubIssueUrl } from '@/lib/utils'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 
 interface SessionCardProps {
-  id: string
-  github_issue_url: string
-  started_at: string
-  ended_at: string | null
-  comment_url: string | null
-  skipped_summary: boolean | null
-  space_member?: {
-    user_id: string
-    profiles?: {
-      full_name: string
-      github_username: string
+    github_issue_url: string
+    startedAt: string
+    endedAt?: string
+    duration?: string
+    onEndSession?: () => void
+    isEnding?: boolean
+    commentUrl?: string
+    skippedSummary?: boolean
+    tags?: { tag: Tag }[]
+    spaceMember?: {
+        profile: {
+            full_name: string | null
+            avatar_url: string | null
+        }
     }
-  }
+}
+
+export function getFormattedIssueInfo(githubIssueUrl: string) {
+    const match = githubIssueUrl.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/);
+    if (!match) throw "Invalid GitHub issue URL";
+    const [, owner, repo, issueNumber] = match;
+    return {
+        owner,
+        repo,
+        issueNumber: parseInt(issueNumber, 10),
+    };
 }
 
 export function SessionCard({
-  github_issue_url,
-  started_at,
-  ended_at,
-  comment_url,
-  skipped_summary,
-  space_member,
+    github_issue_url,
+    startedAt,
+    endedAt,
+    duration,
+    onEndSession,
+    isEnding,
+    commentUrl,
+    skippedSummary,
+    tags,
+    spaceMember
 }: SessionCardProps) {
-  // Calculate duration
-  const startTime = new Date(started_at)
-  const endTime = ended_at ? new Date(ended_at) : new Date()
-  const duration = endTime.getTime() - startTime.getTime()
-  
-  // Format duration
-  const formatDuration = (ms: number) => {
-    const hours = Math.floor(ms / (1000 * 60 * 60))
-    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60))
-    const seconds = Math.floor((ms % (1000 * 60)) / 1000)
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds}s`
-    } else {
-      return `${seconds}s`
-    }
-  }
+    const { owner, repo, issueNumber } = getFormattedIssueInfo(github_issue_url);
+    if (!owner || !repo || !issueNumber) {
+        return <div className="text-red-500">Invalid GitHub issue URL</div>;
+    }  
 
-  // Extract issue info from URL
-  const extractIssueInfo = (url: string) => {
-    const match = url.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/)
-    if (match) {
-      return {
-        owner: match[1],
-        repo: match[2],
-        issueNumber: match[3],
-        display: `${match[1]}/${match[2]}#${match[3]}`
-      }
-    }
-    return { display: url }
-  }
-
-  const issueInfo = extractIssueInfo(github_issue_url)
-
-  return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <GitBranch className="h-4 w-4" />
-            {issueInfo.display}
-          </CardTitle>
-          <a
-            href={github_issue_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </a>
+    return (
+        <div className="flex items-center justify-between p-4 border rounded-lg gap-4">
+            <div className="flex-1">
+                <div className="flex items-center gap-2">
+                    <a
+                        href={github_issue_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium hover:text-blue-600 transition-colors"
+                    >
+                        Open GitHub Issue
+                    </a>
+                    {duration && (
+                        <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-full">
+                            {duration}
+                        </span>
+                    )}
+                    {skippedSummary && (
+                        <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-50 rounded-full">
+                            Skipped Summary
+                        </span>
+                    )}
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-3">
+                        <p className="text-sm text-gray-500">
+                            {owner}/{repo} #{issueNumber}
+                        </p>
+                        {spaceMember && spaceMember.profile && (
+                            <HoverCard>
+                                <HoverCardTrigger asChild>
+                                    <div className="flex items-center gap-2 cursor-pointer group">
+                                        <Avatar className="h-7 w-7 ring-2 ring-offset-2 ring-gray-100 group-hover:ring-blue-100 transition-all">
+                                            <AvatarImage src={spaceMember.profile.avatar_url || undefined} />
+                                            <AvatarFallback className="bg-gray-100 text-gray-600">
+                                                {spaceMember.profile.full_name?.charAt(0) || '?'}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                                            {spaceMember.profile.full_name || 'Unknown User'}
+                                        </span>
+                                    </div>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-80">
+                                    <div className="flex items-center gap-4">
+                                        <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-gray-100">
+                                            <AvatarImage src={spaceMember.profile.avatar_url || undefined} />
+                                            <AvatarFallback className="bg-gray-100 text-gray-600 text-lg">
+                                                {spaceMember.profile.full_name?.charAt(0) || '?'}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="space-y-1">
+                                            <p className="font-medium text-gray-900">{spaceMember.profile.full_name || 'Unknown User'}</p>
+                                            <p className="text-sm text-gray-500">Session Owner</p>
+                                        </div>
+                                    </div>
+                                </HoverCardContent>
+                            </HoverCard>
+                        )}
+                    </div>
+                    <p className="text-sm text-gray-500">
+                        {endedAt
+                            ? `Ended ${formatDistanceToNow(new Date(endedAt), { addSuffix: true })}`
+                            : `Started ${formatDistanceToNow(new Date(startedAt), { addSuffix: true })}`}
+                    </p>
+                </div>
+                {commentUrl && (
+                    <a
+                        href={commentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                    >
+                        View Session Summary
+                    </a>
+                )}
+                {tags && tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        {tags.map(({ tag }) => (
+                            <Badge
+                                key={tag.id}
+                                variant="outline"
+                                className={cn(
+                                    "border-0",
+                                    tag.color && isLightColor(tag.color) ? "text-gray-900" : "text-white"
+                                )}
+                                style={{ backgroundColor: tag.color || undefined }}
+                            >
+                                {tag.name}
+                            </Badge>
+                        ))}
+                    </div>
+                )}
+            </div>
+            <div className="flex items-center gap-4">
+                {onEndSession && (
+                    <button
+                        onClick={onEndSession}
+                        disabled={isEnding}
+                        className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
+                    >
+                        {isEnding ? 'Ending...' : 'End Session'}
+                    </button>
+                )}
+            </div>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Clock className="h-4 w-4" />
-          <span>{formatDuration(duration)}</span>
-          <span>•</span>
-          <span>{formatDistanceToNow(startTime, { addSuffix: true })}</span>
-        </div>
-        
-        {space_member?.profiles && (
-          <div className="text-sm text-muted-foreground">
-            by {space_member.profiles.full_name || space_member.profiles.github_username}
-          </div>
-        )}
-
-        <div className="flex items-center gap-2">
-          {ended_at ? (
-            <Badge variant="secondary">Completed</Badge>
-          ) : (
-            <Badge variant="default">Active</Badge>
-          )}
-          
-          {skipped_summary && (
-            <Badge variant="outline">No Summary</Badge>
-          )}
-          
-          {comment_url && (
-            <a
-              href={comment_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
-            >
-              View Comment
-            </a>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
+    )
+} 

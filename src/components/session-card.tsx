@@ -1,7 +1,7 @@
 import { formatDistanceToNow } from 'date-fns'
 import type { Tag } from '@/types'
 import { Badge } from '@/components/ui/badge'
-import { cn, isLightColor, getGitHubIssueUrl } from '@/lib/utils'
+import { cn, isLightColor } from '@/lib/utils'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 

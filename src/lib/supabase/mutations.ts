@@ -145,6 +145,14 @@ export async function endSession(session_id: string, comment_url?: string, skip_
   return data;
 }
 
+export async function deleteSession(sessionId: string) {
+  const { error } = await supabase
+    .from("sessions")
+    .delete()
+    .eq("id", sessionId);
+
+  if (error) throw new Error(error.message);
+}
 
 export async function createTag(spaceId: string, name: string, color?: string) {
   const { data, error } = await supabase

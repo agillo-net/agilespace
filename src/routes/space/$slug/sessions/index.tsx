@@ -5,10 +5,11 @@ import { getSpaceAndTracks, getClosedSessions, getActiveSession, getTrackSession
 import { searchIssues } from '@/lib/github/queries'
 import type { GitHubIssue, Tag } from '@/types'
 import { useDebounce } from '@/hooks/use-debounce'
-import { createTrack, createSession, endSession, linkTagToSession } from '@/lib/supabase/mutations'
+import { createTrack, createSession, endSession, linkTagToSession, deleteSession } from '@/lib/supabase/mutations'
 import { toast } from 'sonner'
 import { createIssueComment } from '@/lib/github/mutations'
 import { EndSessionDialog } from '@/components/end-session-dialog'
+import { DiscardSessionDialog } from '@/components/discard-session-dialog'
 import { SearchForm } from '@/components/search-form'
 import { SessionCard } from '@/components/session-card'
 import { formatTime, getSessionDuration } from '@/lib/utils'
@@ -34,6 +35,7 @@ function SessionsPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [debouncedSearchQuery, setValue] = useDebounce(searchQuery, DEBOUNCE_TIME)
     const [showEndSessionDialog, setShowEndSessionDialog] = useState(false)
+    const [showDiscardDialog, setShowDiscardDialog] = useState(false)
     const [endSessionMessage, setEndSessionMessage] = useState('')
     const [selectedMembers, setSelectedMembers] = useState<string[]>([])
     const [timeFilter, setTimeFilter] = useState<'all' | 'day' | 'week'>('all')
@@ -126,6 +128,22 @@ function SessionsPage() {
         }
     })
 
+    // Discard session mutation
+    const discardSessionMutation = useMutation({
+        mutationFn: async ({ sessionId }: { sessionId: string }) => {
+            await deleteSession(sessionId)
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['activeSession', slug] })
+            queryClient.invalidateQueries({ queryKey: ['closedSessions', spaceData?.space?.id] })
+            setShowDiscardDialog(false)
+            toast.success("Session discarded successfully")
+        },
+        onError: (error) => {
+            toast.error(`Failed to discard session: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
+    })
+
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!searchQuery.trim()) return
@@ -162,6 +180,12 @@ function SessionsPage() {
                 skipSummary,
                 selectedTags
             })
+        }
+    }
+
+    const handleDiscardSession = () => {
+        if (activeSession) {
+            discardSessionMutation.mutate({ sessionId: activeSession.id })
         }
     }
 
@@ -295,7 +319,9 @@ function SessionsPage() {
                         track={activeSession.track}
                         startedAt={activeSession.started_at}
                         onEndSession={() => setShowEndSessionDialog(true)}
+                        onDiscardSession={() => setShowDiscardDialog(true)}
                         isEnding={endSessionMutation.isPending}
+                        isDiscarding={discardSessionMutation.isPending}
                     />
                 </div>
             )}
@@ -447,6 +473,14 @@ function SessionsPage() {
                 onEndSession={handleEndSession}
                 isPending={endSessionMutation.isPending}
                 spaceId={spaceData?.space?.id || ''}
+            />
+
+            {/* Discard Session Dialog */}
+            <DiscardSessionDialog
+                open={showDiscardDialog}
+                onOpenChange={setShowDiscardDialog}
+                onConfirm={handleDiscardSession}
+                isPending={discardSessionMutation.isPending}
             />
         </div>
     )

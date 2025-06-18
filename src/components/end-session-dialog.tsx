@@ -10,6 +10,7 @@ import { X, Eye, Pencil } from 'lucide-react'
 import { cn, isLightColor } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import MDEditor from '@uiw/react-md-editor'
+import { createFireEffect } from '@/lib/celebrate'
 
 interface EndSessionDialogProps {
     open: boolean
@@ -56,6 +57,11 @@ export function EndSessionDialog({
                 : [...prev, tag]
         )
     }
+
+    const handleEndSession = () => {
+        onEndSession(skipComment, selectedTags);
+        createFireEffect();
+    };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -141,7 +147,7 @@ export function EndSessionDialog({
                         Cancel
                     </Button>
                     <Button
-                        onClick={() => onEndSession(skipComment, selectedTags)}
+                        onClick={handleEndSession}
                         disabled={isPending || !canSubmit}
                     >
                         {isPending ? "Processing..." : "End Session"}

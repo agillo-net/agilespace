@@ -144,6 +144,25 @@ function SessionsPage() {
         }
     })
 
+    // Add mutation for starting a session
+    const startSessionMutation = useMutation({
+        mutationFn: async (trackId: string) => {
+            if (!spaceData?.space_member) return
+            await createSession({
+                track_id: trackId,
+                space_member_id: spaceData.space_member.id,
+            })
+        },
+        onSuccess: () => {
+            setSearchQuery('')
+            queryClient.invalidateQueries({ queryKey: ['activeSession', slug] })
+            toast.success("Session started successfully")
+        },
+        onError: (error) => {
+            toast.error(`Failed to start session: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
+    })
+
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!searchQuery.trim()) return
@@ -194,19 +213,10 @@ function SessionsPage() {
         return sessionStats.counts[trackId] || 0
     }
 
-    const handleStartSession = async (trackId: string) => {
-        if (!spaceData?.space_member) return
-        try {
-            await createSession({
-                track_id: trackId,
-                space_member_id: spaceData.space_member.id,
-            })
-            // Clear search results
-            setSearchQuery('')
-            queryClient.invalidateQueries({ queryKey: ['activeSession', slug] })
-            toast.success("Session started successfully")
-        } catch (error) {
-            toast.error(`Failed to start session: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    // Replace handleStartSession with mutation logic
+    const handleStartSession = (trackId: string) => {
+        if (!activeSession && !startSessionMutation.isPending) {
+            startSessionMutation.mutate(trackId)
         }
     }
 
@@ -375,20 +385,20 @@ function SessionsPage() {
                                             ) : (
                                                 <button
                                                     onClick={() => handleStartSession(track.id)}
-                                                    disabled={!!activeSession}
+                                                    disabled={!!activeSession || startSessionMutation.isPending}
                                                     className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
                                                 >
-                                                    {activeSession ? 'End Current Session First' : 'Start New Session'}
+                                                    {activeSession ? 'End Current Session First' : startSessionMutation.isPending ? 'Starting...' : 'Start New Session'}
                                                 </button>
                                             )}
                                         </div>
                                     ) : (
                                         <button
                                             onClick={() => handleCreateTrack(issue)}
-                                            disabled={!!activeSession}
+                                            disabled={!!activeSession || startSessionMutation.isPending}
                                             className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
                                         >
-                                            {activeSession ? 'End Current Session First' : 'Start Session'}
+                                            {activeSession ? 'End Current Session First' : startSessionMutation.isPending ? 'Starting...' : 'Start Session'}
                                         </button>
                                     )}
                                 </div>

@@ -1,5 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
-import { getUser } from "./queries";
+import { getActiveSession, getUser } from "./queries";
 import type { Tag } from "@/types";
 
 const supabase = getSupabaseClient();
@@ -116,6 +116,11 @@ export async function createSession({
   track_id: string;
   space_member_id: string;
 }) {
+
+  const active = await getActiveSession()
+  if (active) {
+    throw new Error('You already have an active session. Please end it before starting a new one.')
+  }
 
   const { data, error } = await supabase
     .from("sessions")

@@ -103,7 +103,7 @@ export function EndSessionDialog({
                             </Button>
                         </div>
                         <MDEditor
-                            textareaProps={{ disabled: skipComment, style: { background: 'red' } }}
+                            textareaProps={{ disabled: skipComment }}
                             value={message}
                             onChange={(value) => onMessageChange(value || '')}
                             hideToolbar={isPreview}

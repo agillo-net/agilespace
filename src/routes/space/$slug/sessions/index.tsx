@@ -22,6 +22,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import React from 'react'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { useAuth } from '@/hooks/use-auth'
+import { useLocalStorage } from '@/hooks/use-local-storage'
 
 export const Route = createFileRoute('/space/$slug/sessions/')({
     component: SessionsPage,
@@ -36,7 +37,7 @@ function SessionsPage() {
     const [debouncedSearchQuery, setValue] = useDebounce(searchQuery, DEBOUNCE_TIME)
     const [showEndSessionDialog, setShowEndSessionDialog] = useState(false)
     const [showDiscardDialog, setShowDiscardDialog] = useState(false)
-    const [endSessionMessage, setEndSessionMessage] = useState('')
+    const [endSessionMessage, setEndSessionMessage] = useLocalStorage('end-session-message', '')
     const [selectedMembers, setSelectedMembers] = useState<string[]>([])
     const [timeFilter, setTimeFilter] = useState<'all' | 'day' | 'week'>('all')
     const [sessionLimit, setSessionLimit] = useState<number>(10)

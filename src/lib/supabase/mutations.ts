@@ -1,5 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
-import { getActiveSession, getUser } from "./queries";
+import { getUser } from "./queries";
 import type { Tag } from "@/types";
 
 const supabase = getSupabaseClient();

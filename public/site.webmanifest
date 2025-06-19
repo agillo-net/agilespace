@@ -17,5 +17,7 @@
       "sizes": "180x180",
       "type": "image/svg+xml"
     }
-  ]
+  ],
+  "dir": "ltr",
+  "lang": "en"
 }

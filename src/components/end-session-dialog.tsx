@@ -50,6 +50,17 @@ export function EndSessionDialog({
         }
     }, [open, onMessageChange])
 
+    useEffect(() => {
+        if (!open) {
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+        };
+    }, [open]);
+
     const toggleTag = (tag: Tag) => {
         setSelectedTags(prev =>
             prev.some(t => t.id === tag.id)

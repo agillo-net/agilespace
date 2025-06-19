@@ -172,18 +172,27 @@ function SessionsPage() {
     const handleCreateTrack = async (issue: GitHubIssue) => {
         if (!spaceData?.space || !spaceData?.space_member) return
         try {
-            const track = await createTrack({
-                space_id: spaceData.space.id,
-                repo_owner: issue.repository.owner || '',
-                repo_name: issue.repository.name || '',
-                issue_number: issue.number,
-                title: issue.title,
-            })
+            // Check if track already exists
+            const existingTrack = getTrackForIssue(issue)
+            let trackId: string
+            if (existingTrack) {
+                trackId = existingTrack.id
+            } else {
+                const track = await createTrack({
+                    space_id: spaceData.space.id,
+                    repo_owner: issue.repository.owner || '',
+                    repo_name: issue.repository.name || '',
+                    issue_number: issue.number,
+                    title: issue.title,
+                })
+                trackId = track.id
+            }
             await createSession({
-                track_id: track.id,
+                track_id: trackId,
                 space_member_id: spaceData.space_member.id,
             })
             // Clear search results
+            queryClient.invalidateQueries({ queryKey: ['space', slug] })
             queryClient.invalidateQueries({ queryKey: ['activeSession', slug] })
             toast.success("Track created and session started")
         } catch (error) {

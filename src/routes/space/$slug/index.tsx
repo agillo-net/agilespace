@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Activity, Users, Calendar, Tag, Edit2, Check, X, ChevronDown } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getSpaceAndTracks, getActiveSession, getClosedSessions, getTrackSessionStats, getSpaceActiveSessions } from '@/lib/supabase/queries'
+import { getSpaceAndTracks, getActiveSession, getClosedSessions, getTrackSessionStats, getSpaceActiveSessions, getCurrentMemberStatus } from '@/lib/supabase/queries'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import React from 'react'
 import { updateMemberStatus } from '@/lib/supabase/mutations'
@@ -102,6 +102,15 @@ function SpaceHome() {
   // Update member status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async (data: StatusUpdate) => {
+      // Get current status to check if update is needed
+      const currentStatus = await getCurrentMemberStatus()
+
+      // Check if the new values are the same as current values
+      if (currentStatus && currentStatus.status === data.status && currentStatus.location === data.location) {
+        // No update needed, throw an error to prevent unnecessary operations
+        throw new Error('Status and location are already set to these values')
+      }
+
       // Update status in database
       await updateMemberStatus(data)
 
@@ -114,7 +123,12 @@ function SpaceHome() {
       setIsEditing(false)
     },
     onError: (error: Error) => {
-      toast.error(`Failed to update status: ${error.message}`)
+      if (error.message === 'Status and location are already set to these values') {
+        toast.info('No changes needed - status is already up to date')
+        setIsEditing(false)
+      } else {
+        toast.error(`Failed to update status: ${error.message}`)
+      }
     }
   })
 

@@ -493,3 +493,36 @@ export async function getSpaceActiveSessions(spaceId: string) {
     } : null
   }));
 }
+
+/**
+ * Gets the current status and location of the authenticated user from the space_members table.
+ * This function retrieves the user's current online/offline status and working location.
+ * @async
+ * @function getCurrentMemberStatus
+ * @returns {Promise<{status: string, location: string} | null>} A promise that resolves to the current status and location, or null if not found.
+ * @throws {Error} If the user ID is not available or if the query fails.
+ * @example
+ * // Get the current user's status and location
+ * const currentStatus = await getCurrentMemberStatus();
+ * if (currentStatus) {
+ *   console.log(`Status: ${currentStatus.status}, Location: ${currentStatus.location}`);
+ * }
+ */
+export async function getCurrentMemberStatus() {
+  const user = await getUser();
+  const userId = user?.id;
+  if (!userId) throw new Error("User ID is required");
+
+  const { data, error } = await supabase
+    .from('space_members')
+    .select('status, location')
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") return null; // Not found
+    throw new Error(error.message);
+  }
+
+  return data;
+}

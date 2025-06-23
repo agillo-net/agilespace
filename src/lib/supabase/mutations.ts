@@ -116,7 +116,30 @@ export async function createSession({
   track_id: string;
   space_member_id: string;
 }) {
+  // 1. Find all active sessions for this space_member_id
+  const { data: activeSessions, error: findError } = await supabase
+    .from("sessions")
+    .select("id")
+    .eq("space_member_id", space_member_id)
+    .is("ended_at", null);
+  if (findError) throw new Error(findError.message);
 
+  // 2. If more than one active session, delete all of them
+  if (activeSessions && activeSessions.length > 1) {
+    const ids = activeSessions.map((s: { id: string }) => s.id);
+    const { error: deleteError } = await supabase
+      .from("sessions")
+      .delete()
+      .in("id", ids);
+    if (deleteError) throw new Error(deleteError.message);
+  }
+
+  // 3. If only one active session, do not create a new one, throw error
+  if (activeSessions && activeSessions.length === 1) {
+    throw new Error('You already have an active session. Please end it before starting a new one.');
+  }
+
+  // 4. Create the new session
   const { data, error } = await supabase
     .from("sessions")
     .insert({

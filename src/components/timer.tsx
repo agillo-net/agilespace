@@ -12,13 +12,14 @@ import { EndSessionDialog } from "@/components/end-session-dialog"
 import { DiscardSessionDialog } from "@/components/discard-session-dialog"
 import type { Tag } from "@/types"
 import { formatSessionComment, getGitHubIssueUrl } from "@/lib/utils"
+import { useLocalStorage } from "@/hooks/use-local-storage"
 
 export function Timer() {
     const [time, setTime] = React.useState(0)
     const [isRunning, setIsRunning] = React.useState(false)
     const [showEndSessionDialog, setShowEndSessionDialog] = React.useState(false)
     const [showDiscardDialog, setShowDiscardDialog] = React.useState(false)
-    const [endSessionMessage, setEndSessionMessage] = React.useState("")
+    const [endSessionMessage, setEndSessionMessage] = useLocalStorage('end-session-message', "")
 
     const timerRef = useRef<NodeJS.Timeout>(null)
     const queryClient = useQueryClient()

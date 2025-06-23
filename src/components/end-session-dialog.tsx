@@ -46,9 +46,8 @@ export function EndSessionDialog({
         if (!open) {
             setSkipComment(false)
             setSelectedTags([])
-            onMessageChange('')
         }
-    }, [open, onMessageChange])
+    }, [open])
 
     useEffect(() => {
         if (!open) {
@@ -104,6 +103,7 @@ export function EndSessionDialog({
                             </Button>
                         </div>
                         <MDEditor
+                            textareaProps={{ disabled: skipComment }}
                             value={message}
                             onChange={(value) => onMessageChange(value || '')}
                             hideToolbar={isPreview}

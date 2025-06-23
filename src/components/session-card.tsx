@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn, isLightColor, getGitHubIssueUrl } from '@/lib/utils'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Trash2 } from 'lucide-react'
 
 interface SessionCardProps {
     track: Track
@@ -11,7 +12,9 @@ interface SessionCardProps {
     endedAt?: string
     duration?: string
     onEndSession?: () => void
+    onDiscardSession?: () => void
     isEnding?: boolean
+    isDiscarding?: boolean
     commentUrl?: string
     skippedSummary?: boolean
     tags?: { tag: Tag }[]
@@ -29,7 +32,9 @@ export function SessionCard({
     endedAt,
     duration,
     onEndSession,
+    onDiscardSession,
     isEnding,
+    isDiscarding,
     commentUrl,
     skippedSummary,
     tags,
@@ -66,7 +71,7 @@ export function SessionCard({
                         {spaceMember && spaceMember.profile && (
                             <HoverCard>
                                 <HoverCardTrigger asChild>
-                                    <div className="flex items-center gap-2 cursor-pointer group">
+                                    <div className="flex items-center gap-2 group">
                                         <Avatar className="h-7 w-7 ring-2 ring-offset-2 ring-gray-100 group-hover:ring-blue-100 transition-all">
                                             <AvatarImage src={spaceMember.profile.avatar_url || undefined} />
                                             <AvatarFallback className="bg-gray-100 text-gray-600">
@@ -133,10 +138,20 @@ export function SessionCard({
                 {onEndSession && (
                     <button
                         onClick={onEndSession}
-                        disabled={isEnding}
-                        className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
+                        disabled={isEnding || isDiscarding}
+                        className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isEnding ? 'Ending...' : 'End Session'}
+                    </button>
+                )}
+                {onDiscardSession && (
+                    <button
+                        onClick={onDiscardSession}
+                        disabled={isEnding || isDiscarding}
+                        className="p-2 text-gray-500 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Discard Session"
+                    >
+                        <Trash2 className="h-5 w-5" />
                     </button>
                 )}
             </div>

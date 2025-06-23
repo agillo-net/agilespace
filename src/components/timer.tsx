@@ -1,14 +1,15 @@
 import * as React from "react"
 import { Button } from "@/components/ui/button"
-import { Square } from "lucide-react"
+import { Square, Trash2 } from "lucide-react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { getActiveSession, getSpaceAndTracks } from "@/lib/supabase/queries"
-import { endSession, linkTagToSession } from "@/lib/supabase/mutations"
+import { endSession, linkTagToSession, deleteSession } from "@/lib/supabase/mutations"
 import { toast } from "sonner"
 import { useRef } from "react"
 import { useParams } from "@tanstack/react-router"
 import { createIssueComment } from "@/lib/github/mutations"
 import { EndSessionDialog } from "@/components/end-session-dialog"
+import { DiscardSessionDialog } from "@/components/discard-session-dialog"
 import type { Tag } from "@/types"
 import { formatSessionComment, getGitHubIssueUrl } from "@/lib/utils"
 
@@ -16,6 +17,7 @@ export function Timer() {
     const [time, setTime] = React.useState(0)
     const [isRunning, setIsRunning] = React.useState(false)
     const [showEndSessionDialog, setShowEndSessionDialog] = React.useState(false)
+    const [showDiscardDialog, setShowDiscardDialog] = React.useState(false)
     const [endSessionMessage, setEndSessionMessage] = React.useState("")
 
     const timerRef = useRef<NodeJS.Timeout>(null)
@@ -83,6 +85,24 @@ export function Timer() {
         }
     })
 
+    // Discard session mutation
+    const discardSessionMutation = useMutation({
+        mutationFn: async ({ sessionId }: { sessionId: string }) => {
+            await deleteSession(sessionId)
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['activeSession', slug] })
+            queryClient.invalidateQueries({ queryKey: ['closedSessions', spaceData?.space?.id] })
+            setIsRunning(false)
+            setTime(0)
+            setShowDiscardDialog(false)
+            toast.success("Session discarded successfully")
+        },
+        onError: (error) => {
+            toast.error(`Failed to discard session: ${error.message}`)
+        }
+    })
+
     // Initialize timer state from active session
     React.useEffect(() => {
         if (activeSession) {
@@ -132,6 +152,12 @@ export function Timer() {
         }
     }
 
+    const handleDiscardSession = () => {
+        if (activeSession) {
+            discardSessionMutation.mutate({ sessionId: activeSession.id })
+        }
+    }
+
     const formatTime = (seconds: number) => {
         const hours = Math.floor(seconds / 3600)
         const minutes = Math.floor((seconds % 3600) / 60)
@@ -156,16 +182,28 @@ export function Timer() {
                     </div>
                 )}
                 <span className="font-mono text-sm">{formatTime(time)}</span>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={stopTimer}
-                    className="h-8 w-8"
-                    disabled={!isRunning || endSessionMutation.isPending}
-                >
-                    <Square className="h-4 w-4" />
-                    <span className="sr-only">Stop</span>
-                </Button>
+                <div className="flex flex-row">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={stopTimer}
+                        className="h-8 w-8"
+                        disabled={!isRunning || endSessionMutation.isPending}
+                    >
+                        <Square className="h-4 w-4" />
+                        <span className="sr-only">Stop</span>
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowDiscardDialog(true)}
+                        className="h-8 w-8"
+                        disabled={!isRunning || endSessionMutation.isPending || discardSessionMutation.isPending}
+                    >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Discard</span>
+                    </Button>
+                </div>
             </div>
 
             <EndSessionDialog
@@ -176,6 +214,13 @@ export function Timer() {
                 onEndSession={handleEndSession}
                 isPending={endSessionMutation.isPending}
                 spaceId={spaceData?.space?.id || ''}
+            />
+
+            <DiscardSessionDialog
+                open={showDiscardDialog}
+                onOpenChange={setShowDiscardDialog}
+                onConfirm={handleDiscardSession}
+                isPending={discardSessionMutation.isPending}
             />
         </div>
     )

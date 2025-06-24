@@ -4,7 +4,9 @@ import { Badge } from '@/components/ui/badge'
 import { cn, isLightColor, getGitHubIssueUrl } from '@/lib/utils'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { Trash2 } from 'lucide-react'
+import { Play, Trash2 } from 'lucide-react'
+import { Button } from './ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface SessionCardProps {
     track: Track
@@ -13,8 +15,11 @@ interface SessionCardProps {
     duration?: string
     onEndSession?: () => void
     onDiscardSession?: () => void
+    onStartSession?: (trackId: string) => void
     isEnding?: boolean
     isDiscarding?: boolean
+    isStarting?: boolean
+    hasActiveSession?: boolean
     commentUrl?: string
     skippedSummary?: boolean
     tags?: { tag: Tag }[]
@@ -33,8 +38,11 @@ export function SessionCard({
     duration,
     onEndSession,
     onDiscardSession,
+    onStartSession,
     isEnding,
     isDiscarding,
+    isStarting,
+    hasActiveSession,
     commentUrl,
     skippedSummary,
     tags,
@@ -153,6 +161,25 @@ export function SessionCard({
                     >
                         <Trash2 className="h-5 w-5" />
                     </button>
+                )}
+                {endedAt && onStartSession && (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    onClick={() => onStartSession(track.id)}
+                                    disabled={isStarting || hasActiveSession}
+                                    size="icon"
+                                    variant="ghost"
+                                >
+                                    <Play className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Start New Session</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 )}
             </div>
         </div>

@@ -255,6 +255,9 @@ function SessionsPage() {
                             skippedSummary={session.skipped_summary || false}
                             tags={session.tags}
                             spaceMember={session.space_member && session.space_member.profile ? { profile: session.space_member.profile } : undefined}
+                            onStartSession={handleStartSession}
+                            isStarting={startSessionMutation.isPending}
+                            hasActiveSession={!!activeSession}
                         />
                     ))}
                     {filteredAndSortedSessions.length === 0 && (

@@ -1,6 +1,5 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import {
-  SidebarProvider,
   SidebarInset,
 } from '@/components/ui/sidebar'
 import { SpaceSidebar } from '@/components/sidebars/space-sidebar'
@@ -34,8 +33,10 @@ function SpaceLayout() {
   const { space } = Route.useLoaderData()
 
   return (
-    <SidebarProvider defaultOpen>
-      <div className="flex flex-1 min-h-screen bg-gray-50">
+    <>
+      <Navbar />
+      <hr />
+      <div className="w-full flex flex-1 min-h-screen bg-gray-50">
         <SpaceSidebar space={space} />
         <SidebarInset>
           <div className='container mx-auto py-6 pt-16'>
@@ -46,6 +47,6 @@ function SpaceLayout() {
           </div>
         </SidebarInset>
       </div>
-    </SidebarProvider>
+    </>
   )
 }

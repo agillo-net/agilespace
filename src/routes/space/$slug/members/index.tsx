@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
     Table,
@@ -9,10 +8,10 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { getSpaceMembersWithProfiles, getActiveSession } from '@/lib/supabase/queries'
 import { MembersListSkeleton } from '@/components/skeleton/members-list-skeleton'
 import { Badge } from '@/components/ui/badge'
 import { getGitHubIssueUrl, getSessionDuration } from '@/lib/utils'
+import { useSpaceMembers } from '@/hooks/api/use-space-members'
 
 export const Route = createFileRoute('/space/$slug/members/')({
     component: MembersPage,
@@ -21,31 +20,7 @@ export const Route = createFileRoute('/space/$slug/members/')({
 function MembersPage() {
     const { slug } = Route.useParams()
     const showDuration = false // Control visibility of duration display
-
-    const { data: members, isLoading } = useQuery({
-        queryKey: ['getSpaceMembers', slug],
-        queryFn: () => getSpaceMembersWithProfiles(slug),
-    })
-
-    // Fetch active sessions for all members
-    const { data: activeSessions } = useQuery({
-        queryKey: ['activeSessions', slug],
-        queryFn: async () => {
-            const sessions = await Promise.all(
-                members?.map(async ({ member }) => {
-                    try {
-                        if (!member.user_id) return null
-                        const session = await getActiveSession(member.user_id)
-                        return session
-                    } catch (error) {
-                        return null
-                    }
-                }) || []
-            )
-            return sessions.filter(Boolean)
-        },
-        enabled: !!members,
-    })
+    const { members, isLoading, activeSessions } = useSpaceMembers(slug);
 
     if (isLoading) {
         return (

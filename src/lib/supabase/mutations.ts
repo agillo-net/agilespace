@@ -1,28 +1,57 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { getUser } from "./queries";
 import type { Tag } from "@/types";
+import type { User } from "@supabase/supabase-js";
 
 const supabase = getSupabaseClient();
 
-export async function createProfile() {
-  const user = await getUser();
-  const userId = user?.id;
-  if (!userId) throw new Error("User ID is required");
+export async function getOrCreateProfile(user: User) {
+  if (!user) throw new Error("User is required");
 
-  const { provider_id: github_id, preferred_username: github_username, full_name, avatar_url } = user.user_metadata;
-  if (!github_id || !full_name || !github_username) {
-    throw new Error("User metadata is incomplete");
+  // First, try to get the profile
+  const { data: existingProfile, error: getError } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  if (getError && getError.code !== "PGRST116") {
+    // PGRST116 is 'Not Found'
+    throw new Error(`Failed to fetch profile: ${getError.message}`);
   }
 
-  // Ensure the profile is created in the "profiles" table
-  const { error } = await supabase.from("profiles").insert({
-    id: userId,
+  if (existingProfile) {
+    return existingProfile;
+  }
+
+  // If profile doesn't exist, create it.
+  const {
+    provider_id: github_id,
+    preferred_username: github_username,
     full_name,
-    github_username,
-    github_id,
     avatar_url,
-  });
-  if (error) throw new Error(error.message);
+  } = user.user_metadata;
+  if (!github_id || !full_name || !github_username) {
+    throw new Error("User metadata is incomplete for profile creation");
+  }
+
+  const { data: newProfile, error: createError } = await supabase
+    .from("profiles")
+    .insert({
+      id: user.id,
+      full_name,
+      github_username,
+      github_id,
+      avatar_url,
+    })
+    .select()
+    .single();
+
+  if (createError) {
+    throw new Error(`Failed to create profile: ${createError.message}`);
+  }
+
+  return newProfile;
 }
 
 export async function createSpace({
@@ -86,7 +115,6 @@ export async function createTrack({
   const userId = user?.id;
   if (!userId) throw new Error("User ID is required");
 
-
   const { data, error } = await supabase
     .from("tracks")
     .insert({
@@ -104,7 +132,6 @@ export async function createTrack({
 }
 
 export async function logout() {
-
   const { error } = await supabase.auth.signOut();
   if (error) throw new Error(error.message);
 }
@@ -136,7 +163,9 @@ export async function createSession({
 
   // 3. If only one active session, do not create a new one, throw error
   if (activeSessions && activeSessions.length === 1) {
-    throw new Error('You already have an active session. Please end it before starting a new one.');
+    throw new Error(
+      "You already have an active session. Please end it before starting a new one."
+    );
   }
 
   // 4. Create the new session
@@ -153,13 +182,18 @@ export async function createSession({
   return data;
 }
 
-export async function endSession(session_id: string, comment_url?: string, skip_summary?: boolean, ended_at: string = new Date().toISOString()) {
+export async function endSession(
+  session_id: string,
+  comment_url?: string,
+  skip_summary?: boolean,
+  ended_at: string = new Date().toISOString()
+) {
   const { data, error } = await supabase
     .from("sessions")
     .update({
       ended_at,
       comment_url,
-      skipped_summary: skip_summary
+      skipped_summary: skip_summary,
     })
     .eq("id", session_id)
     .select()
@@ -179,51 +213,51 @@ export async function deleteSession(sessionId: string) {
 
 export async function createTag(spaceId: string, name: string, color?: string) {
   const { data, error } = await supabase
-    .from('tags')
+    .from("tags")
     .insert({ space_id: spaceId, name, color })
     .select()
-    .single()
+    .single();
 
-  if (error) throw error
-  return data as Tag
+  if (error) throw error;
+  return data as Tag;
 }
 
-export async function updateTag(id: string, updates: Partial<Pick<Tag, 'name' | 'color'>>) {
+export async function updateTag(
+  id: string,
+  updates: Partial<Pick<Tag, "name" | "color">>
+) {
   const { data, error } = await supabase
-    .from('tags')
+    .from("tags")
     .update(updates)
-    .eq('id', id)
+    .eq("id", id)
     .select()
-    .single()
+    .single();
 
-  if (error) throw error
-  return data as Tag
+  if (error) throw error;
+  return data as Tag;
 }
 
 export async function deleteTag(id: string) {
-  const { error } = await supabase
-    .from('tags')
-    .delete()
-    .eq('id', id)
+  const { error } = await supabase.from("tags").delete().eq("id", id);
 
-  if (error) throw error
+  if (error) throw error;
 }
 
 export async function linkTagToSession(sessionId: string, tagId: string) {
   const { error } = await supabase
-    .from('session_tags')
-    .insert({ session_id: sessionId, tag_id: tagId })
+    .from("session_tags")
+    .insert({ session_id: sessionId, tag_id: tagId });
 
-  if (error) throw error
+  if (error) throw error;
 }
 
 export async function unlinkTagFromSession(sessionId: string, tagId: string) {
   const { error } = await supabase
-    .from('session_tags')
+    .from("session_tags")
     .delete()
-    .match({ session_id: sessionId, tag_id: tagId })
+    .match({ session_id: sessionId, tag_id: tagId });
 
-  if (error) throw error
+  if (error) throw error;
 }
 
 /**
@@ -245,8 +279,8 @@ export async function updateMemberStatus({
   status,
   location,
 }: {
-  status: string
-  location: string
+  status: string;
+  location: string;
 }) {
   // Get the current user
   const user = await getUser();
@@ -259,25 +293,24 @@ export async function updateMemberStatus({
   }
 
   // Check if status and location is valid (online, offline) | (office, remote)
-  const validStatuses = ['online', 'offline'];
-  const validLocations = ['office', 'remote'];
+  const validStatuses = ["online", "offline"];
+  const validLocations = ["office", "remote"];
   if (!validStatuses.includes(status) || !validLocations.includes(location)) {
     throw new Error("Invalid status or location");
   }
 
   // Update the space member's status and location
   const { data, error } = await supabase
-    .from('space_members')
+    .from("space_members")
     .update({
       status,
       location,
       last_status_update_at: new Date().toISOString(),
     })
-    .eq('user_id', userId)
+    .eq("user_id", userId)
     .select()
     .single();
 
   if (error) throw new Error(error.message);
   return data;
 }
-

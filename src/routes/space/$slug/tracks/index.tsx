@@ -1,16 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { createTrack } from '@/lib/supabase/mutations'
 import { getSpaceAndTracks } from '@/lib/supabase/queries'
-import { searchIssues } from '@/lib/github/queries'
 import type { GitHubIssue, Track } from '@/types'
 import { TracksListSkeleton } from '@/components/skeleton/tracks-list-skeleton'
-import { useDebounce } from '@/hooks/use-debounce'
-import { createSession } from '@/lib/supabase/mutations'
-import { toast } from 'sonner'
-import { DEBOUNCE_TIME } from '@/constants'
 import { SearchForm } from '@/components/search-form'
+import { useTracks } from '@/hooks/api/use-tracks'
 
 export const Route = createFileRoute('/space/$slug/tracks/')({
     component: TracksPage,
@@ -21,85 +14,18 @@ export const Route = createFileRoute('/space/$slug/tracks/')({
 
 function TracksPage() {
     const { slug } = Route.useParams()
-    const [searchQuery, setSearchQuery] = useState('')
-    const [debouncedSearchQuery, setValue] = useDebounce(searchQuery, DEBOUNCE_TIME)
-    const queryClient = useQueryClient()
-
-    // Load space and tracks data
-    const { data: spaceData, isLoading } = useQuery({
-        queryKey: ['space', slug],
-        queryFn: () => getSpaceAndTracks(slug)
-    })
-
-    // Search issues
     const {
-        data: searchResults,
-        isLoading: isSearching,
-        error: searchError
-    } = useQuery({
-        queryKey: ['tracks', 'issues', slug, debouncedSearchQuery],
-        queryFn: () => searchIssues(slug, debouncedSearchQuery),
-        enabled: !!debouncedSearchQuery.trim(), // Only run when there's a non-empty search query
-        retry: false
-    })
-
-    // Create track mutation
-    const createTrackMutation = useMutation({
-        mutationFn: async (issue: GitHubIssue) => {
-            if (!spaceData?.space || !hasValidRepository(issue)) return
-            if (!spaceData.space_member) throw new Error("space_member is null");
-            const track = await createTrack({
-                space_id: spaceData.space.id,
-                repo_owner: issue.repository.owner || '',
-                repo_name: issue.repository.name || '',
-                issue_number: issue.number,
-                title: issue.title,
-            })
-            // Start a session for the new track
-            await createSession({
-                track_id: track.id,
-                space_member_id: spaceData.space_member.id,
-            })
-            return track
-        },
-        onSuccess: () => {
-            // Invalidate and refetch space data
-            queryClient.invalidateQueries({ queryKey: ['space', slug] })
-            // Clear search
-            setSearchQuery('')
-            toast.success("Track created and session started")
-        },
-        onError: (error) => {
-            toast.error(`Failed to create track: ${error.message}`)
-        }
-    })
-
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!searchQuery.trim()) return
-        setValue(searchQuery, true)
-    }
-
-    const hasValidRepository = (issue: GitHubIssue): issue is GitHubIssue & { repository: NonNullable<GitHubIssue['repository']> } => {
-        return !!issue.repository
-    }
-
-    const handleCreateTrack = async (issue: GitHubIssue) => {
-        if (!spaceData?.space || !hasValidRepository(issue)) return
-        createTrackMutation.mutate(issue)
-    }
-
-    const isTracked = (issue: GitHubIssue) => {
-        if (!hasValidRepository(issue)) return false
-        return spaceData?.tracks.some(
-            track =>
-                track.repo_owner === issue.repository.owner &&
-                track.repo_name === issue.repository.name &&
-                track.issue_number === issue.number
-        )
-    }
-
-    const { tracks } = spaceData || { space: null, tracks: [] }
+        searchQuery,
+        setSearchQuery,
+        isLoading,
+        searchResults,
+        isSearching,
+        searchError,
+        tracks,
+        createTrackMutation,
+        handleSearch,
+        isTracked,
+    } = useTracks(slug)
 
     if (isLoading) {
         return <TracksListSkeleton />
@@ -115,7 +41,7 @@ function TracksPage() {
                 onSearchQueryChange={setSearchQuery}
                 onSubmit={handleSearch}
                 isSearching={isSearching}
-                isDisabled={false}
+                isDisabled={createTrackMutation.isPending}
                 error={searchError}
             />
 
@@ -133,7 +59,7 @@ function TracksPage() {
                                     <div>
                                         <h3 className="font-medium">{issue.title}</h3>
                                         <p className="text-sm text-gray-500">
-                                            {issue.repository.name} #{issue.number}
+                                            {issue.repository?.name} #{issue.number}
                                         </p>
                                     </div>
                                     {isTracked(issue) ? (
@@ -142,7 +68,7 @@ function TracksPage() {
                                         </span>
                                     ) : (
                                         <button
-                                            onClick={() => handleCreateTrack(issue)}
+                                            onClick={() => createTrackMutation.mutate(issue)}
                                             disabled={createTrackMutation.isPending}
                                             className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
                                         >

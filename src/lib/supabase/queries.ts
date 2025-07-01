@@ -1,5 +1,14 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
-import type { Profile, Space, SpaceMember, SpaceWithMembership, Tag, Track } from "@/types";
+import type {
+  Profile,
+  Space,
+  SpaceMember,
+  SpaceWithMembership,
+  Tag,
+  Track,
+  ClosedSession,
+  ActiveSession,
+} from "@/types";
 
 const supabase = getSupabaseClient();
 
@@ -40,9 +49,8 @@ export const getOrganizationByGithubId = async (github_org_id: string) => {
   return data;
 };
 
-
 /**
- * 
+ *
  * Fetches all spaces from the database.
  * This function retrieves all spaces, ordered by creation date in descending order.
  * It uses the Supabase client to query the "spaces" table.
@@ -61,7 +69,7 @@ export const getSpaces = async () => {
 };
 
 /**
- * 
+ *
  * Fetches spaces where the current user is a member.
  * This function retrieves all spaces that the authenticated user is a member of,
  * including their role in each space. It uses the Supabase client to query the "space_members" table
@@ -136,7 +144,9 @@ export const getOrganizationAndMemberStatus = async (
  * @throws {Error} If the user ID is not available or if the query fails
  * @returns {Promise<SpaceWithMembership[]>} A promise that resolves to an array of spaces with membership status
  */
-export const getSpacesWithMembershipStatus = async (): Promise<SpaceWithMembership[]> => {
+export const getSpacesWithMembershipStatus = async (): Promise<
+  SpaceWithMembership[]
+> => {
   const user = await getUser();
   const userId = user?.id;
   if (!userId) throw new Error("User ID is required");
@@ -159,17 +169,18 @@ export const getSpacesWithMembershipStatus = async (): Promise<SpaceWithMembersh
 
   // Create a map of user's joined spaces for quick lookup
   const userJoinedSpaces = new Map(
-    (userSpaces as unknown as ({ space: Space } & SpaceMember)[] || []).map((row) => [row.space.id, row.role])
+    ((userSpaces as unknown as ({ space: Space } & SpaceMember)[]) || []).map(
+      (row) => [row.space.id, row.role]
+    )
   );
 
   // Combine the data
-  return (allSpaces as Space[] || []).map((space) => ({
+  return ((allSpaces as Space[]) || []).map((space) => ({
     ...space,
     is_member: userJoinedSpaces.has(space.id),
     member_role: userJoinedSpaces.get(space.id) || null,
   }));
 };
-
 
 /**
  * Fetches a space by its slug.
@@ -194,9 +205,7 @@ export const getSpaceBySlug = async (slug: string): Promise<Space | null> => {
   }
 
   return data as Space;
-}
-
-
+};
 
 /**
  * Fetches a space by its slug and checks if the user is a member of the space.
@@ -208,7 +217,9 @@ export const getSpaceBySlug = async (slug: string): Promise<Space | null> => {
  * @throws {Error} If the user ID is not found or if the query fails.
  * @return {Promise<{ space: Space | null, isMember: boolean }>} A promise that resolves to an object containing the space data and a boolean indicating if the user is a member of the space.
  */
-export const getUserMemberSpace = async (spaceSlug: string): Promise<{ space: Space | null, isMember: boolean }> => {
+export const getUserMemberSpace = async (
+  spaceSlug: string
+): Promise<{ space: Space | null; isMember: boolean }> => {
   const user = await getUser();
   const userId = user?.id;
   if (!userId) throw new Error("User ID is required");
@@ -231,41 +242,47 @@ export const getUserMemberSpace = async (spaceSlug: string): Promise<{ space: Sp
     .eq("user_id", userId)
     .single();
 
-  if (memberError && memberError.code !== "PGRST116") throw new Error(memberError.message);
+  if (memberError && memberError.code !== "PGRST116")
+    throw new Error(memberError.message);
 
   return { space: spaceData, isMember: memberData !== null };
-}
+};
 
 export const getSpaceTracks = async (spaceId: string) => {
   const { data, error } = await supabase
-    .from('tracks')
-    .select('*')
-    .eq('space_id', spaceId);
+    .from("tracks")
+    .select("*")
+    .eq("space_id", spaceId);
   if (error) throw new Error(error.message);
   return data || [];
 };
 
-export const getSpaceAndTracks = async (spaceSlug: string): Promise<{
+export const getSpaceAndTracks = async (
+  spaceSlug: string
+): Promise<{
   space: Space | null;
   tracks: Track[] | [];
   space_member: SpaceMember | null;
+  tags: Tag[] | [];
 }> => {
   const user = await getUser();
   const userId = user?.id;
   if (!userId) throw new Error("User ID is required");
 
   const { data: spaceData, error: spaceError } = await supabase
-    .from('spaces')
-    .select('*')
-    .eq('slug', spaceSlug)
+    .from("spaces")
+    .select("*")
+    .eq("slug", spaceSlug)
     .single();
 
   if (spaceError) {
-    if (spaceError.code === "PGRST116") return { space: null, tracks: [], space_member: null }; // Not found
+    if (spaceError.code === "PGRST116")
+      return { space: null, tracks: [], space_member: null, tags: [] }; // Not found
     throw new Error(spaceError.message);
   }
 
   const tracks = await getSpaceTracks(spaceData.id);
+  const tags = await getTags(spaceData.id);
 
   // Get space member info
   const { data: memberData, error: memberError } = await supabase
@@ -275,14 +292,16 @@ export const getSpaceAndTracks = async (spaceSlug: string): Promise<{
     .eq("user_id", userId)
     .single();
 
-  if (memberError && memberError.code !== "PGRST116") throw new Error(memberError.message);
+  if (memberError && memberError.code !== "PGRST116")
+    throw new Error(memberError.message);
 
   return {
     space: spaceData,
     tracks,
-    space_member: memberData
+    space_member: memberData,
+    tags,
   };
-}
+};
 
 /**
  * Fetches all members of a space with their details.
@@ -292,10 +311,14 @@ export const getSpaceAndTracks = async (spaceSlug: string): Promise<{
  * @throws {Error} If the query fails
  * @returns {Promise<Array>} A promise that resolves to an array of space members with their details
  */
-export const getSpaceMembersWithProfiles = async (spaceSlug: string): Promise<{
-  member: SpaceMember;
-  profile: Profile;
-}[]> => {
+export const getSpaceMembersWithProfiles = async (
+  spaceSlug: string
+): Promise<
+  {
+    member: SpaceMember;
+    profile: Profile;
+  }[]
+> => {
   // First get the space ID from the slug
   const { data: space, error: spaceError } = await supabase
     .from("spaces")
@@ -333,8 +356,8 @@ export const getSpaceMembersWithProfiles = async (spaceSlug: string): Promise<{
     const profile = profiles?.find((p) => p.id === member.user_id);
     return {
       member,
-      profile
-    }
+      profile,
+    };
   });
 };
 
@@ -345,12 +368,14 @@ export async function getActiveSession(userId?: string) {
 
   const { data, error } = await supabase
     .from("sessions")
-    .select(`
+    .select(
+      `
       *,
       space_member:space_members!inner(*),
       track:tracks!inner(*)
-    `)
-    .eq('space_members.user_id', currentUserId)
+    `
+    )
+    .eq("space_members.user_id", currentUserId)
     .is("ended_at", null)
     .maybeSingle();
 
@@ -358,7 +383,9 @@ export async function getActiveSession(userId?: string) {
   return data;
 }
 
-export async function getClosedSessions(spaceId: string) {
+export async function getClosedSessions(
+  spaceId: string
+): Promise<ClosedSession[]> {
   const user = await getUser();
   const userId = user?.id;
   if (!userId) throw new Error("User ID is required");
@@ -366,26 +393,31 @@ export async function getClosedSessions(spaceId: string) {
   // First get all sessions with space members
   const { data: sessions, error: sessionsError } = await supabase
     .from("sessions")
-    .select(`
+    .select(
+      `
       *,
       track:tracks!inner(*),
       space_member:space_members!inner(*),
       tags:session_tags(
         tag:tags(*)
       )
-    `)
-    .eq('tracks.space_id', spaceId)
-    .not('ended_at', 'is', null)
-    .order('ended_at', { ascending: false });
+    `
+    )
+    .eq("tracks.space_id", spaceId)
+    .not("ended_at", "is", null)
+    .order("ended_at", { ascending: false });
 
   if (sessionsError) throw new Error(sessionsError.message);
   if (!sessions) return [];
 
   // Get unique user IDs from space members
-  const uniqueUserIds = [...new Set(sessions
-    .map(session => session.space_member?.user_id)
-    .filter((id): id is string => id !== null)
-  )];
+  const uniqueUserIds = [
+    ...new Set(
+      sessions
+        .map((session) => session.space_member?.user_id)
+        .filter((id): id is string => id !== null)
+    ),
+  ];
 
   // Fetch profiles for all unique users
   const { data: profiles, error: profilesError } = await supabase
@@ -397,17 +429,21 @@ export async function getClosedSessions(spaceId: string) {
 
   // Create a map of user IDs to profiles for quick lookup
   const profileMap = new Map(
-    (profiles || []).map(profile => [profile.id, profile])
+    (profiles || []).map((profile) => [profile.id, profile])
   );
 
   // Combine the data
-  return sessions.map(session => ({
+  return sessions.map((session) => ({
     ...session,
-    space_member: session.space_member ? {
-      ...session.space_member,
-      profile: session.space_member.user_id ? profileMap.get(session.space_member.user_id) : null
-    } : null
-  }));
+    space_member: session.space_member
+      ? {
+          ...session.space_member,
+          profile: session.space_member.user_id
+            ? profileMap.get(session.space_member.user_id)
+            : null,
+        }
+      : null,
+  })) as unknown as ClosedSession[];
 }
 
 export async function getTrackSessionStats(trackIds: string[]) {
@@ -418,58 +454,72 @@ export async function getTrackSessionStats(trackIds: string[]) {
   if (error) throw new Error(error.message);
 
   // Calculate both counts and durations per track
-  const stats = trackIds.reduce((acc, trackId) => {
-    const trackSessions = data?.filter(session => session.track_id === trackId) || [];
+  const stats = trackIds.reduce(
+    (acc, trackId) => {
+      const trackSessions =
+        data?.filter((session) => session.track_id === trackId) || [];
 
-    // Calculate count
-    acc.counts[trackId] = trackSessions.length;
+      // Calculate count
+      acc.counts[trackId] = trackSessions.length;
 
-    // Calculate duration (only for completed sessions)
-    const totalDuration = trackSessions
-      .filter(session => session.ended_at)
-      .reduce((total, session) => {
-        const start = new Date(session.started_at).getTime();
-        const end = new Date(session.ended_at!).getTime();
-        return total + (end - start);
-      }, 0);
-    acc.durations[trackId] = totalDuration;
+      // Calculate duration (only for completed sessions)
+      const totalDuration = trackSessions
+        .filter((session) => session.ended_at)
+        .reduce((total, session) => {
+          const start = new Date(session.started_at).getTime();
+          const end = new Date(session.ended_at!).getTime();
+          return total + (end - start);
+        }, 0);
+      acc.durations[trackId] = totalDuration;
 
-    return acc;
-  }, { counts: {}, durations: {} } as { counts: Record<string, number>, durations: Record<string, number> });
+      return acc;
+    },
+    { counts: {}, durations: {} } as {
+      counts: Record<string, number>;
+      durations: Record<string, number>;
+    }
+  );
 
   return stats;
 }
 
 export async function getTags(spaceId: string) {
   const { data, error } = await supabase
-    .from('tags')
-    .select('*')
-    .eq('space_id', spaceId)
-    .order('name')
+    .from("tags")
+    .select("*")
+    .eq("space_id", spaceId)
+    .order("name");
 
-  if (error) throw error
-  return data as Tag[]
+  if (error) throw error;
+  return data || [];
 }
 
-export async function getSpaceActiveSessions(spaceId: string) {
+export async function getSpaceActiveSessions(
+  spaceId: string
+): Promise<ActiveSession[]> {
   const { data, error } = await supabase
     .from("sessions")
-    .select(`
+    .select(
+      `
       *,
       space_member:space_members!inner(*),
       track:tracks!inner(*)
-    `)
-    .eq('tracks.space_id', spaceId)
+    `
+    )
+    .eq("tracks.space_id", spaceId)
     .is("ended_at", null);
 
   if (error) throw new Error(error.message);
   if (!data) return [];
 
   // Get unique user IDs from space members
-  const uniqueUserIds = [...new Set(data
-    .map(session => session.space_member?.user_id)
-    .filter((id): id is string => id !== null)
-  )];
+  const uniqueUserIds = [
+    ...new Set(
+      data
+        .map((session) => session.space_member?.user_id)
+        .filter((id): id is string => id !== null)
+    ),
+  ];
 
   // Fetch profiles for all unique users
   const { data: profiles, error: profilesError } = await supabase
@@ -481,17 +531,21 @@ export async function getSpaceActiveSessions(spaceId: string) {
 
   // Create a map of user IDs to profiles for quick lookup
   const profileMap = new Map(
-    (profiles || []).map(profile => [profile.id, profile])
+    (profiles || []).map((profile) => [profile.id, profile])
   );
 
   // Combine the data
-  return data.map(session => ({
+  return data.map((session) => ({
     ...session,
-    space_member: session.space_member ? {
-      ...session.space_member,
-      profile: session.space_member.user_id ? profileMap.get(session.space_member.user_id) : null
-    } : null
-  }));
+    space_member: session.space_member
+      ? {
+          ...session.space_member,
+          profile: session.space_member.user_id
+            ? profileMap.get(session.space_member.user_id)
+            : null,
+        }
+      : null,
+  })) as unknown as ActiveSession[];
 }
 
 /**
@@ -514,9 +568,9 @@ export async function getCurrentMemberStatus() {
   if (!userId) throw new Error("User ID is required");
 
   const { data, error } = await supabase
-    .from('space_members')
-    .select('status, location')
-    .eq('user_id', userId)
+    .from("space_members")
+    .select("status, location")
+    .eq("user_id", userId)
     .single();
 
   if (error) {

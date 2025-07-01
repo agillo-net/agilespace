@@ -11,6 +11,7 @@ import { updateMemberStatus } from "@/lib/supabase/mutations";
 import { getCurrentMemberStatus } from "@/lib/supabase/queries";
 import { notifyStatusUpdate, type StatusUpdate } from "@/lib/notifications/utils";
 import { useAuth } from "@/hooks/api/use-auth";
+import { cn } from "@/lib/utils";
 
 interface StatusEditorProps {
     initialStatus: string;
@@ -140,9 +141,9 @@ export function StatusEditor({ initialStatus, initialLocation, slug }: StatusEdi
                     name="location"
                     render={({ field }) => (
                         <FormItem
-                            style={{
-                                display: form.watch("status") === "online" ? "block" : "none",
-                            }}
+                            className={cn(
+                                form.watch("status") === "online" ? "grid" : "hidden"
+                            )}
                         >
                             <FormLabel>Location</FormLabel>
                             <FormControl>

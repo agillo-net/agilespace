@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { getSpaceAndTracks } from '@/lib/supabase/queries'
-import type { GitHubIssue, Track } from '@/types'
+import type { Track } from '@/types'
 import { TracksListSkeleton } from '@/components/skeleton/tracks-list-skeleton'
 import { SearchForm } from '@/components/search-form'
 import { useTracks } from '@/hooks/api/use-tracks'

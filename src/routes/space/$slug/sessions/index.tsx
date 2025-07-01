@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { getSpaceAndTracks } from '@/lib/supabase/queries'
-import type { GitHubIssue, Tag } from '@/types'
+import type { GitHubIssue } from '@/types'
 import { EndSessionDialog } from '@/components/end-session-dialog'
 import { DiscardSessionDialog } from '@/components/discard-session-dialog'
 import { SearchForm } from '@/components/search-form'
@@ -59,7 +59,6 @@ function SessionsPage() {
         handleStartSession,
         getTrackForIssue,
         getTotalDuration,
-        isCurrentSessionTrack,
         startSessionMutation,
         createTrackAndStartSessionMutation
     } = useSessions(slug)

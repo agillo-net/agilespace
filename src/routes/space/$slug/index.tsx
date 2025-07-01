@@ -1,29 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Activity, Users, Calendar, Tag, Edit2, Check, X, ChevronDown } from 'lucide-react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getSpaceAndTracks, getActiveSession, getClosedSessions, getTrackSessionStats, getSpaceActiveSessions, getCurrentMemberStatus } from '@/lib/supabase/queries'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from 'recharts'
-import React from 'react'
-import { updateMemberStatus } from '@/lib/supabase/mutations'
+import { ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-import { useForm } from 'react-hook-form'
-import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Label } from '@/components/ui/label'
-import { notifyStatusUpdate, type StatusUpdate } from '@/lib/notifications/utils'
-import { useAuth } from '@/hooks/api/use-auth'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { getGitHubIssueUrl } from '@/lib/utils'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import { StatusEditor } from '@/components/status-editor'
 import { DashboardStats } from '@/components/dashboard-stats'

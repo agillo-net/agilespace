@@ -4,6 +4,7 @@ import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar'
+import { getTextColorForBackground } from "@/lib/utils"
 
 interface SearchResultsListProps {
     searchResults: GitHubIssue[]
@@ -38,15 +39,6 @@ export function SearchResultsList({
     const handleIssueClick = (issue: GitHubIssue) => {
         setSelectedIssue(issue)
         setIssueDialogOpen(true)
-    }
-
-    const getTextColorForBackground = (hexColor: string | null | undefined) => {
-        if (!hexColor) return 'black'
-        const r = parseInt(hexColor.substr(0, 2), 16)
-        const g = parseInt(hexColor.substr(2, 2), 16)
-        const b = parseInt(hexColor.substr(4, 2), 16)
-        const yiq = (r * 299 + g * 587 + b * 114) / 1000
-        return yiq >= 128 ? 'black' : 'white'
     }
 
     return (

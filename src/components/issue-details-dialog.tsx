@@ -9,6 +9,7 @@ import type { GitHubIssue } from "@/types"
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar"
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { getTextColorForBackground } from "@/lib/utils"
 
 interface IssueDetailsDialogProps {
     issue: GitHubIssue | null
@@ -18,15 +19,6 @@ interface IssueDetailsDialogProps {
 
 export function IssueDetailsDialog({ issue, isOpen, onOpenChange }: IssueDetailsDialogProps) {
     if (!issue) return null
-
-    const getTextColorForBackground = (hexColor: string | null | undefined) => {
-        if (!hexColor) return 'black'
-        const r = parseInt(hexColor.substr(0, 2), 16)
-        const g = parseInt(hexColor.substr(2, 2), 16)
-        const b = parseInt(hexColor.substr(4, 2), 16)
-        const yiq = (r * 299 + g * 587 + b * 114) / 1000
-        return yiq >= 128 ? 'black' : 'white'
-    }
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>

@@ -12,7 +12,7 @@ import {
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/api/use-auth";
 import { LayoutDashboard, ListMusic, Calendar, Users, Tags } from 'lucide-react'
 import { Link, useRouter } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";

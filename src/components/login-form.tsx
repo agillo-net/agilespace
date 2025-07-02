@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/api/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,

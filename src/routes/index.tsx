@@ -1,10 +1,9 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
-  component: RouteComponent,
+  beforeLoad: () => {
+    throw redirect({
+      to: "/spaces",
+    });
+  },
 });
-
-function RouteComponent() {
-  const navigate = useNavigate();
-  return navigate({ to: "/spaces" });
-}

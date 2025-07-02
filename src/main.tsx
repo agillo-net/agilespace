@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { AuthProvider } from "@/hooks/use-auth";
+import { AuthProvider } from "@/hooks/api/use-auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./index.css";
 
@@ -8,6 +8,7 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
+import { SidebarProvider } from "./components/ui/sidebar";
 
 // Create a new router instance
 const router = createRouter({ routeTree });
@@ -25,7 +26,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <RouterProvider router={router} />
+        <SidebarProvider>
+          <RouterProvider router={router} />
+        </SidebarProvider>
       </AuthProvider>
     </QueryClientProvider>
   </StrictMode>

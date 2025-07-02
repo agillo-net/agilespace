@@ -1,7 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
-import { getSpaceAndTracks, getTags } from '@/lib/supabase/queries'
-import type { Tag } from '@/types'
+import { getSpaceAndTracks } from '@/lib/supabase/queries'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -32,9 +30,8 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Pencil, Trash2, Plus } from 'lucide-react'
-import { createTag, deleteTag, updateTag } from '@/lib/supabase/mutations'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { TagsListSkeleton } from '@/components/skeleton/tags-list-skeleton'
+import { useTags } from '@/hooks/api/use-tags'
 
 export const Route = createFileRoute('/space/$slug/tags/')({
     component: TagsPage,
@@ -45,67 +42,26 @@ export const Route = createFileRoute('/space/$slug/tags/')({
 
 function TagsPage() {
     const { space } = Route.useLoaderData()
-    const queryClient = useQueryClient()
-    const [newTagName, setNewTagName] = useState('')
-    const [newTagColor, setNewTagColor] = useState('#000000')
-    const [editingTag, setEditingTag] = useState<Tag | null>(null)
-    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-    const [editingTagId, setEditingTagId] = useState<string | null>(null)
-
-    // Query for fetching tags
-    const { data: tags = [], isLoading, error } = useQuery({
-        queryKey: ['tags', space?.id],
-        queryFn: () => getTags(space!.id),
-        enabled: !!space,
-    })
-
-    // Create tag mutation
-    const createTagMutation = useMutation({
-        mutationFn: () => createTag(space!.id, newTagName, newTagColor),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['tags', space?.id] })
-            setNewTagName('')
-            setNewTagColor('#000000')
-            setIsCreateDialogOpen(false)
-        },
-    })
-
-    // Update tag mutation
-    const updateTagMutation = useMutation({
-        mutationFn: ({ id, updates }: { id: string; updates: Partial<Tag> }) =>
-            updateTag(id, updates),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['tags', space?.id] })
-            setEditingTag(null)
-            setEditingTagId(null)
-            setIsCreateDialogOpen(false)
-        },
-    })
-
-    // Delete tag mutation
-    const deleteTagMutation = useMutation({
-        mutationFn: (id: string) => deleteTag(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['tags', space?.id] })
-        },
-    })
-
-    // Create new tag
-    const handleCreateTag = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!space || !newTagName.trim()) return
-        createTagMutation.mutate()
-    }
-
-    // Update tag
-    const handleUpdateTag = async (id: string, updates: Partial<Tag>) => {
-        updateTagMutation.mutate({ id, updates })
-    }
-
-    // Delete tag
-    const handleDeleteTag = async (id: string) => {
-        deleteTagMutation.mutate(id)
-    }
+    const {
+        tags,
+        isLoading,
+        error,
+        newTagName,
+        setNewTagName,
+        newTagColor,
+        setNewTagColor,
+        editingTag,
+        setEditingTag,
+        isCreateDialogOpen,
+        setIsCreateDialogOpen,
+        editingTagId,
+        setEditingTagId,
+        createTagMutation,
+        updateTagMutation,
+        deleteTagMutation,
+        handleCreateTag,
+        handleUpdateTag,
+    } = useTags(space?.id)
 
     if (!space) {
         return (
@@ -249,11 +205,9 @@ function TagsPage() {
                                                                 id="editTagName"
                                                                 value={editingTag.name}
                                                                 onChange={(e) =>
-                                                                    setEditingTag({
-                                                                        ...editingTag,
-                                                                        name: e.target.value,
-                                                                    })
+                                                                    setEditingTag({ ...editingTag, name: e.target.value })
                                                                 }
+                                                                placeholder="Enter tag name"
                                                             />
                                                         </div>
                                                         <div className="space-y-2">
@@ -263,21 +217,11 @@ function TagsPage() {
                                                                 id="editTagColor"
                                                                 value={editingTag.color || '#000000'}
                                                                 onChange={(e) =>
-                                                                    setEditingTag({
-                                                                        ...editingTag,
-                                                                        color: e.target.value,
-                                                                    })
+                                                                    setEditingTag({ ...editingTag, color: e.target.value })
                                                                 }
                                                                 className="h-10 w-full"
                                                             />
                                                         </div>
-                                                        {updateTagMutation.isError && (
-                                                            <div className="text-sm text-red-500">
-                                                                {updateTagMutation.error instanceof Error
-                                                                    ? updateTagMutation.error.message
-                                                                    : 'Failed to update tag'}
-                                                            </div>
-                                                        )}
                                                         <Button
                                                             type="submit"
                                                             className="w-full"
@@ -299,18 +243,13 @@ function TagsPage() {
                                                 <AlertDialogHeader>
                                                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                                     <AlertDialogDescription>
-                                                        This action cannot be undone. This will permanently delete the
-                                                        tag.
+                                                        This action cannot be undone. This will permanently delete the tag.
                                                     </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction
-                                                        onClick={() => handleDeleteTag(tag.id)}
-                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                        disabled={deleteTagMutation.isPending}
-                                                    >
-                                                        {deleteTagMutation.isPending ? 'Deleting...' : 'Delete'}
+                                                    <AlertDialogAction onClick={() => deleteTagMutation.mutate(tag.id)}>
+                                                        Delete
                                                     </AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>

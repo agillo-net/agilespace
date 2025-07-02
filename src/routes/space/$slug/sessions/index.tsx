@@ -1,6 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { getSpaceAndTracks } from '@/lib/supabase/queries'
-import type { GitHubIssue } from '@/types'
 import { EndSessionDialog } from '@/components/end-session-dialog'
 import { DiscardSessionDialog } from '@/components/discard-session-dialog'
 import { SearchForm } from '@/components/search-form'
@@ -14,7 +13,7 @@ import React from 'react'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { useAuth } from '@/hooks/api/use-auth'
 import { useSessions } from '@/hooks/api/use-sessions'
-import { Button } from '@/components/ui/button'
+import { SearchResultsList } from '@/components/search-results-list'
 
 export const Route = createFileRoute('/space/$slug/sessions/')({
     component: SessionsPage,
@@ -59,8 +58,8 @@ function SessionsPage() {
         handleStartSession,
         getTrackForIssue,
         getTotalDuration,
-        startSessionMutation,
-        createTrackAndStartSessionMutation
+        isCurrentSessionTrack,
+        startSessionMutation
     } = useSessions(slug)
 
     const filteredAndSortedSessions = React.useMemo(() => {
@@ -161,45 +160,19 @@ function SessionsPage() {
 
             {/* Search Results */}
             {searchResults && searchResults.length > 0 && (
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold mb-4">Search Results</h2>
-                    <div className="space-y-4">
-                        {searchResults.map((issue: GitHubIssue) => {
-                            const track = getTrackForIssue(issue)
-                            return (
-                                <div key={issue.id} className="flex items-center justify-between p-4 border rounded-lg gap-4">
-                                    <div>
-                                        <h3 className="font-medium">{issue.title}</h3>
-                                        <p className="text-sm text-gray-500">
-                                            {issue.repository.name} #{issue.number}
-                                        </p>
-                                    </div>
-                                    {track ? (
-                                        <div className="flex items-center gap-4">
-                                            <div className="text-right">
-                                                <p className="text-sm font-semibold">{getSessionCount(track.id)} Sessions</p>
-                                                <p className="text-sm text-gray-500">Total time: {getTotalDuration(track.id)}</p>
-                                            </div>
-                                            <Button
-                                                onClick={() => handleStartSession(track.id)}
-                                                disabled={!!activeSession || startSessionMutation.isPending}
-                                            >
-                                                Start New Session
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <Button
-                                            onClick={() => handleCreateTrackAndStartSession(issue)}
-                                            disabled={!!activeSession || createTrackAndStartSessionMutation.isPending}
-                                        >
-                                            Start Session
-                                        </Button>
-                                    )}
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
+                <SearchResultsList
+                    searchResults={searchResults}
+                    getTrackForIssue={getTrackForIssue}
+                    handleCreateTrack={handleCreateTrackAndStartSession}
+                    handleStartSession={handleStartSession}
+                    activeSession={activeSession}
+                    startSessionMutation={startSessionMutation}
+                    endSessionMutation={endSessionMutation}
+                    setShowEndSessionDialog={setShowEndSessionDialog}
+                    isCurrentSessionTrack={isCurrentSessionTrack}
+                    getSessionCount={getSessionCount}
+                    getTotalDuration={getTotalDuration}
+                />
             )}
 
             {/* Closed Sessions */}

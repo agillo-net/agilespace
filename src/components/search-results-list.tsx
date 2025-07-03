@@ -6,14 +6,26 @@ import remarkGfm from 'remark-gfm'
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar'
 import { getTextColorForBackground } from "@/lib/utils"
 
+import type { Track, ActiveSession, Tag } from '@/types'
+import type { UseMutationResult } from '@tanstack/react-query'
+
 interface SearchResultsListProps {
     searchResults: GitHubIssue[]
-    getTrackForIssue: (issue: GitHubIssue) => any
+    getTrackForIssue: (issue: GitHubIssue) => Track | null
     handleCreateTrack: (issue: GitHubIssue) => void
     handleStartSession: (trackId: string) => void
-    activeSession: any
-    startSessionMutation: any
-    endSessionMutation: any
+    activeSession: ActiveSession | null
+    startSessionMutation: UseMutationResult<unknown, unknown, string>
+    endSessionMutation: UseMutationResult<
+        unknown,
+        unknown,
+        {
+            sessionId: string
+            message: string
+            skipSummary: boolean
+            selectedTags: Tag[]
+        }
+    >
     setShowEndSessionDialog: (show: boolean) => void
     isCurrentSessionTrack: (trackId: string) => boolean
     getSessionCount: (trackId: string) => number

@@ -21,7 +21,7 @@ export function useSpaceMembers(slug: string) {
           try {
             if (!member.user_id) return null;
             return await getActiveSession(member.user_id);
-          } catch (error) {
+          } catch {
             // It's better to return null and filter later than to throw
             return null;
           }

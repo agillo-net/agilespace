@@ -13,7 +13,9 @@ import { DashboardStats } from '@/components/dashboard-stats'
 import { SessionActivityChart } from '@/components/session-activity-chart'
 import { TrackStatsChart } from '@/components/track-stats-chart'
 import { ActiveSessionsList } from '@/components/active-sessions-list'
+import { MemberStatusCard } from '@/components/member-status-card'
 import { useSpaceDashboard } from '@/hooks/api/use-space-dashboard'
+import { useSpaceMembers } from '@/hooks/api/use-space-members'
 
 export const Route = createFileRoute('/space/$slug/')({
   component: SpaceHome,
@@ -26,6 +28,7 @@ function SpaceHome() {
   const [openSections, setOpenSections] = useLocalStorage('space-sections', {
     stats: true,
     activeSessions: true,
+    members: true,
     sessionActivity: true,
     trackStats: true
   })
@@ -41,6 +44,12 @@ function SpaceHome() {
     sessionActivityData,
     trackStatsData,
   } = useSpaceDashboard(slug);
+
+  const {
+    members,
+    activeSessions: memberActiveSessions,
+    dailyDurations,
+  } = useSpaceMembers(slug);
 
   return (
     <div className='space-y-6'>
@@ -97,6 +106,25 @@ function SpaceHome() {
           </div>
           <CollapsibleContent>
             <ActiveSessionsList sessions={spaceActiveSessions || []} />
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Members Widget */}
+        <Collapsible
+          open={openSections.members}
+          onOpenChange={(open) => setOpenSections(prev => ({ ...prev, members: open }))}
+          className="space-y-2"
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Members</h3>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-8 h-8 p-0">
+                <ChevronDown className={cn("h-4 w-4 transition-transform", openSections.members && "rotate-180")} />
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent>
+            <MemberStatusCard members={members} activeSessions={memberActiveSessions} dailyDurations={dailyDurations} />
           </CollapsibleContent>
         </Collapsible>
       </div>

@@ -1,8 +1,6 @@
 import type { GitHubIssue } from '@/types'
 import { IssueDetailsDialog } from './issue-details-dialog'
 import { useState } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar'
 import { getTextColorForBackground } from "@/lib/utils"
 
@@ -58,16 +56,6 @@ export function SearchResultsList({
                                 <p className="text-sm text-gray-500 mb-2">
                                     {issue.repository.name} #{issue.number}
                                 </p>
-
-                                {issue.body && (
-                                    <div
-                                        className="text-sm text-gray-600 mt-2 truncate prose dark:prose-invert"
-                                    >
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                            {issue.body}
-                                        </ReactMarkdown>
-                                    </div>
-                                )}
 
                                 <div className="flex flex-wrap gap-2 mt-2">
                                     {issue.labels?.map(

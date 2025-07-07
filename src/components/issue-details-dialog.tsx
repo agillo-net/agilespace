@@ -7,8 +7,6 @@ import {
 } from "@/components/ui/dialog"
 import type { GitHubIssue } from "@/types"
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar"
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { getTextColorForBackground } from "@/lib/utils"
 
 interface IssueDetailsDialogProps {
@@ -102,9 +100,7 @@ export function IssueDetailsDialog({ issue, isOpen, onOpenChange }: IssueDetails
                     </div>
                 )}
 
-                <div className="prose dark:prose-invert max-w-none mt-4 overflow-y-auto max-h-[60vh]">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{issue.body || ''}</ReactMarkdown>
-                </div>
+
             </DialogContent>
         </Dialog>
     )

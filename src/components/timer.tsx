@@ -22,6 +22,7 @@ export function Timer() {
     const [endSessionMessage, setEndSessionMessage] = useLocalStorage('end-session-message', "")
 
     const timerRef = useRef<NodeJS.Timeout>(null)
+    const startTimeRef = useRef<number | null>(null)
     const queryClient = useQueryClient()
     const { slug } = useParams({ from: "/space/$slug" })
 
@@ -107,21 +108,25 @@ export function Timer() {
     // Initialize timer state from active session
     React.useEffect(() => {
         if (activeSession) {
-            setIsRunning(true)
             const startTime = new Date(activeSession.started_at).getTime()
-            const now = new Date().getTime()
-            const elapsedSeconds = Math.floor((now - startTime) / 1000)
-            setTime(elapsedSeconds)
+            startTimeRef.current = startTime
+
+            setIsRunning(true)
+            setTime(Math.floor((Date.now() - startTime) / 1000))
         } else {
             setIsRunning(false)
             setTime(0)
+            startTimeRef.current = null
         }
     }, [activeSession])
 
     React.useEffect(() => {
         if (isRunning) {
             timerRef.current = setInterval(() => {
-                setTime((prevTime) => prevTime + 1)
+                if (startTimeRef.current !== null) {
+                    const now = Date.now()
+                    setTime(Math.floor((now - startTimeRef.current) / 1000))
+                }
             }, 1000)
         } else {
             if (timerRef.current) {

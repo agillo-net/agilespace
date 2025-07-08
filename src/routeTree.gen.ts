@@ -8,166 +8,62 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-// Import Routes
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as SpacesRouteRouteImport } from './routes/spaces/route'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as SpaceSlugRouteRouteImport } from './routes/space/$slug/route'
+import { Route as SpaceSlugIndexRouteImport } from './routes/space/$slug/index'
+import { Route as SpaceSlugTracksIndexRouteImport } from './routes/space/$slug/tracks/index'
+import { Route as SpaceSlugTagsIndexRouteImport } from './routes/space/$slug/tags/index'
+import { Route as SpaceSlugSessionsIndexRouteImport } from './routes/space/$slug/sessions/index'
+import { Route as SpaceSlugMembersIndexRouteImport } from './routes/space/$slug/members/index'
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as LoginImport } from './routes/login'
-import { Route as SpacesRouteImport } from './routes/spaces/route'
-import { Route as IndexImport } from './routes/index'
-import { Route as SpaceSlugRouteImport } from './routes/space/$slug/route'
-import { Route as SpaceSlugIndexImport } from './routes/space/$slug/index'
-import { Route as SpaceSlugTracksIndexImport } from './routes/space/$slug/tracks/index'
-import { Route as SpaceSlugTagsIndexImport } from './routes/space/$slug/tags/index'
-import { Route as SpaceSlugSessionsIndexImport } from './routes/space/$slug/sessions/index'
-import { Route as SpaceSlugMembersIndexImport } from './routes/space/$slug/members/index'
-
-// Create/Update Routes
-
-const LoginRoute = LoginImport.update({
+const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const SpacesRouteRoute = SpacesRouteImport.update({
+const SpacesRouteRoute = SpacesRouteRouteImport.update({
   id: '/spaces',
   path: '/spaces',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const IndexRoute = IndexImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const SpaceSlugRouteRoute = SpaceSlugRouteImport.update({
+const SpaceSlugRouteRoute = SpaceSlugRouteRouteImport.update({
   id: '/space/$slug',
   path: '/space/$slug',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const SpaceSlugIndexRoute = SpaceSlugIndexImport.update({
+const SpaceSlugIndexRoute = SpaceSlugIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => SpaceSlugRouteRoute,
 } as any)
-
-const SpaceSlugTracksIndexRoute = SpaceSlugTracksIndexImport.update({
+const SpaceSlugTracksIndexRoute = SpaceSlugTracksIndexRouteImport.update({
   id: '/tracks/',
   path: '/tracks/',
   getParentRoute: () => SpaceSlugRouteRoute,
 } as any)
-
-const SpaceSlugTagsIndexRoute = SpaceSlugTagsIndexImport.update({
+const SpaceSlugTagsIndexRoute = SpaceSlugTagsIndexRouteImport.update({
   id: '/tags/',
   path: '/tags/',
   getParentRoute: () => SpaceSlugRouteRoute,
 } as any)
-
-const SpaceSlugSessionsIndexRoute = SpaceSlugSessionsIndexImport.update({
+const SpaceSlugSessionsIndexRoute = SpaceSlugSessionsIndexRouteImport.update({
   id: '/sessions/',
   path: '/sessions/',
   getParentRoute: () => SpaceSlugRouteRoute,
 } as any)
-
-const SpaceSlugMembersIndexRoute = SpaceSlugMembersIndexImport.update({
+const SpaceSlugMembersIndexRoute = SpaceSlugMembersIndexRouteImport.update({
   id: '/members/',
   path: '/members/',
   getParentRoute: () => SpaceSlugRouteRoute,
 } as any)
-
-// Populate the FileRoutesByPath interface
-
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexImport
-      parentRoute: typeof rootRoute
-    }
-    '/spaces': {
-      id: '/spaces'
-      path: '/spaces'
-      fullPath: '/spaces'
-      preLoaderRoute: typeof SpacesRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginImport
-      parentRoute: typeof rootRoute
-    }
-    '/space/$slug': {
-      id: '/space/$slug'
-      path: '/space/$slug'
-      fullPath: '/space/$slug'
-      preLoaderRoute: typeof SpaceSlugRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/space/$slug/': {
-      id: '/space/$slug/'
-      path: '/'
-      fullPath: '/space/$slug/'
-      preLoaderRoute: typeof SpaceSlugIndexImport
-      parentRoute: typeof SpaceSlugRouteImport
-    }
-    '/space/$slug/members/': {
-      id: '/space/$slug/members/'
-      path: '/members'
-      fullPath: '/space/$slug/members'
-      preLoaderRoute: typeof SpaceSlugMembersIndexImport
-      parentRoute: typeof SpaceSlugRouteImport
-    }
-    '/space/$slug/sessions/': {
-      id: '/space/$slug/sessions/'
-      path: '/sessions'
-      fullPath: '/space/$slug/sessions'
-      preLoaderRoute: typeof SpaceSlugSessionsIndexImport
-      parentRoute: typeof SpaceSlugRouteImport
-    }
-    '/space/$slug/tags/': {
-      id: '/space/$slug/tags/'
-      path: '/tags'
-      fullPath: '/space/$slug/tags'
-      preLoaderRoute: typeof SpaceSlugTagsIndexImport
-      parentRoute: typeof SpaceSlugRouteImport
-    }
-    '/space/$slug/tracks/': {
-      id: '/space/$slug/tracks/'
-      path: '/tracks'
-      fullPath: '/space/$slug/tracks'
-      preLoaderRoute: typeof SpaceSlugTracksIndexImport
-      parentRoute: typeof SpaceSlugRouteImport
-    }
-  }
-}
-
-// Create and export the route tree
-
-interface SpaceSlugRouteRouteChildren {
-  SpaceSlugIndexRoute: typeof SpaceSlugIndexRoute
-  SpaceSlugMembersIndexRoute: typeof SpaceSlugMembersIndexRoute
-  SpaceSlugSessionsIndexRoute: typeof SpaceSlugSessionsIndexRoute
-  SpaceSlugTagsIndexRoute: typeof SpaceSlugTagsIndexRoute
-  SpaceSlugTracksIndexRoute: typeof SpaceSlugTracksIndexRoute
-}
-
-const SpaceSlugRouteRouteChildren: SpaceSlugRouteRouteChildren = {
-  SpaceSlugIndexRoute: SpaceSlugIndexRoute,
-  SpaceSlugMembersIndexRoute: SpaceSlugMembersIndexRoute,
-  SpaceSlugSessionsIndexRoute: SpaceSlugSessionsIndexRoute,
-  SpaceSlugTagsIndexRoute: SpaceSlugTagsIndexRoute,
-  SpaceSlugTracksIndexRoute: SpaceSlugTracksIndexRoute,
-}
-
-const SpaceSlugRouteRouteWithChildren = SpaceSlugRouteRoute._addFileChildren(
-  SpaceSlugRouteRouteChildren,
-)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -180,7 +76,6 @@ export interface FileRoutesByFullPath {
   '/space/$slug/tags': typeof SpaceSlugTagsIndexRoute
   '/space/$slug/tracks': typeof SpaceSlugTracksIndexRoute
 }
-
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/spaces': typeof SpacesRouteRoute
@@ -191,9 +86,8 @@ export interface FileRoutesByTo {
   '/space/$slug/tags': typeof SpaceSlugTagsIndexRoute
   '/space/$slug/tracks': typeof SpaceSlugTracksIndexRoute
 }
-
 export interface FileRoutesById {
-  __root__: typeof rootRoute
+  __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/spaces': typeof SpacesRouteRoute
   '/login': typeof LoginRoute
@@ -204,7 +98,6 @@ export interface FileRoutesById {
   '/space/$slug/tags/': typeof SpaceSlugTagsIndexRoute
   '/space/$slug/tracks/': typeof SpaceSlugTracksIndexRoute
 }
-
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
@@ -240,7 +133,6 @@ export interface FileRouteTypes {
     | '/space/$slug/tracks/'
   fileRoutesById: FileRoutesById
 }
-
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SpacesRouteRoute: typeof SpacesRouteRoute
@@ -248,68 +140,100 @@ export interface RootRouteChildren {
   SpaceSlugRouteRoute: typeof SpaceSlugRouteRouteWithChildren
 }
 
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/spaces': {
+      id: '/spaces'
+      path: '/spaces'
+      fullPath: '/spaces'
+      preLoaderRoute: typeof SpacesRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/space/$slug': {
+      id: '/space/$slug'
+      path: '/space/$slug'
+      fullPath: '/space/$slug'
+      preLoaderRoute: typeof SpaceSlugRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/space/$slug/': {
+      id: '/space/$slug/'
+      path: '/'
+      fullPath: '/space/$slug/'
+      preLoaderRoute: typeof SpaceSlugIndexRouteImport
+      parentRoute: typeof SpaceSlugRouteRoute
+    }
+    '/space/$slug/tracks/': {
+      id: '/space/$slug/tracks/'
+      path: '/tracks'
+      fullPath: '/space/$slug/tracks'
+      preLoaderRoute: typeof SpaceSlugTracksIndexRouteImport
+      parentRoute: typeof SpaceSlugRouteRoute
+    }
+    '/space/$slug/tags/': {
+      id: '/space/$slug/tags/'
+      path: '/tags'
+      fullPath: '/space/$slug/tags'
+      preLoaderRoute: typeof SpaceSlugTagsIndexRouteImport
+      parentRoute: typeof SpaceSlugRouteRoute
+    }
+    '/space/$slug/sessions/': {
+      id: '/space/$slug/sessions/'
+      path: '/sessions'
+      fullPath: '/space/$slug/sessions'
+      preLoaderRoute: typeof SpaceSlugSessionsIndexRouteImport
+      parentRoute: typeof SpaceSlugRouteRoute
+    }
+    '/space/$slug/members/': {
+      id: '/space/$slug/members/'
+      path: '/members'
+      fullPath: '/space/$slug/members'
+      preLoaderRoute: typeof SpaceSlugMembersIndexRouteImport
+      parentRoute: typeof SpaceSlugRouteRoute
+    }
+  }
+}
+
+interface SpaceSlugRouteRouteChildren {
+  SpaceSlugIndexRoute: typeof SpaceSlugIndexRoute
+  SpaceSlugMembersIndexRoute: typeof SpaceSlugMembersIndexRoute
+  SpaceSlugSessionsIndexRoute: typeof SpaceSlugSessionsIndexRoute
+  SpaceSlugTagsIndexRoute: typeof SpaceSlugTagsIndexRoute
+  SpaceSlugTracksIndexRoute: typeof SpaceSlugTracksIndexRoute
+}
+
+const SpaceSlugRouteRouteChildren: SpaceSlugRouteRouteChildren = {
+  SpaceSlugIndexRoute: SpaceSlugIndexRoute,
+  SpaceSlugMembersIndexRoute: SpaceSlugMembersIndexRoute,
+  SpaceSlugSessionsIndexRoute: SpaceSlugSessionsIndexRoute,
+  SpaceSlugTagsIndexRoute: SpaceSlugTagsIndexRoute,
+  SpaceSlugTracksIndexRoute: SpaceSlugTracksIndexRoute,
+}
+
+const SpaceSlugRouteRouteWithChildren = SpaceSlugRouteRoute._addFileChildren(
+  SpaceSlugRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SpacesRouteRoute: SpacesRouteRoute,
   LoginRoute: LoginRoute,
   SpaceSlugRouteRoute: SpaceSlugRouteRouteWithChildren,
 }
-
-export const routeTree = rootRoute
+export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-/* ROUTE_MANIFEST_START
-{
-  "routes": {
-    "__root__": {
-      "filePath": "__root.tsx",
-      "children": [
-        "/",
-        "/spaces",
-        "/login",
-        "/space/$slug"
-      ]
-    },
-    "/": {
-      "filePath": "index.tsx"
-    },
-    "/spaces": {
-      "filePath": "spaces/route.tsx"
-    },
-    "/login": {
-      "filePath": "login.tsx"
-    },
-    "/space/$slug": {
-      "filePath": "space/$slug/route.tsx",
-      "children": [
-        "/space/$slug/",
-        "/space/$slug/members/",
-        "/space/$slug/sessions/",
-        "/space/$slug/tags/",
-        "/space/$slug/tracks/"
-      ]
-    },
-    "/space/$slug/": {
-      "filePath": "space/$slug/index.tsx",
-      "parent": "/space/$slug"
-    },
-    "/space/$slug/members/": {
-      "filePath": "space/$slug/members/index.tsx",
-      "parent": "/space/$slug"
-    },
-    "/space/$slug/sessions/": {
-      "filePath": "space/$slug/sessions/index.tsx",
-      "parent": "/space/$slug"
-    },
-    "/space/$slug/tags/": {
-      "filePath": "space/$slug/tags/index.tsx",
-      "parent": "/space/$slug"
-    },
-    "/space/$slug/tracks/": {
-      "filePath": "space/$slug/tracks/index.tsx",
-      "parent": "/space/$slug"
-    }
-  }
-}
-ROUTE_MANIFEST_END */

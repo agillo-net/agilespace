@@ -92,7 +92,7 @@ export const getUserSpaces = async () => {
   if (error) throw new Error(error.message);
   // Flatten the organizations and include role
   return (
-    data?.map((row: any) => ({
+    data?.map((row: { space: Space; role: string }) => ({
       ...row.space,
       member_role: row.role,
     })) || []

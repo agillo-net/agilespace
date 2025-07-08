@@ -26,7 +26,11 @@ export async function getRepo(org: string, repo: string) {
   }
 }
 
-export async function searchIssues(orgs: string[] | string, query: string = '', options: {} = {}): Promise<GitHubIssue[]> {
+export async function searchIssues(
+  orgs: string[] | string,
+  query: string = '',
+  options: Record<string, unknown> = {}
+): Promise<GitHubIssue[]> {
   const octokit = await getOctokitClient();
   if (!octokit) throw new Error("Octokit client not initialized");
   if (!orgs || orgs.length === 0) {

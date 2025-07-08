@@ -9,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Search, Play, Plus, Github } from "lucide-react"
 import { useCommandPalette } from "@/hooks/api/use-command-palette"
-import { Command } from 'cmdk'
 import { cn } from "@/lib/utils"
 
 

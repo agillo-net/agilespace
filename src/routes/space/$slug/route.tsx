@@ -41,7 +41,6 @@ function SpaceLayout() {
         <SidebarInset>
           <div className='container mx-auto py-6 pt-16'>
             <div className="space-4 p-6 relative">
-              <Navbar />
               <Outlet />
             </div>
           </div>

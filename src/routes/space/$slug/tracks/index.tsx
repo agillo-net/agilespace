@@ -4,6 +4,7 @@ import type { Track } from '@/types'
 import { TracksListSkeleton } from '@/components/skeleton/tracks-list-skeleton'
 import { SearchForm } from '@/components/search-form'
 import { useTracks } from '@/hooks/api/use-tracks'
+import { useSessions } from '@/hooks/api/use-sessions'
 
 export const Route = createFileRoute('/space/$slug/tracks/')({
     component: TracksPage,
@@ -22,10 +23,11 @@ function TracksPage() {
         isSearching,
         searchError,
         tracks,
-        createTrackMutation,
         handleSearch,
         isTracked,
     } = useTracks(slug)
+    
+    const { createTrackAndStartSessionMutation } = useSessions(slug)
 
     if (isLoading) {
         return <TracksListSkeleton />
@@ -41,7 +43,7 @@ function TracksPage() {
                 onSearchQueryChange={setSearchQuery}
                 onSubmit={handleSearch}
                 isSearching={isSearching}
-                isDisabled={createTrackMutation.isPending}
+                isDisabled={createTrackAndStartSessionMutation.isPending}
                 error={searchError}
             />
 
@@ -68,11 +70,11 @@ function TracksPage() {
                                         </span>
                                     ) : (
                                         <button
-                                            onClick={() => createTrackMutation.mutate(issue)}
-                                            disabled={createTrackMutation.isPending}
+                                            onClick={() => createTrackAndStartSessionMutation.mutate(issue)}
+                                            disabled={createTrackAndStartSessionMutation.isPending}
                                             className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
                                         >
-                                            {createTrackMutation.isPending ? 'Creating...' : 'Track Issue'}
+                                            {createTrackAndStartSessionMutation.isPending ? 'Creating...' : 'Track Issue'}
                                         </button>
                                     )}
                                 </div>

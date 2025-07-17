@@ -1,6 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { getUser } from "./queries";
-import { notifySessionEvent } from "@/lib/notifications/utils";
 import type { Tag } from "@/types";
 import type { User } from "@supabase/supabase-js";
 
@@ -169,15 +168,7 @@ export async function createSession({
     );
   }
 
-  // 4. Get track details for notification
-  const { data: track, error: trackError } = await supabase
-    .from("tracks")
-    .select("title")
-    .eq("id", track_id)
-    .single();
-  if (trackError) throw new Error(trackError.message);
-
-  // 5. Create the new session
+  // 4. Create the new session
   const { data, error } = await supabase
     .from("sessions")
     .insert({
@@ -188,20 +179,6 @@ export async function createSession({
     .select()
     .single();
   if (error) throw new Error(error.message);
-
-  // 6. Send notification
-  try {
-    const user = await getUser();
-    if (user) {
-      await notifySessionEvent(user, {
-        type: 'start',
-        trackTitle: track.title,
-      });
-    }
-  } catch (notificationError) {
-    console.error('Failed to send session start notification:', notificationError);
-  }
-
   return data;
 }
 
@@ -211,15 +188,6 @@ export async function endSession(
   skip_summary?: boolean,
   ended_at: string = new Date().toISOString()
 ) {
-  // 1. Get session details for notification
-  const { data: session, error: sessionError } = await supabase
-    .from("sessions")
-    .select("started_at, tracks!inner(title)")
-    .eq("id", session_id)
-    .single();
-  if (sessionError) throw new Error(sessionError.message);
-
-  // 2. Update the session
   const { data, error } = await supabase
     .from("sessions")
     .update({
@@ -231,25 +199,6 @@ export async function endSession(
     .select()
     .single();
   if (error) throw new Error(error.message);
-
-  // 3. Send notification
-  try {
-    const user = await getUser();
-    if (user) {
-      const startTime = new Date(session.started_at).getTime();
-      const endTime = new Date(ended_at).getTime();
-      const duration = endTime - startTime;
-
-      await notifySessionEvent(user, {
-        type: 'end',
-        trackTitle: (session.tracks as any).title,
-        duration: duration,
-      });
-    }
-  } catch (notificationError) {
-    console.error('Failed to send session end notification:', notificationError);
-  }
-
   return data;
 }
 

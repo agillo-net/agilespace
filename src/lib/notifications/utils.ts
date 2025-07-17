@@ -1,4 +1,5 @@
 import { sendGoogleChatNotification } from './webhook'
+import { formatTime } from '@/lib/utils'
 import type { User } from '@supabase/supabase-js'
 
 export type StatusUpdate = {
@@ -43,22 +44,8 @@ export function formatSessionMessage(user: User | null, event: SessionEvent): st
     if (event.type === 'start') {
         return `*${full_name}* started working on: ${trackTitle}`
     } else {
-        const durationText = event.duration ? ` (${formatDuration(event.duration)})` : ''
+        const durationText = event.duration ? ` (${formatTime(event.duration)})` : ''
         return `*${full_name}* finished working on: ${trackTitle}${durationText}`
-    }
-}
-
-function formatDuration(milliseconds: number): string {
-    const seconds = Math.floor(milliseconds / 1000)
-    const minutes = Math.floor(seconds / 60)
-    const hours = Math.floor(minutes / 60)
-    
-    if (hours > 0) {
-        return `${hours}h ${minutes % 60}m`
-    } else if (minutes > 0) {
-        return `${minutes}m`
-    } else {
-        return `${seconds}s`
     }
 }
 

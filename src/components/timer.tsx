@@ -1,109 +1,36 @@
 import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { Square, Trash2 } from "lucide-react"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { getActiveSession, getSpaceAndTracks } from "@/lib/supabase/queries"
-import { endSession, linkTagToSession, deleteSession } from "@/lib/supabase/mutations"
-import { toast } from "sonner"
 import { useRef } from "react"
 import { useParams } from "@tanstack/react-router"
-import { createIssueComment } from "@/lib/github/mutations"
 import { EndSessionDialog } from "@/components/end-session-dialog"
 import { DiscardSessionDialog } from "@/components/discard-session-dialog"
-import type { Tag } from "@/types"
-import { formatSessionComment, getGitHubIssueUrl } from "@/lib/utils"
-import { useLocalStorage } from "@/hooks/use-local-storage"
+import { getGitHubIssueUrl } from "@/lib/utils"
+import { useSessions } from "@/hooks/api/use-sessions"
 
 export function Timer() {
     const [time, setTime] = React.useState(0)
     const [isRunning, setIsRunning] = React.useState(false)
-    const [showEndSessionDialog, setShowEndSessionDialog] = React.useState(false)
-    const [showDiscardDialog, setShowDiscardDialog] = React.useState(false)
-    const [endSessionMessage, setEndSessionMessage] = useLocalStorage('end-session-message', "")
 
     const timerRef = useRef<NodeJS.Timeout>(null)
     const startTimeRef = useRef<number | null>(null)
-    const queryClient = useQueryClient()
     const { slug } = useParams({ from: "/space/$slug" })
+    
+    const {
+        activeSession,
+        spaceData,
+        endSessionMutation,
+        discardSessionMutation,
+        handleEndSession,
+        handleDiscardSession,
+        endSessionMessage,
+        setEndSessionMessage,
+        showEndSessionDialog,
+        setShowEndSessionDialog,
+        showDiscardDialog,
+        setShowDiscardDialog
+    } = useSessions(slug)
 
-    // Get active session
-    const { data: activeSession } = useQuery({
-        queryKey: ["activeSession", slug],
-        queryFn: () => getActiveSession(),
-        enabled: !!slug,
-    })
-
-    // Get space data for space ID
-    const { data: spaceData } = useQuery({
-        queryKey: ["space", slug],
-        queryFn: () => getSpaceAndTracks(slug),
-        enabled: !!slug,
-    })
-
-    // End session mutation
-    const endSessionMutation = useMutation({
-        mutationFn: async ({ sessionId, message, skipSummary, selectedTags }: { sessionId: string, message: string, skipSummary: boolean, selectedTags: Tag[] }) => {
-            if (!activeSession?.track) throw new Error("No active track found")
-
-            // Calculate duration using proper Date objects
-            const startDate = new Date(activeSession.started_at)
-            const endDate = new Date()
-            const duration = endDate.getTime() - startDate.getTime()
-
-            let commentUrl: string | undefined
-            if (!skipSummary) {
-                // Create GitHub issue comment
-                const response = await createIssueComment({
-                    owner: activeSession.track.repo_owner,
-                    repo: activeSession.track.repo_name,
-                    issue_number: activeSession.track.issue_number,
-                    body: formatSessionComment(
-                        duration,
-                        message,
-                    )
-                })
-                commentUrl = response.html_url
-            }
-
-            // End the session and link tags
-            await endSession(sessionId, commentUrl, skipSummary, endDate.toISOString())
-
-            // Link selected tags to the session
-            for (const tag of selectedTags) {
-                await linkTagToSession(sessionId, tag.id)
-            }
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['activeSession', slug] })
-            queryClient.invalidateQueries({ queryKey: ['closedSessions', spaceData?.space?.id] })
-            setIsRunning(false)
-            setTime(0)
-            setShowEndSessionDialog(false)
-            setEndSessionMessage("")
-            toast.success("Session ended successfully")
-        },
-        onError: (error) => {
-            toast.error(`Failed to end session: ${error.message}`)
-        }
-    })
-
-    // Discard session mutation
-    const discardSessionMutation = useMutation({
-        mutationFn: async ({ sessionId }: { sessionId: string }) => {
-            await deleteSession(sessionId)
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['activeSession', slug] })
-            queryClient.invalidateQueries({ queryKey: ['closedSessions', spaceData?.space?.id] })
-            setIsRunning(false)
-            setTime(0)
-            setShowDiscardDialog(false)
-            toast.success("Session discarded successfully")
-        },
-        onError: (error) => {
-            toast.error(`Failed to discard session: ${error.message}`)
-        }
-    })
 
     // Initialize timer state from active session
     React.useEffect(() => {
@@ -147,22 +74,13 @@ export function Timer() {
         }
     }
 
-    const handleEndSession = (skipSummary: boolean, selectedTags: Tag[]) => {
-        if (activeSession && (endSessionMessage.trim() || skipSummary)) {
-            endSessionMutation.mutate({
-                sessionId: activeSession.id,
-                message: endSessionMessage.trim(),
-                skipSummary,
-                selectedTags
-            })
+    // Update timer state when session ends
+    React.useEffect(() => {
+        if (endSessionMutation.isSuccess || discardSessionMutation.isSuccess) {
+            setIsRunning(false)
+            setTime(0)
         }
-    }
-
-    const handleDiscardSession = () => {
-        if (activeSession) {
-            discardSessionMutation.mutate({ sessionId: activeSession.id })
-        }
-    }
+    }, [endSessionMutation.isSuccess, discardSessionMutation.isSuccess])
 
     const formatTime = (seconds: number) => {
         const hours = Math.floor(seconds / 3600)

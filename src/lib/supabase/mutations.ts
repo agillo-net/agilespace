@@ -302,9 +302,7 @@ export async function seedIssueTypes(spaceId: string) {
 
   // Create categories first
   let categoryOrder = 0;
-  for (const [categoryName, categoryData] of Object.entries(
-    ISSUE_TYPE_HIERARCHY
-  )) {
+  for (const categoryData of Object.values(ISSUE_TYPE_HIERARCHY)) {
     const category = await createCategoryTag(
       spaceId,
       categoryData.name,

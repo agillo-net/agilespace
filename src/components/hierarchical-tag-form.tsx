@@ -24,7 +24,6 @@ interface HierarchicalTagFormProps {
     isSubmitting: boolean;
     submitButtonText: string;
     error?: Error | null;
-    mode: "create" | "edit";
 }
 
 export function HierarchicalTagForm({
@@ -35,7 +34,6 @@ export function HierarchicalTagForm({
     isSubmitting,
     submitButtonText,
     error,
-    mode,
 }: HierarchicalTagFormProps) {
     const isCategory = formData.tagType === "category";
     const requiresParent = formData.tagType === "subcategory";

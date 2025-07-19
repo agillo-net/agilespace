@@ -194,7 +194,6 @@ function TagsPage() {
                         isSubmitting={isCreating}
                         submitButtonText="Create Tag"
                         error={createError}
-                        mode="create"
                     />
                 </DialogContent>
             </Dialog>
@@ -215,7 +214,6 @@ function TagsPage() {
                         isSubmitting={isUpdating}
                         submitButtonText="Save Changes"
                         error={updateError}
-                        mode="edit"
                     />
                 </DialogContent>
             </Dialog>

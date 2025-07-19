@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getTags } from "@/lib/supabase/queries";
-import { createTag, deleteTag, updateTag } from "@/lib/supabase/mutations";
+import { getTags, getHierarchicalTags } from "@/lib/supabase/queries";
+import {
+  createTag,
+  deleteTag,
+  updateTag,
+  seedIssueTypes,
+} from "@/lib/supabase/mutations";
 import type { Tag } from "@/types";
 
 export function useTags(spaceId: string | undefined) {
@@ -49,6 +54,14 @@ export function useTags(spaceId: string | undefined) {
     },
   });
 
+  const seedIssueTypesMutation = useMutation({
+    mutationFn: () => seedIssueTypes(spaceId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tags", spaceId] });
+      queryClient.invalidateQueries({ queryKey: ["categories", spaceId] });
+    },
+  });
+
   const handleCreateTag = (e: React.FormEvent) => {
     e.preventDefault();
     if (!spaceId || !newTagName.trim()) return;
@@ -57,6 +70,11 @@ export function useTags(spaceId: string | undefined) {
 
   const handleUpdateTag = (id: string, updates: Partial<Tag>) => {
     updateTagMutation.mutate({ id, updates });
+  };
+
+  const handleSeedIssueTypes = () => {
+    if (!spaceId) return;
+    seedIssueTypesMutation.mutate();
   };
 
   return {
@@ -76,7 +94,9 @@ export function useTags(spaceId: string | undefined) {
     createTagMutation,
     updateTagMutation,
     deleteTagMutation,
+    seedIssueTypesMutation,
     handleCreateTag,
     handleUpdateTag,
+    handleSeedIssueTypes,
   };
 }

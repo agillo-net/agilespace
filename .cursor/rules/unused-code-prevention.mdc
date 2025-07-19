@@ -1,0 +1,143 @@
+---
+alwaysApply: true
+description: "Prevent unused code, imports, variables, and functions"
+---
+
+# Unused Code Prevention for AgileSpace
+
+## Rule: Eliminate All Unused Code
+
+This rule enforces strict removal of unused code to maintain a clean, performant, and maintainable codebase.
+
+### ❌ Prohibited: Unused Imports
+
+```tsx
+// ❌ Bad - Unused imports
+import React from "react"; // Not using React
+import { Button, Card } from "@/components/ui"; // Only using Button
+import type { User, Session, Tag } from "@/types"; // Only using User
+
+export function MyComponent({ user }: { user: User }) {
+  return <Button>{user.name}</Button>;
+}
+```
+
+```tsx
+// ✅ Good - Only necessary imports
+import { Button } from "@/components/ui/button";
+import type { User } from "@/types";
+
+export function MyComponent({ user }: { user: User }) {
+  return <Button>{user.name}</Button>;
+}
+```
+
+### ❌ Prohibited: Unused Variables
+
+```tsx
+// ❌ Bad - Unused variables
+export function SessionCard({ session }: SessionCardProps) {
+  const [isLoading, setIsLoading] = useState(false); // Never used
+  const duration = calculateDuration(session.start_time); // Never used
+
+  return <div>{session.title}</div>;
+}
+```
+
+```tsx
+// ✅ Good - Only necessary variables
+export function SessionCard({ session }: SessionCardProps) {
+  return <div>{session.title}</div>;
+}
+```
+
+### ❌ Prohibited: Unused Functions
+
+```tsx
+// ❌ Bad - Unused helper functions
+function formatDuration(ms: number): string {
+  // Never called anywhere
+  return `${ms / 1000}s`;
+}
+
+export function LoginForm() {
+  return <form>...</form>;
+}
+```
+
+```tsx
+// ✅ Good - Only necessary functions
+export function LoginForm() {
+  return <form>...</form>;
+}
+```
+
+### ❌ Prohibited: Unused Hook Returns
+
+```tsx
+// ❌ Bad - Unused hook returns
+export function MyComponent() {
+  const { data, loading, error, refetch } = useQuery(...) // Only using data
+
+  return (
+    <div>
+      {data?.map(item => <div key={item.id}>{item.name}</div>)}
+    </div>
+  )
+}
+```
+
+```tsx
+// ✅ Good - Only destructure what's needed
+export function MyComponent() {
+  const { data } = useQuery(...)
+
+  return (
+    <div>
+      {data?.map(item => <div key={item.id}>{item.name}</div>)}
+    </div>
+  )
+}
+```
+
+## Detection Strategies
+
+### 1. TypeScript Compiler Flags
+
+- Use `"noUnusedLocals": true` in tsconfig.json
+- Use `"noUnusedParameters": true` in tsconfig.json
+- Regular `pnpm tsc --noEmit` checks
+
+### 2. ESLint Rules
+
+- `@typescript-eslint/no-unused-vars`
+- `import/no-unused-modules`
+
+### 3. IDE Integration
+
+- Use VS Code's "Remove Unused Imports" command
+- Enable "Organize Imports on Save"
+- Use "Go to References" to verify usage
+
+## Cleanup Commands
+
+```bash
+# Check for unused code
+pnpm tsc --noEmit
+pnpm eslint src/ --fix
+```
+
+## Benefits
+
+1. **Smaller Bundle Size**: Fewer imports = smaller build output
+2. **Better Performance**: Less code to parse and execute
+3. **Cleaner Codebase**: Easier to read and maintain
+4. **Better Tree Shaking**: Build tools can optimize better
+
+## Enforcement
+
+- **Pre-commit Hooks**: Run unused code checks
+- **CI/CD Pipeline**: Fail builds with unused code
+- **Code Reviews**: Manually check for unused imports/variables
+
+Remember: **Every line of code has a cost**. If it's not providing value, remove it! 🧹

@@ -1,0 +1,111 @@
+---
+alwaysApply: true
+---
+
+# AgileSpace Project Patterns
+
+## Architecture Overview
+
+AgileSpace follows a clean architecture with strict separation of concerns:
+
+- **Components**: Pure UI rendering in [src/components/](mdc:src/components/)
+- **Hooks**: Business logic in [src/hooks/](mdc:src/hooks/)
+- **API Layer**: Supabase queries/mutations in [src/lib/supabase/](mdc:src/lib/supabase/)
+- **Types**: TypeScript definitions in [src/types/](mdc:src/types/)
+
+## Required Patterns
+
+### ✅ Component Structure
+
+```tsx
+// src/components/feature-name.tsx
+import { useFeatureName } from "@/hooks/use-feature-name";
+
+export function FeatureName({ prop }: FeatureNameProps) {
+  const { data, loading, handleAction } = useFeatureName({ prop });
+
+  if (loading) return <LoadingSpinner />;
+
+  return <div className="feature-container">{/* UI only */}</div>;
+}
+```
+
+### ✅ Hook Structure
+
+```tsx
+// src/hooks/use-feature-name.ts
+export function useFeatureName({ prop }: UseFeatureNameProps) {
+  // All logic here
+  return { data, loading, actions };
+}
+```
+
+### ✅ API Layer
+
+- Queries in [src/lib/supabase/queries.ts](mdc:src/lib/supabase/queries.ts)
+- Mutations in [src/lib/supabase/mutations.ts](mdc:src/lib/supabase/mutations.ts)
+- Use TanStack Query for data fetching
+
+### ✅ Required Imports
+
+```tsx
+// UI Components
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
+// Utils
+import { cn } from "@/lib/utils";
+
+// Types
+import type { Tag, Session } from "@/types";
+```
+
+## AgileSpace-Specific Rules
+
+### Hierarchical Tags Implementation
+
+- Use [useHierarchicalTagSelector](mdc:src/hooks/use-hierarchical-tag-selector.ts) for tag logic
+- Categories and subcategories from [issue-types.ts](mdc:src/constants/issue-types.ts)
+- Seed predefined types with `seedIssueTypes` function
+
+### Session Management
+
+- All session logic in custom hooks
+- Use TanStack Query for session data
+- Handle optimistic updates for better UX
+
+### Styling Conventions
+
+- Use Tailwind CSS utility classes
+- Follow [AgileSpace design system](mdc:src/components/ui/)
+- Ensure accessibility with proper ARIA attributes
+
+### Error Handling
+
+- Use error boundaries for component errors
+- Handle API errors in hooks with TanStack Query
+- Provide user-friendly error messages
+
+## File Organization
+
+```
+src/
+├── components/           # Pure UI components
+│   ├── ui/              # Design system components
+│   └── feature-name.tsx # Feature-specific components
+├── hooks/               # Business logic hooks
+│   ├── api/            # API-related hooks
+│   └── use-*.ts        # Feature hooks
+├── lib/
+│   ├── supabase/       # Database layer
+│   └── utils.ts        # Utility functions
+├── types/              # TypeScript definitions
+└── constants/          # Application constants
+```
+
+## Quality Standards
+
+- **TypeScript**: Strict typing, no `any`
+- **Performance**: Use React.memo, useCallback, useMemo appropriately
+- **Accessibility**: WCAG 2.1 AA compliance
+- **Testing**: Separate logic from UI for better testability

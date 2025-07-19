@@ -13,6 +13,19 @@ export type Session = Database["public"]["Tables"]["sessions"]["Row"];
 
 export type Tag = Database["public"]["Tables"]["tags"]["Row"];
 
+// Extended tag types for hierarchical structure
+export interface HierarchicalTag extends Tag {
+  children?: Tag[];
+  parent?: Tag;
+}
+
+export type TagType = "category" | "subcategory";
+
+export interface TagWithRelations extends Tag {
+  children?: Tag[];
+  parent?: Tag;
+}
+
 // This interface extends the Space interface to include membership information
 export interface SpaceWithMembership extends Space {
   is_member: boolean;

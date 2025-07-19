@@ -1,0 +1,96 @@
+---
+alwaysApply: true
+---
+
+# Separation of Concerns for React Components
+
+## Rule: Separate UI and Logic
+
+React components in [src/components/](mdc:src/components/) should follow strict separation of concerns:
+
+### ✅ Components Should Only Handle:
+
+- JSX rendering and UI structure
+- Event handlers that call hook functions
+- Conditional rendering based on hook state
+- Styling and accessibility attributes
+
+### ❌ Components Should NOT Handle:
+
+- State management (use custom hooks)
+- API calls or data fetching
+- Complex business logic
+- Side effects (useEffect)
+- Data transformations
+
+### Pattern to Follow:
+
+```tsx
+// ✅ Good - UI Component
+import { useMyFeature } from "@/hooks/use-my-feature";
+
+export function MyComponent({ prop1, prop2 }: MyComponentProps) {
+  const { data, loading, error, handleAction, isSelected } = useMyFeature({
+    prop1,
+    prop2,
+  });
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+
+  return (
+    <div className="my-component">
+      {data.map((item) => (
+        <button key={item.id} onClick={() => handleAction(item)}>
+          {item.name}
+        </button>
+      ))}
+    </div>
+  );
+}
+```
+
+```tsx
+// ✅ Good - Logic Hook
+export function useMyFeature({ prop1, prop2 }: UseMyFeatureProps) {
+  const [state, setState] = useState(initialState);
+
+  const query = useQuery({
+    queryKey: ["my-feature", prop1],
+    queryFn: () => fetchData(prop1),
+  });
+
+  const handleAction = useCallback((item: Item) => {
+    // Business logic here
+    setState((prevState) => updateState(prevState, item));
+  }, []);
+
+  const isSelected = useCallback(
+    (id: string) => {
+      return state.selectedIds.includes(id);
+    },
+    [state.selectedIds]
+  );
+
+  return {
+    data: query.data || [],
+    loading: query.isLoading,
+    error: query.error,
+    handleAction,
+    isSelected,
+  };
+}
+```
+
+### Custom Hook Naming Convention:
+
+- Use `use-` prefix followed by feature name
+- Store in [src/hooks/](mdc:src/hooks/) directory
+- Export with descriptive TypeScript interfaces
+
+### Benefits:
+
+- Better testability (test logic separately from UI)
+- Reusable logic across components
+- Cleaner, more readable components
+- Easier maintenance and debugging

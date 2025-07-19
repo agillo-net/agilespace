@@ -1,0 +1,457 @@
+---
+alwaysApply: true
+---
+
+# UI & Styling for AgileSpace
+
+## Design System
+
+### Tailwind CSS
+
+- Use Tailwind CSS utility classes for styling
+- Leverage the design system tokens and spacing
+- Use semantic color classes (bg-primary, text-muted-foreground)
+- Follow responsive design patterns
+
+```tsx
+// ✅ Good - Tailwind CSS usage
+export function SessionCard({ session }: SessionCardProps) {
+  return (
+    <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+      <div className="p-6">
+        <h3 className="text-lg font-semibold text-foreground">
+          {session.title}
+        </h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          {session.description}
+        </p>
+        <div className="flex items-center justify-between mt-4">
+          <span className="text-xs text-muted-foreground">
+            {formatDate(session.start_time)}
+          </span>
+          <Badge
+            variant={session.status === "active" ? "default" : "secondary"}
+          >
+            {session.status}
+          </Badge>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+### Radix UI Components
+
+- Use Radix UI components for consistent, accessible UI
+- Leverage the shadcn/ui component library
+- Customize components using Tailwind CSS classes
+- Maintain accessibility standards
+
+```tsx
+// ✅ Good - Radix UI components
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+export function SessionDialog({ session, onSave }: SessionDialogProps) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">Edit Session</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Edit Session</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="title" className="text-right">
+              Title
+            </Label>
+            <Input
+              id="title"
+              defaultValue={session.title}
+              className="col-span-3"
+            />
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+## Component Styling
+
+### Class Organization
+
+- Use the `cn` utility for conditional classes
+- Group related classes together
+- Use semantic class names when possible
+- Keep component styling consistent
+
+```tsx
+// ✅ Good - Class organization
+import { cn } from "@/lib/utils";
+
+export function Button({
+  variant = "default",
+  size = "default",
+  className,
+  ...props
+}: ButtonProps) {
+  return (
+    <button
+      className={cn(
+        // Base styles
+        "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "disabled:pointer-events-none disabled:opacity-50",
+
+        // Variant styles
+        variant === "default" &&
+          "bg-primary text-primary-foreground hover:bg-primary/90",
+        variant === "destructive" &&
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        variant === "outline" &&
+          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        variant === "secondary" &&
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        variant === "ghost" && "hover:bg-accent hover:text-accent-foreground",
+        variant === "link" && "text-primary underline-offset-4 hover:underline",
+
+        // Size styles
+        size === "default" && "h-10 px-4 py-2",
+        size === "sm" && "h-9 rounded-md px-3",
+        size === "lg" && "h-11 rounded-md px-8",
+        size === "icon" && "h-10 w-10",
+
+        // Custom classes
+        className
+      )}
+      {...props}
+    />
+  );
+}
+```
+
+### Responsive Design
+
+- Use Tailwind's responsive prefixes (sm:, md:, lg:, xl:)
+- Design mobile-first
+- Test on different screen sizes
+- Use appropriate breakpoints
+
+```tsx
+// ✅ Good - Responsive design
+export function SessionList({ sessions }: SessionListProps) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {sessions.map((session) => (
+        <SessionCard key={session.id} session={session} />
+      ))}
+    </div>
+  );
+}
+
+// ✅ Good - Responsive layout
+export function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="flex">
+        {/* Sidebar - hidden on mobile, visible on desktop */}
+        <aside className="hidden md:flex w-64 flex-col border-r bg-background">
+          <SpaceSidebar />
+        </aside>
+
+        {/* Main content */}
+        <main className="flex-1 p-4 md:p-6">{children}</main>
+      </div>
+    </div>
+  );
+}
+```
+
+## Color System
+
+### Semantic Colors
+
+- Use semantic color tokens for consistency
+- Leverage the theme system for dark/light mode
+- Use appropriate contrast ratios
+- Follow accessibility guidelines
+
+```tsx
+// ✅ Good - Semantic colors
+export function StatusBadge({
+  status,
+}: {
+  status: "active" | "completed" | "paused";
+}) {
+  const statusConfig = {
+    active: {
+      className: "bg-green-100 text-green-800 border-green-200",
+      label: "Active",
+    },
+    completed: {
+      className: "bg-blue-100 text-blue-800 border-blue-200",
+      label: "Completed",
+    },
+    paused: {
+      className: "bg-yellow-100 text-yellow-800 border-yellow-200",
+      label: "Paused",
+    },
+  };
+
+  const config = statusConfig[status];
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+        config.className
+      )}
+    >
+      {config.label}
+    </span>
+  );
+}
+```
+
+### Theme Support
+
+- Support both light and dark themes
+- Use CSS variables for theme colors
+- Test both themes thoroughly
+- Provide smooth theme transitions
+
+```tsx
+// ✅ Good - Theme-aware components
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+    >
+      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <span className="sr-only">Toggle theme</span>
+    </Button>
+  );
+}
+```
+
+## Layout Patterns
+
+### Grid and Flexbox
+
+- Use CSS Grid for two-dimensional layouts
+- Use Flexbox for one-dimensional layouts
+- Combine both for complex layouts
+- Use appropriate gap spacing
+
+```tsx
+// ✅ Good - Layout patterns
+export function DashboardGrid() {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Stats cards */}
+      <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <StatsCard title="Active Sessions" value="5" />
+        <StatsCard title="Total Time" value="2h 30m" />
+        <StatsCard title="Completed Tasks" value="12" />
+        <StatsCard title="Team Members" value="8" />
+      </div>
+
+      {/* Sidebar */}
+      <div className="space-y-4">
+        <ActiveMembers />
+        <RecentActivity />
+      </div>
+    </div>
+  );
+}
+```
+
+### Spacing System
+
+- Use consistent spacing tokens
+- Follow the 4px base unit system
+- Use appropriate spacing for different contexts
+- Maintain visual hierarchy
+
+```tsx
+// ✅ Good - Consistent spacing
+export function SessionForm() {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="title">Session Title</Label>
+        <Input id="title" placeholder="Enter session title" />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          placeholder="Enter session description"
+          className="min-h-[100px]"
+        />
+      </div>
+
+      <div className="flex items-center justify-end space-x-2">
+        <Button variant="outline">Cancel</Button>
+        <Button>Save Session</Button>
+      </div>
+    </div>
+  );
+}
+```
+
+## Animation and Transitions
+
+### Micro-interactions
+
+- Use subtle animations for better UX
+- Keep animations fast and purposeful
+- Use Tailwind's transition utilities
+- Respect user preferences (prefers-reduced-motion)
+
+```tsx
+// ✅ Good - Smooth transitions
+export function AnimatedCard({ children, className }: CardProps) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border bg-card text-card-foreground shadow-sm",
+        "transition-all duration-200 ease-in-out",
+        "hover:shadow-md hover:scale-[1.02]",
+        "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+### Loading States
+
+- Provide clear loading indicators
+- Use skeleton components for content loading
+- Maintain layout stability during loading
+- Use appropriate loading durations
+
+```tsx
+// ✅ Good - Loading states
+export function SessionListSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="rounded-lg border p-6">
+          <div className="space-y-3">
+            <div className="h-4 bg-muted rounded animate-pulse" />
+            <div className="h-3 bg-muted rounded w-3/4 animate-pulse" />
+            <div className="flex items-center justify-between">
+              <div className="h-3 bg-muted rounded w-1/4 animate-pulse" />
+              <div className="h-6 bg-muted rounded w-16 animate-pulse" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+## Accessibility
+
+### Semantic HTML
+
+- Use appropriate HTML elements
+- Provide proper ARIA attributes
+- Ensure keyboard navigation
+- Maintain focus management
+
+```tsx
+// ✅ Good - Accessible components
+export function AccessibleButton({
+  children,
+  onClick,
+  disabled,
+  "aria-label": ariaLabel,
+  ...props
+}: ButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      aria-disabled={disabled}
+      className={cn(
+        "inline-flex items-center justify-center rounded-md text-sm font-medium",
+        "transition-colors focus-visible:outline-none focus-visible:ring-2",
+        "focus-visible:ring-ring focus-visible:ring-offset-2",
+        "disabled:pointer-events-none disabled:opacity-50",
+        props.className
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+```
+
+### Focus Management
+
+- Ensure logical tab order
+- Provide visible focus indicators
+- Handle focus in modals and dialogs
+- Support screen readers
+
+```tsx
+// ✅ Good - Focus management
+export function Modal({ isOpen, onClose, children }: ModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && modalRef.current) {
+      // Focus the first focusable element
+      const firstFocusable = modalRef.current.querySelector(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      ) as HTMLElement;
+      firstFocusable?.focus();
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" />
+      <div
+        ref={modalRef}
+        className="relative z-50 w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg"
+        role="dialog"
+        aria-modal="true"
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+```

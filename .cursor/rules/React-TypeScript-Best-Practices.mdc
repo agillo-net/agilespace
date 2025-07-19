@@ -1,0 +1,188 @@
+---
+alwaysApply: true
+---
+
+# React + TypeScript Best Practices for AgileSpace
+
+## Component Structure
+
+Define props with interfaces/types, not prop-types:
+
+```tsx
+interface SessionCardProps {
+  session: Session;
+  onEndSession?: (sessionId: string) => void;
+  onEditSession?: (session: Session) => void;
+}
+
+export function SessionCard({
+  session,
+  onEndSession,
+  onEditSession,
+}: SessionCardProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{session.title}</CardTitle>
+      </CardHeader>
+    </Card>
+  );
+}
+```
+
+## Component Declaration
+
+Use the function keyword for components:
+
+```tsx
+// ✅ Good
+export function SpaceSidebar({ space }: SpaceSidebarProps) {
+  return <div>...</div>;
+}
+
+// ❌ Avoid
+export const SpaceSidebar = ({ space }: SpaceSidebarProps) => {
+  return <div>...</div>;
+};
+```
+
+## Hooks Usage
+
+- Call hooks only at the top level of components
+- Extract reusable logic into custom hooks with `use-*` prefix
+- Use `use-*-api` prefix for data fetching hooks
+
+```tsx
+// ✅ Good - Custom hooks
+export function useSessions(spaceId: string) {
+  return useQuery({
+    queryKey: ["sessions", spaceId],
+    queryFn: () => getSessions(spaceId),
+  });
+}
+
+// ✅ Good - API hooks
+export function useSessionsApi(spaceId: string) {
+  return useQuery({
+    queryKey: ["sessions", spaceId],
+    queryFn: () =>
+      supabase.from("sessions").select("*").eq("space_id", spaceId),
+  });
+}
+```
+
+## Performance Optimization
+
+- Memoize with React.memo, useCallback, useMemo where appropriate
+- Avoid inline functions in JSX—pull handlers out or wrap in useCallback
+- Use React.lazy + Suspense for code splitting
+
+```tsx
+// ✅ Good - Memoized component
+export const SessionList = React.memo(function SessionList({
+  sessions,
+}: SessionListProps) {
+  return (
+    <div>
+      {sessions.map((session) => (
+        <SessionCard key={session.id} session={session} />
+      ))}
+    </div>
+  );
+});
+
+// ✅ Good - Memoized callback
+const handleEndSession = useCallback(
+  (sessionId: string) => {
+    endSessionMutation.mutate(sessionId);
+  },
+  [endSessionMutation]
+);
+```
+
+## Composition Patterns
+
+- Favor composition (render props, children) over inheritance
+- Use Radix UI components for consistent design system
+- Leverage TanStack Query for data fetching and caching
+
+```tsx
+// ✅ Good - Composition with children
+export function Card({ children, className }: CardProps) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border bg-card text-card-foreground shadow-sm",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+## Error Handling
+
+- Implement error boundaries for component error handling
+- Use TanStack Query error states for API errors
+- Provide clear, user-friendly error messages
+
+```tsx
+// ✅ Good - Error boundary
+export function ErrorBoundary({ children }: { children: React.ReactNode }) {
+  return (
+    <ErrorBoundary fallback={<div>Something went wrong</div>}>
+      {children}
+    </ErrorBoundary>
+  );
+}
+
+// ✅ Good - Query error handling
+const { data, error, isLoading } = useSessionsApi(spaceId);
+
+if (error) {
+  return <div>Failed to load sessions: {error.message}</div>;
+}
+```
+
+## Form Handling
+
+- Use react-hook-form with zod validation
+- Prefer controlled components for forms
+- Separate client-side and server-side validation
+
+```tsx
+// ✅ Good - Form with validation
+const form = useForm<SessionFormData>({
+  resolver: zodResolver(sessionSchema),
+  defaultValues: {
+    title: "",
+    description: "",
+  },
+});
+```
+
+## Cleanup and Effects
+
+- Clean up effects in useEffect to prevent leaks
+- Use guard clauses (early returns) for error handling
+- Handle loading states properly
+
+```tsx
+// ✅ Good - Effect with cleanup
+useEffect(() => {
+  const interval = setInterval(() => {
+    updateTimer();
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [updateTimer]);
+```
+
+## File Organization
+
+- Export components as named exports
+- Keep components focused and single-purpose
+- Use descriptive names with auxiliary verbs (e.g., isLoading, hasError)
+- File layout: exported component → subcomponents → hooks/helpers → static content

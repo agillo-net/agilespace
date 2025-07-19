@@ -1,0 +1,330 @@
+---
+alwaysApply: true
+---
+
+# State Management for AgileSpace
+
+## State Management Strategy
+
+### Local State (useState/useReducer)
+
+- Use for component-specific state
+- Keep state as close to where it's used as possible
+- Lift state up only when needed for sibling components
+
+```tsx
+// ✅ Good - Local state for component
+function SessionForm() {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Component logic
+}
+```
+
+### Server State (TanStack Query)
+
+- Use for all API data fetching and caching
+- Leverage TanStack Query for automatic background updates
+- Use mutations for data modifications
+
+```tsx
+// ✅ Good - Server state with TanStack Query
+function useSessionsApi(spaceId: string) {
+  return useQuery({
+    queryKey: ["sessions", spaceId],
+    queryFn: () =>
+      supabase.from("sessions").select("*").eq("space_id", spaceId),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+// ✅ Good - Mutations
+function useCreateSessionApi() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sessionData: SessionInsert) =>
+      supabase.from("sessions").insert(sessionData).select().single(),
+    onSuccess: (newSession) => {
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.setQueryData(
+        ["sessions", newSession.space_id],
+        (old: Session[] = []) => [...old, newSession]
+      );
+    },
+  });
+}
+```
+
+### Global State (Context + useReducer)
+
+- Use React Context for app-wide state that doesn't change frequently
+- Prefer useReducer for complex state logic
+- Keep context providers at the top level
+
+```tsx
+// ✅ Good - Global state with Context
+interface AppState {
+  currentSpace: Space | null;
+  user: User | null;
+  theme: "light" | "dark";
+}
+
+type AppAction =
+  | { type: "SET_CURRENT_SPACE"; payload: Space }
+  | { type: "SET_USER"; payload: User }
+  | { type: "SET_THEME"; payload: "light" | "dark" };
+
+const AppContext = createContext<{
+  state: AppState;
+  dispatch: Dispatch<AppAction>;
+} | null>(null);
+
+export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [state, dispatch] = useReducer(appReducer, initialState);
+
+  return (
+    <AppContext.Provider value={{ state, dispatch }}>
+      {children}
+    </AppContext.Provider>
+  );
+}
+```
+
+## State Organization
+
+### Component State
+
+- Keep state minimal and focused
+- Use descriptive state variable names
+- Group related state in objects
+
+```tsx
+// ✅ Good - Organized component state
+function SessionTimer({ sessionId }: { sessionId: string }) {
+  const [timerState, setTimerState] = useState({
+    isRunning: false,
+    startTime: null as Date | null,
+    elapsed: 0,
+  });
+
+  const [displayState, setDisplayState] = useState({
+    showMilliseconds: false,
+    format: "minutes" as "minutes" | "hours",
+  });
+}
+```
+
+### Form State
+
+- Use react-hook-form for complex forms
+- Leverage zod for validation
+- Keep form state separate from component state
+
+```tsx
+// ✅ Good - Form state with react-hook-form
+const sessionSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  track_id: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+function SessionForm() {
+  const form = useForm<z.infer<typeof sessionSchema>>({
+    resolver: zodResolver(sessionSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      tags: [],
+    },
+  });
+}
+```
+
+## State Updates
+
+### Immutable Updates
+
+- Always create new objects/arrays when updating state
+- Use spread operator for shallow updates
+- Use immer for complex updates if needed
+
+```tsx
+// ✅ Good - Immutable state updates
+function updateSession(sessionId: string, updates: Partial<Session>) {
+  setSessions((prev) =>
+    prev.map((session) =>
+      session.id === sessionId ? { ...session, ...updates } : session
+    )
+  );
+}
+
+// ✅ Good - Array updates
+function addTag(sessionId: string, tag: Tag) {
+  setSessions((prev) =>
+    prev.map((session) =>
+      session.id === sessionId
+        ? { ...session, tags: [...session.tags, tag] }
+        : session
+    )
+  );
+}
+```
+
+### Optimistic Updates
+
+- Use optimistic updates for better UX
+- Revert on error
+- Sync with server state
+
+```tsx
+// ✅ Good - Optimistic updates
+function useOptimisticSessionUpdate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateSessionApi,
+    onMutate: async (updatedSession) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["sessions"] });
+
+      // Snapshot previous value
+      const previousSessions = queryClient.getQueryData(["sessions"]);
+
+      // Optimistically update
+      queryClient.setQueryData(["sessions"], (old: Session[] = []) =>
+        old.map((session) =>
+          session.id === updatedSession.id
+            ? { ...session, ...updatedSession }
+            : session
+        )
+      );
+
+      return { previousSessions };
+    },
+    onError: (err, newSession, context) => {
+      // Revert on error
+      queryClient.setQueryData(["sessions"], context?.previousSessions);
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+    },
+  });
+}
+```
+
+## State Persistence
+
+### Local Storage
+
+- Use for user preferences and settings
+- Don't store sensitive data
+- Handle storage errors gracefully
+
+```tsx
+// ✅ Good - Local storage hook
+function useLocalStorage<T>(key: string, initialValue: T) {
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.error(`Error reading localStorage key "${key}":`, error);
+      return initialValue;
+    }
+  });
+
+  const setValue = (value: T | ((val: T) => T)) => {
+    try {
+      const valueToStore =
+        value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.error(`Error setting localStorage key "${key}":`, error);
+    }
+  };
+
+  return [storedValue, setValue] as const;
+}
+```
+
+### URL State
+
+- Use URL parameters for shareable state
+- Keep URL state minimal
+- Use TanStack Router for URL state management
+
+```tsx
+// ✅ Good - URL state with TanStack Router
+function useUrlState() {
+  const navigate = useNavigate();
+  const search = useSearch();
+
+  const updateUrlState = (updates: Record<string, string>) => {
+    navigate({
+      search: (prev) => ({ ...prev, ...updates }),
+    });
+  };
+
+  return { search, updateUrlState };
+}
+```
+
+## Performance Considerations
+
+### State Memoization
+
+- Memoize expensive state computations
+- Use useMemo for derived state
+- Avoid unnecessary re-renders
+
+```tsx
+// ✅ Good - Memoized derived state
+function SessionList({ sessions }: { sessions: Session[] }) {
+  const activeSessions = useMemo(
+    () => sessions.filter((session) => !session.end_time),
+    [sessions]
+  );
+
+  const completedSessions = useMemo(
+    () => sessions.filter((session) => session.end_time),
+    [sessions]
+  );
+
+  const totalDuration = useMemo(
+    () =>
+      completedSessions.reduce((total, session) => {
+        const duration =
+          new Date(session.end_time!).getTime() -
+          new Date(session.start_time).getTime();
+        return total + duration;
+      }, 0),
+    [completedSessions]
+  );
+}
+```
+
+### State Splitting
+
+- Split large state objects into smaller pieces
+- Use multiple contexts for different concerns
+- Avoid prop drilling with context
+
+```tsx
+// ✅ Good - Split contexts
+const AuthContext = createContext<AuthState | null>(null);
+const SpaceContext = createContext<SpaceState | null>(null);
+const ThemeContext = createContext<ThemeState | null>(null);
+
+// Use specific contexts where needed
+function SpaceComponent() {
+  const spaceState = useContext(SpaceContext);
+  // Only re-renders when space state changes
+}
+```

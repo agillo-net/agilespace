@@ -1,0 +1,626 @@
+---
+alwaysApply: true
+---
+
+# Error Handling & Validation for AgileSpace
+
+## Input Validation
+
+### Guard Clauses
+
+- Validate inputs and preconditions early
+- Use guard clauses for error handling
+- Place happy-path logic last
+- Provide clear error messages
+
+```tsx
+// ✅ Good - Guard clauses
+function processSession(session: Session | null): string {
+  if (!session) {
+    return "No session provided";
+  }
+
+  if (!session.title) {
+    return "Session has no title";
+  }
+
+  if (
+    session.end_time &&
+    new Date(session.end_time) < new Date(session.start_time)
+  ) {
+    return "Invalid session duration";
+  }
+
+  // Happy path
+  return `Session: ${session.title}`;
+}
+
+// ✅ Good - Function with validation
+function createSession(data: SessionFormData): Promise<Session> {
+  // Validate required fields
+  if (!data.title?.trim()) {
+    throw new Error("Session title is required");
+  }
+
+  if (data.title.length > 100) {
+    throw new Error("Session title must be less than 100 characters");
+  }
+
+  if (data.estimated_duration && data.estimated_duration < 1) {
+    throw new Error("Estimated duration must be at least 1 minute");
+  }
+
+  // Happy path
+  return supabase.from("sessions").insert(data).select().single();
+}
+```
+
+### Schema Validation
+
+- Use zod for runtime validation
+- Define schemas for all data structures
+- Provide meaningful error messages
+- Handle validation errors gracefully
+
+```tsx
+// ✅ Good - Comprehensive validation schema
+import { z } from "zod";
+
+const sessionSchema = z.object({
+  title: z
+    .string()
+    .min(1, "Title is required")
+    .max(100, "Title must be less than 100 characters")
+    .trim(),
+
+  description: z
+    .string()
+    .max(500, "Description must be less than 500 characters")
+    .optional(),
+
+  track_id: z.string().uuid("Invalid track ID").optional(),
+
+  tags: z.array(z.string()).max(10, "Maximum 10 tags allowed").optional(),
+
+  estimated_duration: z
+    .number()
+    .min(1, "Duration must be at least 1 minute")
+    .max(480, "Duration cannot exceed 8 hours")
+    .optional(),
+});
+
+const userProfileSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(50, "Name must be less than 50 characters")
+    .regex(/^[a-zA-Z\s]+$/, "Name can only contain letters and spaces"),
+
+  email: z
+    .string()
+    .email("Please enter a valid email address")
+    .min(1, "Email is required"),
+
+  timezone: z.string().min(1, "Timezone is required"),
+
+  working_hours: z
+    .object({
+      start: z
+        .string()
+        .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
+      end: z
+        .string()
+        .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
+    })
+    .refine(
+      (data) => {
+        const start = new Date(`2000-01-01T${data.start}`);
+        const end = new Date(`2000-01-01T${data.end}`);
+        return start < end;
+      },
+      {
+        message: "End time must be after start time",
+        path: ["end"],
+      }
+    ),
+});
+
+type SessionFormData = z.infer<typeof sessionSchema>;
+type UserProfileFormData = z.infer<typeof userProfileSchema>;
+```
+
+## Error Handling Patterns
+
+### Try-Catch Blocks
+
+- Use try-catch for async operations
+- Handle specific error types
+- Provide fallback behavior
+- Log errors appropriately
+
+```tsx
+// ✅ Good - Error handling with try-catch
+async function createSessionWithErrorHandling(
+  data: SessionFormData
+): Promise<ApiResponse<Session>> {
+  try {
+    // Validate input
+    const validatedData = sessionSchema.parse(data);
+
+    // Attempt to create session
+    const { data: session, error } = await supabase
+      .from("sessions")
+      .insert(validatedData)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return { success: true, data: session };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: "Validation failed",
+        details: error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+        })),
+      };
+    }
+
+    if (error instanceof Error) {
+      console.error("Session creation failed:", error.message);
+      return {
+        success: false,
+        error: "Failed to create session. Please try again.",
+      };
+    }
+
+    return {
+      success: false,
+      error: "An unexpected error occurred",
+    };
+  }
+}
+```
+
+### Error Boundaries
+
+- Implement error boundaries for component errors
+- Provide fallback UI
+- Log errors for debugging
+- Allow error recovery
+
+```tsx
+// ✅ Good - Error boundary component
+import { Component, ReactNode } from "react";
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: any) => void;
+}
+
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error("Error caught by boundary:", error, errorInfo);
+
+    // Log to error reporting service
+    if (process.env.NODE_ENV === "production") {
+      // Send to error reporting service
+    }
+
+    this.props.onError?.(error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        this.props.fallback || (
+          <div className="p-4 border border-red-200 rounded-lg bg-red-50">
+            <h2 className="text-lg font-semibold text-red-800 mb-2">
+              Something went wrong
+            </h2>
+            <p className="text-red-600 mb-4">
+              {this.state.error?.message || "An unexpected error occurred"}
+            </p>
+            <button
+              onClick={() =>
+                this.setState({ hasError: false, error: undefined })
+              }
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Try again
+            </button>
+          </div>
+        )
+      );
+    }
+
+    return this.props.children;
+  }
+}
+```
+
+## API Error Handling
+
+### TanStack Query Error Handling
+
+- Handle query and mutation errors
+- Provide user-friendly error messages
+- Implement retry logic
+- Show appropriate loading states
+
+```tsx
+// ✅ Good - Query error handling
+export function useSessionsWithErrorHandling(spaceId: string) {
+  const query = useQuery({
+    queryKey: ["sessions", spaceId],
+    queryFn: () => getSessions(spaceId),
+    retry: (failureCount, error) => {
+      // Don't retry on 4xx errors
+      if (error instanceof Error && error.message.includes("404")) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+
+  return {
+    ...query,
+    errorMessage: query.error ? getErrorMessage(query.error) : null,
+  };
+}
+
+// ✅ Good - Mutation error handling
+export function useCreateSessionWithErrorHandling() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createSession,
+    onError: (error, variables, context) => {
+      console.error("Session creation failed:", error);
+
+      // Show user-friendly error message
+      toast.error(getErrorMessage(error));
+
+      // Revert optimistic update if needed
+      if (context?.previousSessions) {
+        queryClient.setQueryData(
+          ["sessions", variables.space_id],
+          context.previousSessions
+        );
+      }
+    },
+    onSuccess: (newSession) => {
+      toast.success("Session created successfully");
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+    },
+  });
+}
+
+// ✅ Good - Error message utility
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    // Handle specific error types
+    if (error.message.includes("Network")) {
+      return "Network error. Please check your connection and try again.";
+    }
+
+    if (error.message.includes("401")) {
+      return "You are not authorized to perform this action.";
+    }
+
+    if (error.message.includes("403")) {
+      return "You do not have permission to perform this action.";
+    }
+
+    if (error.message.includes("404")) {
+      return "The requested resource was not found.";
+    }
+
+    if (error.message.includes("429")) {
+      return "Too many requests. Please wait a moment and try again.";
+    }
+
+    if (error.message.includes("500")) {
+      return "Server error. Please try again later.";
+    }
+
+    return error.message;
+  }
+
+  return "An unexpected error occurred";
+}
+```
+
+## Form Validation
+
+### Client-Side Validation
+
+- Validate on blur and submit
+- Show immediate feedback
+- Use appropriate validation rules
+- Handle async validation
+
+```tsx
+// ✅ Good - Form validation with react-hook-form
+export function SessionFormWithValidation({ onSubmit }: SessionFormProps) {
+  const form = useForm<SessionFormData>({
+    resolver: zodResolver(sessionSchema),
+    mode: "onBlur", // Validate on blur
+    defaultValues: {
+      title: "",
+      description: "",
+      tags: [],
+    },
+  });
+
+  const handleSubmit = form.handleSubmit(async (data) => {
+    try {
+      await onSubmit(data);
+      form.reset();
+    } catch (error) {
+      // Handle submission errors
+      if (error instanceof z.ZodError) {
+        error.errors.forEach((err) => {
+          form.setError(err.path.join(".") as any, {
+            type: "server",
+            message: err.message,
+          });
+        });
+      } else {
+        toast.error("Failed to create session. Please try again.");
+      }
+    }
+  });
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="title">Session Title *</Label>
+        <Input
+          id="title"
+          {...form.register("title")}
+          placeholder="Enter session title"
+          className={cn(form.formState.errors.title && "border-destructive")}
+          aria-describedby={
+            form.formState.errors.title ? "title-error" : undefined
+          }
+          aria-invalid={!!form.formState.errors.title}
+        />
+        {form.formState.errors.title && (
+          <p id="title-error" className="text-sm text-destructive">
+            {form.formState.errors.title.message}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          {...form.register("description")}
+          placeholder="Enter session description"
+          className="min-h-[100px]"
+        />
+        {form.formState.errors.description && (
+          <p className="text-sm text-destructive">
+            {form.formState.errors.description.message}
+          </p>
+        )}
+      </div>
+
+      <Button
+        type="submit"
+        disabled={form.formState.isSubmitting}
+        className="w-full"
+      >
+        {form.formState.isSubmitting ? "Creating..." : "Create Session"}
+      </Button>
+    </form>
+  );
+}
+```
+
+### Server-Side Validation
+
+- Always validate on the server
+- Use the same schemas for consistency
+- Return structured error responses
+- Handle validation errors gracefully
+
+```tsx
+// ✅ Good - Server-side validation
+export async function validateAndCreateSession(
+  data: unknown
+): Promise<ApiResponse<Session>> {
+  try {
+    // Validate input
+    const validatedData = sessionSchema.parse(data);
+
+    // Check business rules
+    const existingSession = await supabase
+      .from("sessions")
+      .select("id")
+      .eq("member_id", validatedData.member_id)
+      .is("end_time", null)
+      .single();
+
+    if (existingSession.data) {
+      return {
+        success: false,
+        error: "You already have an active session. Please end it first.",
+      };
+    }
+
+    // Create session
+    const { data: session, error } = await supabase
+      .from("sessions")
+      .insert(validatedData)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return { success: true, data: session };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: "Validation failed",
+        details: error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+        })),
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An error occurred",
+    };
+  }
+}
+```
+
+## Error Recovery
+
+### Retry Logic
+
+- Implement exponential backoff
+- Limit retry attempts
+- Handle different error types
+- Provide user feedback
+
+```tsx
+// ✅ Good - Retry logic
+export function useRetryableMutation<TData, TVariables>(
+  mutationFn: (variables: TVariables) => Promise<TData>,
+  options: {
+    maxRetries?: number;
+    retryDelay?: number;
+    onError?: (error: Error, attempt: number) => void;
+  } = {}
+) {
+  const { maxRetries = 3, retryDelay = 1000, onError } = options;
+  const [attempt, setAttempt] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  const executeWithRetry = useCallback(
+    async (variables: TVariables): Promise<TData> => {
+      let lastError: Error;
+
+      for (let i = 0; i <= maxRetries; i++) {
+        try {
+          setAttempt(i);
+          setIsRetrying(i > 0);
+
+          const result = await mutationFn(variables);
+          setIsRetrying(false);
+          return result;
+        } catch (error) {
+          lastError =
+            error instanceof Error ? error : new Error("Unknown error");
+
+          if (i === maxRetries) {
+            setIsRetrying(false);
+            throw lastError;
+          }
+
+          onError?.(lastError, i);
+
+          // Exponential backoff
+          const delay = retryDelay * Math.pow(2, i);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+
+      throw lastError!;
+    },
+    [mutationFn, maxRetries, retryDelay, onError]
+  );
+
+  return {
+    executeWithRetry,
+    attempt,
+    isRetrying,
+  };
+}
+```
+
+### Error Reporting
+
+- Log errors appropriately
+- Send errors to monitoring service
+- Include context information
+- Respect user privacy
+
+```tsx
+// ✅ Good - Error reporting
+export function reportError(error: Error, context?: Record<string, any>) {
+  const errorInfo = {
+    message: error.message,
+    stack: error.stack,
+    timestamp: new Date().toISOString(),
+    url: window.location.href,
+    userAgent: navigator.userAgent,
+    context,
+  };
+
+  // Log to console in development
+  if (process.env.NODE_ENV === "development") {
+    console.error("Error reported:", errorInfo);
+  }
+
+  // Send to error reporting service in production
+  if (process.env.NODE_ENV === "production") {
+    // Send to error reporting service (e.g., Sentry, LogRocket)
+    // This would be implemented based on your error reporting service
+    console.error("Error would be sent to reporting service:", errorInfo);
+  }
+}
+
+// ✅ Good - Error boundary with reporting
+export function ErrorBoundaryWithReporting({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        reportError(error, {
+          componentStack: errorInfo.componentStack,
+          errorBoundary: true,
+        });
+      }}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+```

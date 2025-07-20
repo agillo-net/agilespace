@@ -6,6 +6,7 @@ import {
   getClosedSessions,
   getTrackSessionStats,
   getSpaceActiveSessions,
+  getSpaceMembersWithProfiles,
 } from "@/lib/supabase/queries";
 
 export function useSpaceDashboard(slug: string) {
@@ -44,6 +45,13 @@ export function useSpaceDashboard(slug: string) {
     enabled: !!spaceData?.space?.id,
   });
 
+  // Load space members to get accurate member count
+  const { data: spaceMembers } = useQuery({
+    queryKey: ["spaceMembers", slug],
+    queryFn: () => getSpaceMembersWithProfiles(slug),
+    enabled: !!slug,
+  });
+
   // Calculate total sessions
   const totalSessions = closedSessions?.length || 0;
   const activeSessionsCount = activeSession ? 1 : 0;
@@ -52,10 +60,10 @@ export function useSpaceDashboard(slug: string) {
   const totalTracks = spaceData?.tracks?.length || 0;
 
   // Calculate total members
-  const totalMembers = 0; // TODO: Implement member count
+  const totalMembers = spaceMembers?.length || 0;
 
   // Calculate total tags
-  const totalTags = 0; // TODO: Implement tag count
+  const totalTags = spaceData?.tags?.length || 0;
 
   // Prepare session activity data for the line chart
   const sessionActivityData = React.useMemo(() => {

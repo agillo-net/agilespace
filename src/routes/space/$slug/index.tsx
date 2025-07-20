@@ -13,6 +13,7 @@ import { DashboardStats } from '@/components/dashboard-stats'
 import { SessionActivityChart } from '@/components/session-activity-chart'
 import { TrackStatsChart } from '@/components/track-stats-chart'
 import { ActiveSessionsList } from '@/components/active-sessions-list'
+import { TeamMembersCard } from '@/components/team-members-card'
 import { useSpaceDashboard } from '@/hooks/api/use-space-dashboard'
 
 export const Route = createFileRoute('/space/$slug/')({
@@ -26,6 +27,7 @@ function SpaceHome() {
   const [openSections, setOpenSections] = useLocalStorage('space-sections', {
     stats: true,
     activeSessions: true,
+    teamMembers: true,
     sessionActivity: true,
     trackStats: true
   })
@@ -79,8 +81,8 @@ function SpaceHome() {
         </CollapsibleContent>
       </Collapsible>
 
-      {/* Active Sessions and Track Statistics Row */}
-      <div className="grid grid-cols-1 gap-4">
+      {/* Active Sessions and Team Members Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Active Sessions Widget */}
         <Collapsible
           open={openSections.activeSessions}
@@ -97,6 +99,25 @@ function SpaceHome() {
           </div>
           <CollapsibleContent>
             <ActiveSessionsList sessions={spaceActiveSessions || []} />
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Team Members Widget */}
+        <Collapsible
+          open={openSections.teamMembers}
+          onOpenChange={(open) => setOpenSections(prev => ({ ...prev, teamMembers: open }))}
+          className="space-y-2"
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Team Members</h3>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-8 h-8 p-0">
+                <ChevronDown className={cn("h-4 w-4 transition-transform", openSections.teamMembers && "rotate-180")} />
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent>
+            <TeamMembersCard slug={slug} />
           </CollapsibleContent>
         </Collapsible>
       </div>

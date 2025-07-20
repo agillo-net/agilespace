@@ -580,3 +580,45 @@ export async function getCurrentMemberStatus() {
 
   return data;
 }
+
+export async function getMemberSessionAggregations(
+  spaceId: string,
+  startDate: string,
+  endDate: string
+): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from("sessions")
+    .select(
+      `
+      space_member_id,
+      started_at,
+      ended_at,
+      space_member:space_members!inner(*)
+    `
+    )
+    .eq("space_members.space_id", spaceId)
+    .not("ended_at", "is", null)
+    .gte("started_at", startDate)
+    .lte("ended_at", endDate);
+
+  if (error) throw new Error(error.message);
+  if (!data) return {};
+
+  // Aggregate session durations by space_member_id
+  const aggregations = data.reduce(
+    (acc, session) => {
+      const memberId = session.space_member_id;
+      if (!memberId) return acc;
+
+      const start = new Date(session.started_at).getTime();
+      const end = new Date(session.ended_at!).getTime();
+      const duration = end - start;
+
+      acc[memberId] = (acc[memberId] || 0) + duration;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+
+  return aggregations;
+}

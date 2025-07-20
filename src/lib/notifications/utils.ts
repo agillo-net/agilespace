@@ -1,10 +1,21 @@
 import { sendGoogleChatNotification } from './webhook'
+import { formatTime } from '@/lib/utils'
 import type { User } from '@supabase/supabase-js'
 
 export type StatusUpdate = {
     status: string
     location: string
 }
+
+export type SessionEvent = {
+    type: 'start' | 'end'
+    trackTitle: string
+    duration?: number
+}
+
+export type NotificationEvent = 
+    | { type: 'status_update'; data: StatusUpdate }
+    | { type: 'session_event'; data: SessionEvent }
 
 export function formatStatusMessage(user: User | null, update: StatusUpdate): string {
     if (!user?.user_metadata?.full_name) {
@@ -22,11 +33,47 @@ export function formatStatusMessage(user: User | null, update: StatusUpdate): st
     return `*${full_name}* is now ${status} and ${location}`
 }
 
-export async function notifyStatusUpdate(user: User | null, update: StatusUpdate) {
+export function formatSessionMessage(user: User | null, event: SessionEvent): string {
+    if (!user?.user_metadata?.full_name) {
+        return 'Unknown user session activity'
+    }
+
+    const full_name = user.user_metadata.full_name.trim()
+    const trackTitle = event.trackTitle.length > 50 ? `${event.trackTitle.substring(0, 50)}...` : event.trackTitle
+
+    if (event.type === 'start') {
+        return `*${full_name}* started working on: ${trackTitle}`
+    } else {
+        const durationText = event.duration ? ` (${formatTime(event.duration)})` : ''
+        return `*${full_name}* finished working on: ${trackTitle}${durationText}`
+    }
+}
+
+export async function sendNotification(user: User | null, event: NotificationEvent) {
     try {
-        const message = formatStatusMessage(user, update)
+        let message: string
+        
+        switch (event.type) {
+            case 'status_update':
+                message = formatStatusMessage(user, event.data)
+                break
+            case 'session_event':
+                message = formatSessionMessage(user, event.data)
+                break
+            default:
+                throw new Error('Unknown notification event type')
+        }
+        
         await sendGoogleChatNotification(message)
     } catch (error) {
-        console.error('Failed to send status update notification:', error)
+        console.error('Failed to send notification:', error)
     }
+}
+
+export async function notifyStatusUpdate(user: User | null, update: StatusUpdate) {
+    await sendNotification(user, { type: 'status_update', data: update })
+}
+
+export async function notifySessionEvent(user: User | null, event: SessionEvent) {
+    await sendNotification(user, { type: 'session_event', data: event })
 } 

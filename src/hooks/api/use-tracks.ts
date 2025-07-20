@@ -1,11 +1,9 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createTrack, createSession } from "@/lib/supabase/mutations";
+import { useQuery } from "@tanstack/react-query";
 import { getSpaceAndTracks } from "@/lib/supabase/queries";
 import { searchIssues } from "@/lib/github/queries";
 import type { GitHubIssue } from "@/types";
 import { useDebounce } from "@/hooks/use-debounce";
-import { toast } from "sonner";
 import { DEBOUNCE_TIME } from "@/constants";
 
 export function useTracks(slug: string) {
@@ -14,7 +12,6 @@ export function useTracks(slug: string) {
     searchQuery,
     DEBOUNCE_TIME
   );
-  const queryClient = useQueryClient();
 
   const { data: spaceData, isLoading } = useQuery({
     queryKey: ["space", slug],
@@ -32,35 +29,6 @@ export function useTracks(slug: string) {
     retry: false,
   });
 
-  const createTrackMutation = useMutation({
-    mutationFn: async (issue: GitHubIssue) => {
-      if (!spaceData?.space || !issue.repository) return;
-      if (!spaceData.space_member) throw new Error("space_member is null");
-
-      const track = await createTrack({
-        space_id: spaceData.space.id,
-        repo_owner: issue.repository.owner || "",
-        repo_name: issue.repository.name || "",
-        issue_number: issue.number,
-        title: issue.title,
-      });
-
-      await createSession({
-        track_id: track.id,
-        space_member_id: spaceData.space_member.id,
-      });
-
-      return track;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["space", slug] });
-      setSearchQuery("");
-      toast.success("Track created and session started");
-    },
-    onError: (error) => {
-      toast.error(`Failed to create track: ${error.message}`);
-    },
-  });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,7 +54,6 @@ export function useTracks(slug: string) {
     isSearching,
     searchError,
     tracks: spaceData?.tracks || [],
-    createTrackMutation,
     handleSearch,
     isTracked,
   };

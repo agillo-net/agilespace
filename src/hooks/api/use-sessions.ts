@@ -20,6 +20,8 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { toast } from "sonner";
 import { formatSessionComment, formatTime } from "@/lib/utils";
 import { DEBOUNCE_TIME } from "@/constants";
+import { notifySessionEvent } from "@/lib/notifications/utils";
+import { useAuth } from "@/hooks/api/use-auth";
 import type { GitHubIssue, Tag } from "@/types";
 
 export function useSessions(slug: string) {
@@ -38,6 +40,7 @@ export function useSessions(slug: string) {
   const [timeFilter, setTimeFilter] = useState<"all" | "day" | "week">("all");
   const [sessionLimit, setSessionLimit] = useState<number>(10);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data: spaceData, isLoading: isLoadingSpace } = useQuery({
     queryKey: ["space", slug],
@@ -109,6 +112,15 @@ export function useSessions(slug: string) {
       for (const tag of selectedTags) {
         await linkTagToSession(sessionId, tag.id);
       }
+      
+      // Send notification
+      if (user) {
+        await notifySessionEvent(user, {
+          type: 'end',
+          trackTitle: activeSession.track.title || 'Untitled Track',
+          duration: duration,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["activeSession", slug] });
@@ -149,10 +161,23 @@ export function useSessions(slug: string) {
   const startSessionMutation = useMutation({
     mutationFn: async (trackId: string) => {
       if (!spaceData?.space_member) return;
-      await createSession({
+      const session = await createSession({
         track_id: trackId,
         space_member_id: spaceData.space_member.id,
       });
+      
+      // Send notification
+      if (user && spaceData?.tracks) {
+        const track = spaceData.tracks.find(t => t.id === trackId);
+        if (track) {
+          await notifySessionEvent(user, {
+            type: 'start',
+            trackTitle: track.title || 'Untitled Track',
+          });
+        }
+      }
+      
+      return session;
     },
     onSuccess: () => {
       setSearchQuery("");
@@ -193,6 +218,14 @@ export function useSessions(slug: string) {
         track_id: track.id,
         space_member_id: spaceData.space_member.id,
       });
+
+      // Send notification
+      if (user && track) {
+        await notifySessionEvent(user, {
+          type: 'start',
+          trackTitle: track.title || 'Untitled Track',
+        });
+      }
 
       return track;
     },

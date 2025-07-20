@@ -2,12 +2,20 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getSpaceMembersWithProfiles,
   getActiveSession,
+  getMemberSessionAggregations,
+  getSpaceBySlug,
 } from "@/lib/supabase/queries";
+import { getDateRangeForFilter } from "@/lib/utils";
 
-export function useSpaceMembers(slug: string) {
+export function useSpaceMembers(slug: string, timeFilter: "today" | "week" | "month" = "today") {
   const { data: members, isLoading } = useQuery({
     queryKey: ["getSpaceMembers", slug],
     queryFn: () => getSpaceMembersWithProfiles(slug),
+  });
+
+  const { data: space } = useQuery({
+    queryKey: ["getSpace", slug],
+    queryFn: () => getSpaceBySlug(slug),
   });
 
   const { data: activeSessions } = useQuery({
@@ -19,7 +27,7 @@ export function useSpaceMembers(slug: string) {
           try {
             if (!member.user_id) return null;
             return await getActiveSession(member.user_id);
-          } catch (error) {
+          } catch {
             // It's better to return null and filter later than to throw
             return null;
           }
@@ -30,9 +38,27 @@ export function useSpaceMembers(slug: string) {
     enabled: !!members,
   });
 
+  const { data: timeAggregations } = useQuery({
+    queryKey: ["memberTimeAggregations", slug, timeFilter, space?.id],
+    queryFn: async () => {
+      if (!space?.id) return {};
+      const { startDate, endDate } = getDateRangeForFilter(timeFilter);
+      return await getMemberSessionAggregations(space.id, startDate, endDate);
+    },
+    enabled: !!space?.id,
+  });
+
+  // Combine members with their time aggregations
+  const membersWithTime = members?.map(({ member, profile }) => ({
+    member,
+    profile,
+    timeWorked: timeAggregations?.[member.id] || 0,
+  }));
+
   return {
-    members,
+    members: membersWithTime,
     isLoading,
     activeSessions,
+    timeAggregations,
   };
 }

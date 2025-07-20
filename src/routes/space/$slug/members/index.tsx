@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
     Table,
@@ -8,9 +9,16 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { MembersListSkeleton } from '@/components/skeleton/members-list-skeleton'
 import { Badge } from '@/components/ui/badge'
-import { getGitHubIssueUrl, getSessionDuration } from '@/lib/utils'
+import { getGitHubIssueUrl, getSessionDuration, formatTime } from '@/lib/utils'
 import { useSpaceMembers } from '@/hooks/api/use-space-members'
 
 export const Route = createFileRoute('/space/$slug/members/')({
@@ -19,8 +27,9 @@ export const Route = createFileRoute('/space/$slug/members/')({
 
 function MembersPage() {
     const { slug } = Route.useParams()
+    const [timeFilter, setTimeFilter] = useState<"today" | "week" | "month">("today")
     const showDuration = false // Control visibility of duration display
-    const { members, isLoading, activeSessions } = useSpaceMembers(slug);
+    const { members, isLoading, activeSessions } = useSpaceMembers(slug, timeFilter);
 
     if (isLoading) {
         return (
@@ -30,7 +39,22 @@ function MembersPage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Members</h1>
+            <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold">Members</h1>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Time Period:</span>
+                    <Select value={timeFilter} onValueChange={(value: "today" | "week" | "month") => setTimeFilter(value)}>
+                        <SelectTrigger className="w-32">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="today">Today</SelectItem>
+                            <SelectItem value="week">Week</SelectItem>
+                            <SelectItem value="month">Month</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
             <div className="rounded-md border">
                 <Table>
                     <TableHeader>
@@ -38,11 +62,12 @@ function MembersPage() {
                             <TableHead>Member</TableHead>
                             <TableHead>Role</TableHead>
                             <TableHead>Joined</TableHead>
+                            <TableHead>Time Worked</TableHead>
                             <TableHead>Active Ticket</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {members && members.map(({ member, profile }) => {
+                        {members && members.map(({ member, profile, timeWorked }) => {
                             const name = profile.full_name || 'Unknown'
                             const joinedDate = member.joined_at ? new Date(member.joined_at).toLocaleString() : 'N/A'
                             const avatarUrl = profile.avatar_url || 'https://www.gravatar.com/avatar/' + btoa(name.trim().toLowerCase())
@@ -65,6 +90,11 @@ function MembersPage() {
                                     </TableCell>
                                     <TableCell className="capitalize">{member.role}</TableCell>
                                     <TableCell>{joinedDate}</TableCell>
+                                    <TableCell>
+                                        <span className="font-medium">
+                                            {timeWorked > 0 ? formatTime(timeWorked) : '0h 0m'}
+                                        </span>
+                                    </TableCell>
                                     <TableCell>
                                         {activeSession ? (
                                             <div className={showDuration ? "flex flex-col gap-1" : "flex items-center gap-2"}>

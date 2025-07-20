@@ -4,7 +4,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 export function MembersListSkeleton() {
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Members</h1>
+            <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold">Members</h1>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Time Period:</span>
+                    <Skeleton className="h-8 w-32" />
+                </div>
+            </div>
             <div className="rounded-md border">
                 <Table>
                     <TableHeader>
@@ -12,7 +18,8 @@ export function MembersListSkeleton() {
                             <TableHead>Member</TableHead>
                             <TableHead>Role</TableHead>
                             <TableHead>Joined</TableHead>
-                            <TableHead>Last Active</TableHead>
+                            <TableHead>Time Worked</TableHead>
+                            <TableHead>Active Ticket</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -26,6 +33,7 @@ export function MembersListSkeleton() {
                                 </TableCell>
                                 <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
                                 <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
                                 <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
                             </TableRow>
                         ))}

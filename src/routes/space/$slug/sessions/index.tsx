@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { getSpaceAndTracks } from '@/lib/supabase/queries'
 import { EndSessionDialog } from '@/components/end-session-dialog'
 import { DiscardSessionDialog } from '@/components/discard-session-dialog'
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import React from 'react'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { useAuth } from '@/hooks/api/use-auth'
@@ -17,6 +18,9 @@ import { SearchResultsList } from '@/components/search-results-list'
 
 export const Route = createFileRoute('/space/$slug/sessions/')({
     component: SessionsPage,
+    validateSearch: (search: Record<string, unknown>) => ({
+        track: (search.track as string) || null
+    }),
     loader: async ({ params: { slug } }) => {
         return getSpaceAndTracks(slug)
     }
@@ -24,6 +28,8 @@ export const Route = createFileRoute('/space/$slug/sessions/')({
 
 function SessionsPage() {
     const { slug } = Route.useParams()
+    const search = Route.useSearch()
+    const navigate = useNavigate()
     const { user } = useAuth()
     const {
         searchQuery,
@@ -40,6 +46,8 @@ function SessionsPage() {
         setTimeFilter,
         sessionLimit,
         setSessionLimit,
+        selectedTrack,
+        setSelectedTrack,
         spaceData,
         isLoadingSpace,
         closedSessions,
@@ -60,7 +68,7 @@ function SessionsPage() {
         getTotalDuration,
         isCurrentSessionTrack,
         startSessionMutation
-    } = useSessions(slug)
+    } = useSessions(slug, search.track)
 
     const filteredAndSortedSessions = React.useMemo(() => {
         if (!closedSessions) return []
@@ -80,9 +88,14 @@ function SessionsPage() {
             filtered = filtered.filter(s => s.space_member?.user_id && selectedMembers.includes(s.space_member.user_id))
         }
 
+        // Filter by track
+        if (selectedTrack) {
+            filtered = filtered.filter(s => s.track?.id === selectedTrack)
+        }
+
         // Sort by ended_at
         return filtered.sort((a, b) => new Date(b.ended_at!).getTime() - new Date(a.ended_at!).getTime())
-    }, [closedSessions, timeFilter, selectedMembers])
+    }, [closedSessions, timeFilter, selectedMembers, selectedTrack])
 
     // Get unique members from all sessions for the filter dropdown
     const uniqueMembers = React.useMemo(() => {
@@ -118,6 +131,26 @@ function SessionsPage() {
             )
         }))
     }, [uniqueMembers, user?.id])
+
+    // Prepare track options for SearchableSelect
+    const trackOptions = React.useMemo(() => {
+        return (spaceData?.tracks || []).map(track => ({
+            value: track.id,
+            label: track.title || 'Untitled',
+            subtitle: `${track.repo_owner}/${track.repo_name} #${track.issue_number}`
+        }))
+    }, [spaceData?.tracks])
+
+    // Handle track filter changes with URL navigation
+    const handleTrackFilterChange = (trackId: string | null) => {
+        setSelectedTrack(trackId)
+        navigate({
+            to: '/space/$slug/sessions',
+            params: { slug },
+            search: { track: trackId },
+            replace: true
+        })
+    }
 
     if (isLoadingSpace || isLoadingSessions) {
         return (
@@ -180,7 +213,19 @@ function SessionsPage() {
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold">Completed Sessions</h2>
                     <div className="flex items-center gap-4">
-                        <div className="flex-1 min-w-[200px]">
+                        <div className="min-w-[200px]">
+                            <Label htmlFor="track-filter" className="sr-only">Track</Label>
+                            <SearchableSelect
+                                options={trackOptions}
+                                value={selectedTrack}
+                                onValueChange={handleTrackFilterChange}
+                                placeholder="Select track"
+                                searchPlaceholder="Search tracks..."
+                                clearText="All tracks"
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="min-w-[200px]">
                             <Label htmlFor="member-filter" className="sr-only">Member</Label>
                             <MultiSelect
                                 options={memberOptions}

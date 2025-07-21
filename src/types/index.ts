@@ -41,3 +41,13 @@ export type ActiveSession = Session & {
     profile: Pick<Profile, "id" | "full_name" | "avatar_url"> | null;
   };
 };
+
+export type TrackWithSessionData = Track & {
+  totalTime: number;
+  participants: {
+    id: string;
+    name: string;
+    avatar_url: string;
+  }[];
+  sessionCount: number;
+};

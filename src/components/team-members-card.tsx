@@ -96,8 +96,15 @@ export function TeamMembersCard({ slug }: TeamMembersCardProps) {
             // Find active session for this member
             const activeSession = activeSessions?.find(session => session?.space_member.user_id === member.user_id)
             
-            // Calculate progress percentage
-            const progressPercentage = Math.min((timeWorked / goal) * 100, 200) // Cap at 200% for visual purposes
+            // Calculate active session duration if applicable
+            const activeSessionTime = activeSession 
+              ? Date.now() - new Date(activeSession.started_at).getTime()
+              : 0
+            
+            // Calculate progress percentages
+            const completedProgressPercentage = Math.min((timeWorked / goal) * 100, 200) // Cap at 200% for visual purposes
+            const activeSessionProgressPercentage = Math.min((activeSessionTime / goal) * 100, 200)
+            const totalProgressPercentage = Math.min(((timeWorked + activeSessionTime) / goal) * 100, 200)
 
             return (
               <div key={member.id} className="flex items-center gap-3">
@@ -122,19 +129,33 @@ export function TeamMembersCard({ slug }: TeamMembersCardProps) {
                       )}
                       <span className="text-xs text-muted-foreground">
                         {timeWorked > 0 ? formatTime(timeWorked) : '0h 0m'}
+                        {activeSessionTime > 0 && (
+                          <span className="text-blue-600 ml-1">
+                            (+{formatTime(activeSessionTime)})
+                          </span>
+                        )}
                       </span>
                     </div>
                   </div>
                   
                   <div className="relative">
                     <Progress 
-                      value={Math.min(progressPercentage, 100)} 
+                      value={Math.min(completedProgressPercentage, 100)} 
                       className="h-2"
                     />
-                    {progressPercentage > 100 && (
+                    {activeSessionTime > 0 && (
+                      <div 
+                        className="absolute top-0 h-2 rounded-full bg-blue-400 opacity-60"
+                        style={{ 
+                          left: `${Math.min(completedProgressPercentage, 100)}%`,
+                          width: `${Math.min(activeSessionProgressPercentage, 100 - Math.min(completedProgressPercentage, 100))}%`
+                        }}
+                      />
+                    )}
+                    {totalProgressPercentage > 100 && (
                       <div 
                         className="absolute top-0 left-0 h-2 rounded-full bg-red-500 opacity-60"
-                        style={{ width: `${Math.min((progressPercentage - 100), 100)}%` }}
+                        style={{ width: `${Math.min((totalProgressPercentage - 100), 100)}%` }}
                       />
                     )}
                   </div>

@@ -24,7 +24,7 @@ import { notifySessionEvent } from "@/lib/notifications/utils";
 import { useAuth } from "@/hooks/api/use-auth";
 import type { GitHubIssue, Tag } from "@/types";
 
-export function useSessions(slug: string) {
+export function useSessions(slug: string, initialTrackFilter?: string | null) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useDebounce(
     searchQuery,
@@ -39,6 +39,7 @@ export function useSessions(slug: string) {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [timeFilter, setTimeFilter] = useState<"all" | "day" | "week">("all");
   const [sessionLimit, setSessionLimit] = useState<number>(10);
+  const [selectedTrack, setSelectedTrack] = useState<string | null>(initialTrackFilter || null);
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -313,6 +314,8 @@ export function useSessions(slug: string) {
     setTimeFilter,
     sessionLimit,
     setSessionLimit,
+    selectedTrack,
+    setSelectedTrack,
     spaceData,
     isLoadingSpace,
     closedSessions,

@@ -622,3 +622,86 @@ export async function getMemberSessionAggregations(
 
   return aggregations;
 }
+
+export async function getTracksWithSessionData(spaceId: string) {
+  // Get all tracks for the space
+  const { data: tracks, error: tracksError } = await supabase
+    .from("tracks")
+    .select("*")
+    .eq("space_id", spaceId);
+
+  if (tracksError) throw new Error(tracksError.message);
+  if (!tracks || tracks.length === 0) return [];
+
+  // Get all sessions for these tracks with member and profile data
+  const trackIds = tracks.map(track => track.id);
+  const { data: sessions, error: sessionsError } = await supabase
+    .from("sessions")
+    .select(`
+      *,
+      space_member:space_members!inner(*),
+      track:tracks!inner(*)
+    `)
+    .in("track_id", trackIds)
+    .not("ended_at", "is", null);
+
+  if (sessionsError) throw new Error(sessionsError.message);
+
+  // Get unique user IDs from sessions
+  const uniqueUserIds = [
+    ...new Set(
+      (sessions || [])
+        .map((session) => session.space_member?.user_id)
+        .filter((id): id is string => id !== null)
+    ),
+  ];
+
+  // Fetch profiles for all unique users
+  const { data: profiles, error: profilesError } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url")
+    .in("id", uniqueUserIds);
+
+  if (profilesError) throw new Error(profilesError.message);
+
+  // Create a map of user IDs to profiles for quick lookup
+  const profileMap = new Map(
+    (profiles || []).map((profile) => [profile.id, profile])
+  );
+
+  // Process each track with its session data
+  return tracks.map((track) => {
+    const trackSessions = (sessions || []).filter(session => session.track_id === track.id);
+    
+    // Calculate total time
+    const totalTime = trackSessions.reduce((total, session) => {
+      if (!session.ended_at) return total;
+      const start = new Date(session.started_at).getTime();
+      const end = new Date(session.ended_at).getTime();
+      return total + (end - start);
+    }, 0);
+
+    // Get unique participants
+    const participantIds = [...new Set(
+      trackSessions
+        .map(session => session.space_member?.user_id)
+        .filter((id): id is string => id !== null)
+    )];
+
+    const participants = participantIds.map(userId => {
+      const profile = profileMap.get(userId);
+      return {
+        id: userId,
+        name: profile?.full_name || 'Unknown',
+        avatar_url: profile?.avatar_url || `https://www.gravatar.com/avatar/${btoa((profile?.full_name || 'Unknown').trim().toLowerCase())}`
+      };
+    });
+
+    return {
+      ...track,
+      totalTime,
+      participants,
+      sessionCount: trackSessions.length
+    };
+  });
+}

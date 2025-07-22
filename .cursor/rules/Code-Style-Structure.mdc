@@ -1,0 +1,360 @@
+---
+alwaysApply: true
+---
+
+# Code Style & Structure for AgileSpace
+
+## Code Style Standards
+
+### Formatting
+
+- 2-space indentation
+- Single quotes (except to avoid escaping)
+- No semicolons (unless disambiguation requires)
+- No unused variables
+- Space after keywords (if (...))
+- Space before function's (
+- Always use === / !==
+- Operators spaced (a + b)
+- Commas followed by space
+- else on same line as closing }
+- Multi-line if blocks always use { }
+
+```tsx
+// ✅ Good - Proper formatting
+function formatDuration(startTime: string, endTime?: string): string {
+  if (!endTime) {
+    return "In progress";
+  }
+
+  const duration = new Date(endTime).getTime() - new Date(startTime).getTime();
+  const minutes = Math.floor(duration / 1000 / 60);
+
+  return `${minutes} minutes`;
+}
+
+// ✅ Good - Proper spacing
+const isActive = session.status === "active";
+const totalTime = startTime + endTime;
+const sessionData = {
+  id: sessionId,
+  title: sessionTitle,
+  description: sessionDescription,
+};
+```
+
+### Naming Conventions
+
+- camelCase for variables/functions
+- PascalCase for components and interfaces
+- Use descriptive names with auxiliary verbs (e.g., isLoading, hasError)
+- Prefix boolean variables with is/has/can/should
+
+```tsx
+// ✅ Good - Descriptive naming
+const isLoading = query.isLoading;
+const hasError = query.error !== null;
+const canEdit = user.permissions.includes("edit");
+const shouldShowTimer = session.status === "active";
+
+// ✅ Good - Component naming
+interface SessionCardProps {
+  session: Session;
+  onEndSession: (sessionId: string) => void;
+}
+
+export function SessionCard({ session, onEndSession }: SessionCardProps) {
+  // Component implementation
+}
+```
+
+## File Structure
+
+### Component Files
+
+- One component per file
+- Export the main component as default or named export
+- File layout: exported component → subcomponents → hooks/helpers → static content
+
+```tsx
+// ✅ Good - Component file structure
+// 1. Imports
+import { useState, useCallback } from "react";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useSessionsApi } from "@/hooks/api/use-sessions";
+
+// 2. Types
+interface SessionCardProps {
+  session: Session;
+  onEndSession?: (sessionId: string) => void;
+}
+
+// 3. Main component
+export function SessionCard({ session, onEndSession }: SessionCardProps) {
+  // Component implementation
+}
+
+// 4. Subcomponents (if any)
+function SessionTimer({ sessionId }: { sessionId: string }) {
+  // Timer implementation
+}
+
+// 5. Helper functions
+function formatDuration(startTime: string, endTime?: string): string {
+  // Formatting logic
+}
+
+// 6. Constants
+const TIMER_UPDATE_INTERVAL = 1000;
+```
+
+### Hook Files
+
+- Use `use-*` prefix for custom hooks
+- Use `use-*-api` prefix for data fetching hooks
+- Export hooks as named exports
+- Group related hooks in the same file
+
+```tsx
+// ✅ Good - Hook file structure
+// hooks/use-sessions.ts
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase/client";
+
+export function useSessionsApi(spaceId: string) {
+  return useQuery({
+    queryKey: ["sessions", spaceId],
+    queryFn: () => getSessions(spaceId),
+  });
+}
+
+export function useCreateSessionApi() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createSession,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+    },
+  });
+}
+
+// Helper functions
+async function getSessions(spaceId: string): Promise<Session[]> {
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("space_id", spaceId);
+
+  if (error) throw error;
+  return data;
+}
+```
+
+## Functional Patterns
+
+### Functional Programming
+
+- Use functional, declarative patterns
+- Avoid classes (use functional components)
+- Favor pure functions
+- Use array methods over loops when possible
+
+```tsx
+// ✅ Good - Functional patterns
+const activeSessions = sessions.filter((session) => !session.end_time);
+const sessionDurations = sessions.map((session) => ({
+  id: session.id,
+  duration: calculateDuration(session.start_time, session.end_time),
+}));
+
+const totalDuration = sessionDurations.reduce(
+  (total, session) => total + session.duration,
+  0
+);
+
+// ✅ Good - Pure functions
+function calculateDuration(startTime: string, endTime?: string): number {
+  if (!endTime) return 0;
+  return new Date(endTime).getTime() - new Date(startTime).getTime();
+}
+```
+
+### Helper Functions
+
+- Extract reusable logic into helper functions
+- Keep functions small and focused
+- Use descriptive function names
+- Group related functions in utility files
+
+```tsx
+// ✅ Good - Helper functions
+// lib/utils.ts
+export function cn(...classes: (string | undefined | null | false)[]): string {
+  return classes.filter(Boolean).join(" ");
+}
+
+export function formatDate(date: string | Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(date));
+}
+
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+```
+
+## Error Handling
+
+### Guard Clauses
+
+- Validate inputs and preconditions early
+- Use guard clauses for error handling
+- Place happy-path logic last
+
+```tsx
+// ✅ Good - Guard clauses
+function processSession(session: Session | null): string {
+  if (!session) {
+    return "No session provided";
+  }
+
+  if (!session.title) {
+    return "Session has no title";
+  }
+
+  if (
+    session.end_time &&
+    new Date(session.end_time) < new Date(session.start_time)
+  ) {
+    return "Invalid session duration";
+  }
+
+  // Happy path
+  return `Session: ${session.title}`;
+}
+```
+
+### Error Boundaries
+
+- Implement error boundaries for component error handling
+- Provide clear, user-friendly error messages
+- Log or report unexpected errors
+
+```tsx
+// ✅ Good - Error boundary
+export function ErrorBoundary({ children }: { children: React.ReactNode }) {
+  return (
+    <ErrorBoundary
+      fallback={({ error, resetErrorBoundary }) => (
+        <div className="p-4 border border-red-200 rounded-lg bg-red-50">
+          <h2 className="text-lg font-semibold text-red-800">
+            Something went wrong
+          </h2>
+          <p className="text-red-600 mt-2">{error.message}</p>
+          <Button onClick={resetErrorBoundary} className="mt-4">
+            Try again
+          </Button>
+        </div>
+      )}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+```
+
+## Code Organization
+
+### Import Organization
+
+- Group imports by type and source
+- Use absolute imports for project files
+- Use relative imports for closely related files
+
+```tsx
+// ✅ Good - Import organization
+// 1. React and external libraries
+import { useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+
+// 2. UI components
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+
+// 3. Custom hooks
+import { useSessionsApi } from "@/hooks/api/use-sessions";
+
+// 4. Utilities and types
+import { cn, formatDate } from "@/lib/utils";
+import type { Session } from "@/types";
+
+// 5. Relative imports (if any)
+import { SessionTimer } from "./session-timer";
+```
+
+### File Naming
+
+- Use kebab-case for file names
+- Use descriptive names that indicate purpose
+- Group related files in directories
+
+```
+src/
+├── components/
+│   ├── session-card.tsx
+│   ├── session-timer.tsx
+│   └── session-list.tsx
+├── hooks/
+│   ├── use-sessions.ts
+│   ├── use-sessions-api.ts
+│   └── use-session-timer.ts
+└── lib/
+    ├── supabase/
+    │   ├── client.ts
+    │   ├── queries.ts
+    │   └── mutations.ts
+    └── utils.ts
+```
+
+## Performance Considerations
+
+### Code Splitting
+
+- Use React.lazy for route-based code splitting
+- Split large components into smaller pieces
+- Use dynamic imports for heavy dependencies
+
+```tsx
+// ✅ Good - Code splitting
+const SessionChart = lazy(() => import("./session-chart"));
+const SessionReport = lazy(() => import("./session-report"));
+
+// ✅ Good - Dynamic imports
+const heavyLibrary = await import("heavy-charting-library");
+```
+
+### Bundle Optimization
+
+- Structure modules for effective tree-shaking
+- Avoid importing entire libraries
+- Use named imports when possible
+
+```tsx
+// ✅ Good - Named imports
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+
+// ❌ Avoid - Importing entire library
+import * as UI from "@/components/ui";
+```

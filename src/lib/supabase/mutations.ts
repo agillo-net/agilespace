@@ -211,10 +211,26 @@ export async function deleteSession(sessionId: string) {
   if (error) throw new Error(error.message);
 }
 
-export async function createTag(spaceId: string, name: string, color?: string) {
+export async function createTag(
+  spaceId: string,
+  name: string,
+  color?: string,
+  parentId?: string,
+  tagType: "category" | "subcategory" = "subcategory",
+  sortOrder: number = 0,
+  isSystem: boolean = false
+) {
   const { data, error } = await supabase
     .from("tags")
-    .insert({ space_id: spaceId, name, color })
+    .insert({
+      space_id: spaceId,
+      name,
+      color,
+      parent_id: parentId,
+      tag_type: tagType,
+      sort_order: sortOrder,
+      is_system: isSystem,
+    })
     .select()
     .single();
 
@@ -222,9 +238,50 @@ export async function createTag(spaceId: string, name: string, color?: string) {
   return data as Tag;
 }
 
+// Create a category tag
+export async function createCategoryTag(
+  spaceId: string,
+  name: string,
+  color: string,
+  sortOrder: number = 0,
+  isSystem: boolean = false
+) {
+  return createTag(
+    spaceId,
+    name,
+    color,
+    undefined,
+    "category",
+    sortOrder,
+    isSystem
+  );
+}
+
+// Create a subcategory tag
+export async function createSubcategoryTag(
+  spaceId: string,
+  name: string,
+  color: string,
+  parentId: string,
+  sortOrder: number = 0,
+  isSystem: boolean = false
+) {
+  return createTag(
+    spaceId,
+    name,
+    color,
+    parentId,
+    "subcategory",
+    sortOrder,
+    isSystem
+  );
+}
+
 export async function updateTag(
   id: string,
-  updates: Partial<Pick<Tag, "name" | "color">>
+  updates: Partial<
+    Pick<Tag, "name" | "color" | "parent_id" | "tag_type" | "sort_order">
+  >
 ) {
   const { data, error } = await supabase
     .from("tags")
@@ -235,6 +292,44 @@ export async function updateTag(
 
   if (error) throw error;
   return data as Tag;
+}
+
+// Seed predefined issue types for a space
+export async function seedIssueTypes(spaceId: string) {
+  const { ISSUE_TYPE_HIERARCHY } = await import("@/constants/issue-types");
+
+  const createdTags: Tag[] = [];
+
+  // Create categories first
+  let categoryOrder = 0;
+  for (const categoryData of Object.values(ISSUE_TYPE_HIERARCHY)) {
+    const category = await createCategoryTag(
+      spaceId,
+      categoryData.name,
+      categoryData.color,
+      categoryOrder,
+      true // is_system
+    );
+    createdTags.push(category);
+
+    // Create subcategories
+    let subcategoryOrder = 0;
+    for (const subcategory of categoryData.children) {
+      const subcategoryTag = await createSubcategoryTag(
+        spaceId,
+        subcategory.name,
+        subcategory.color,
+        category.id,
+        subcategoryOrder,
+        true // is_system
+      );
+      createdTags.push(subcategoryTag);
+      subcategoryOrder++;
+    }
+    categoryOrder++;
+  }
+
+  return createdTags;
 }
 
 export async function deleteTag(id: string) {

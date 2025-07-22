@@ -488,6 +488,55 @@ export async function getTags(spaceId: string) {
     .from("tags")
     .select("*")
     .eq("space_id", spaceId)
+    .order("sort_order", { ascending: true })
+    .order("name");
+
+  if (error) throw error;
+  return data || [];
+}
+
+// Get hierarchical tags with parent-child relationships
+export async function getHierarchicalTags(spaceId: string) {
+  const { data, error } = await supabase
+    .from("tags")
+    .select(
+      `
+      *,
+      parent:parent_id(*),
+      children:tags!parent_id(*)
+    `
+    )
+    .eq("space_id", spaceId)
+    .order("sort_order", { ascending: true })
+    .order("name");
+
+  if (error) throw error;
+  return data || [];
+}
+
+// Get only category tags (parent tags)
+export async function getCategoryTags(spaceId: string) {
+  const { data, error } = await supabase
+    .from("tags")
+    .select("*")
+    .eq("space_id", spaceId)
+    .eq("tag_type", "category")
+    .order("sort_order", { ascending: true })
+    .order("name");
+
+  if (error) throw error;
+  return data || [];
+}
+
+// Get subcategory tags for a specific category
+export async function getSubcategoryTags(spaceId: string, parentId: string) {
+  const { data, error } = await supabase
+    .from("tags")
+    .select("*")
+    .eq("space_id", spaceId)
+    .eq("parent_id", parentId)
+    .eq("tag_type", "subcategory")
+    .order("sort_order", { ascending: true })
     .order("name");
 
   if (error) throw error;

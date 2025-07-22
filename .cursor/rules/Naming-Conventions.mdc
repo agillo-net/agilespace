@@ -1,0 +1,553 @@
+---
+alwaysApply: true
+---
+
+# Naming Conventions for AgileSpace
+
+## File and Directory Naming
+
+### File Extensions
+
+- **Components**: Use `.tsx` extension
+- **Hooks/Utils**: Use `.ts` extension
+- **Type definitions**: Use `.ts` extension
+- **Test files**: Use `.test.ts` or `.test.tsx` extension
+
+### Directory Structure
+
+- Use kebab-case for directory names
+- Group related files in descriptive directories
+- Use lowercase with dashes (e.g., `components/auth-wizard`)
+
+```tsx
+// ✅ Good - File organization
+src/
+├── components/
+│   ├── session-card.tsx
+│   ├── session-timer.tsx
+│   ├── session-list.tsx
+│   └── ui/
+│       ├── button.tsx
+│       ├── card.tsx
+│       └── dialog.tsx
+├── hooks/
+│   ├── use-sessions.ts
+│   ├── use-sessions-api.ts
+│   └── use-session-timer.ts
+├── lib/
+│   ├── supabase/
+│   │   ├── client.ts
+│   │   ├── queries.ts
+│   │   └── mutations.ts
+│   └── utils.ts
+└── types/
+    ├── index.ts
+    └── database.types.ts
+```
+
+## Component Naming
+
+### Component Files
+
+- Use PascalCase for component file names
+- Match the component name to the file name
+- Use descriptive, purpose-indicating names
+
+```tsx
+// ✅ Good - Component file naming
+// session-card.tsx
+export function SessionCard({ session }: SessionCardProps) {
+  // Component implementation
+}
+
+// session-timer.tsx
+export function SessionTimer({ sessionId }: SessionTimerProps) {
+  // Component implementation
+}
+
+// space-sidebar.tsx
+export function SpaceSidebar({ space }: SpaceSidebarProps) {
+  // Component implementation
+}
+```
+
+### Component Exports
+
+- Prefer named exports for components
+- Use default exports sparingly
+- Export types and interfaces from the same file
+
+```tsx
+// ✅ Good - Named exports
+export function SessionCard({ session }: SessionCardProps) {
+  // Component implementation
+}
+
+export interface SessionCardProps {
+  session: Session;
+  onEndSession?: (sessionId: string) => void;
+  onEditSession?: (session: Session) => void;
+}
+
+// ✅ Good - Multiple exports from same file
+export function SessionList({ sessions }: SessionListProps) {
+  // Component implementation
+}
+
+export function SessionListSkeleton() {
+  // Skeleton component
+}
+
+export interface SessionListProps {
+  sessions: Session[];
+}
+```
+
+## Hook Naming
+
+### Custom Hooks
+
+- Use `use-*` prefix for custom hooks
+- Use `use-*-api` prefix for data fetching hooks
+- Use descriptive names that indicate purpose
+
+```tsx
+// ✅ Good - Hook naming
+// use-sessions.ts
+export function useSessions(spaceId: string) {
+  // Hook implementation
+}
+
+// use-sessions-api.ts
+export function useSessionsApi(spaceId: string) {
+  // API hook implementation
+}
+
+// use-session-timer.ts
+export function useSessionTimer(sessionId: string) {
+  // Timer hook implementation
+}
+
+// use-debounce.ts
+export function useDebounce<T>(value: T, delay: number): T {
+  // Debounce hook implementation
+}
+```
+
+### Hook File Organization
+
+- One hook per file for complex hooks
+- Group related hooks in the same file
+- Export types and utilities from hook files
+
+```tsx
+// ✅ Good - Hook file organization
+// hooks/use-sessions.ts
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase/client";
+
+export function useSessionsApi(spaceId: string) {
+  return useQuery({
+    queryKey: ["sessions", spaceId],
+    queryFn: () => getSessions(spaceId),
+  });
+}
+
+export function useCreateSessionApi() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createSession,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+    },
+  });
+}
+
+// Helper functions
+async function getSessions(spaceId: string): Promise<Session[]> {
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("space_id", spaceId);
+
+  if (error) throw error;
+  return data;
+}
+```
+
+## Variable and Function Naming
+
+### Variables
+
+- Use camelCase for variables
+- Use descriptive names with auxiliary verbs
+- Prefix boolean variables with is/has/can/should
+
+```tsx
+// ✅ Good - Variable naming
+const isLoading = query.isLoading;
+const hasError = query.error !== null;
+const canEdit = user.permissions.includes("edit");
+const shouldShowTimer = session.status === "active";
+const sessionDuration = calculateDuration(session.start_time, session.end_time);
+const activeSessions = sessions.filter((session) => !session.end_time);
+const totalTimeSpent = sessions.reduce(
+  (total, session) => total + session.duration,
+  0
+);
+
+// ❌ Avoid - Poor variable naming
+const loading = query.isLoading;
+const error = query.error !== null;
+const edit = user.permissions.includes("edit");
+const timer = session.status === "active";
+const duration = calculateDuration(session.start_time, session.end_time);
+const filtered = sessions.filter((session) => !session.end_time);
+const total = sessions.reduce((total, session) => total + session.duration, 0);
+```
+
+### Functions
+
+- Use camelCase for functions
+- Use descriptive names that indicate action
+- Use verb-noun combinations for clarity
+
+```tsx
+// ✅ Good - Function naming
+function calculateSessionDuration(startTime: string, endTime?: string): number {
+  // Function implementation
+}
+
+function formatDuration(minutes: number): string {
+  // Function implementation
+}
+
+function validateSessionData(data: SessionFormData): ValidationResult {
+  // Function implementation
+}
+
+function handleSessionEnd(sessionId: string): void {
+  // Function implementation
+}
+
+function createNewSession(sessionData: SessionInsert): Promise<Session> {
+  // Function implementation
+}
+
+// ❌ Avoid - Poor function naming
+function calc(startTime: string, endTime?: string): number {
+  // Function implementation
+}
+
+function format(minutes: number): string {
+  // Function implementation
+}
+
+function validate(data: SessionFormData): ValidationResult {
+  // Function implementation
+}
+
+function end(sessionId: string): void {
+  // Function implementation
+}
+
+function create(data: SessionInsert): Promise<Session> {
+  // Function implementation
+}
+```
+
+## Type and Interface Naming
+
+### Type Definitions
+
+- Use PascalCase for types and interfaces
+- Use descriptive names that indicate purpose
+- Use appropriate suffixes (Props, State, Config, etc.)
+
+```tsx
+// ✅ Good - Type naming
+interface SessionCardProps {
+  session: Session;
+  onEndSession?: (sessionId: string) => void;
+  onEditSession?: (session: Session) => void;
+}
+
+interface SessionFormData {
+  title: string;
+  description?: string;
+  track_id?: string;
+  tags: string[];
+}
+
+type SessionStatus = "active" | "completed" | "paused";
+type SessionDuration = number; // in minutes
+type ValidationResult = { isValid: boolean; errors: string[] };
+
+interface ApiResponse<T> {
+  data: T | null;
+  error: string | null;
+}
+
+// ❌ Avoid - Poor type naming
+interface Props {
+  session: Session;
+  onEnd?: (sessionId: string) => void;
+  onEdit?: (session: Session) => void;
+}
+
+interface FormData {
+  title: string;
+  description?: string;
+  track_id?: string;
+  tags: string[];
+}
+
+type Status = "active" | "completed" | "paused";
+type Duration = number;
+type Result = { isValid: boolean; errors: string[] };
+```
+
+### Database Types
+
+- Use database table names as base for types
+- Add appropriate suffixes for different operations
+- Maintain consistency with Supabase generated types
+
+```tsx
+// ✅ Good - Database type naming
+import type { Database } from "@/types/database.types";
+
+// Base types from database
+type Session = Database["public"]["Tables"]["sessions"]["Row"];
+type SessionInsert = Database["public"]["Tables"]["sessions"]["Insert"];
+type SessionUpdate = Database["public"]["Tables"]["sessions"]["Update"];
+
+// Extended types for specific use cases
+interface SessionWithRelations extends Session {
+  member: Profile;
+  tags: Tag[];
+  track?: Track;
+}
+
+interface SessionWithStats extends Session {
+  duration: number;
+  isActive: boolean;
+  formattedDuration: string;
+}
+
+// Form types
+interface SessionFormData {
+  title: string;
+  description?: string;
+  track_id?: string;
+  tags: string[];
+}
+```
+
+## Constant Naming
+
+### Constants
+
+- Use UPPER_SNAKE_CASE for constants
+- Use descriptive names that indicate purpose
+- Group related constants together
+
+```tsx
+// ✅ Good - Constant naming
+// API endpoints
+export const API_ENDPOINTS = {
+  SESSIONS: "/api/sessions",
+  SPACES: "/api/spaces",
+  MEMBERS: "/api/members",
+} as const;
+
+// Session statuses
+export const SESSION_STATUSES = {
+  ACTIVE: "active",
+  COMPLETED: "completed",
+  PAUSED: "paused",
+} as const;
+
+// Time constants
+export const TIMER_UPDATE_INTERVAL = 1000; // milliseconds
+export const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+export const CACHE_STALE_TIME = 5 * 60 * 1000; // 5 minutes
+
+// UI constants
+export const MAX_TITLE_LENGTH = 100;
+export const MAX_DESCRIPTION_LENGTH = 500;
+export const MIN_SESSION_DURATION = 1; // minutes
+
+// ❌ Avoid - Poor constant naming
+export const endpoints = {
+  sessions: "/api/sessions",
+  spaces: "/api/spaces",
+  members: "/api/members",
+};
+
+export const statuses = {
+  active: "active",
+  completed: "completed",
+  paused: "paused",
+};
+
+export const interval = 1000;
+export const timeout = 30 * 60 * 1000;
+export const staleTime = 5 * 60 * 1000;
+```
+
+## Event Handler Naming
+
+### Event Handlers
+
+- Use `handle*` prefix for event handlers
+- Use descriptive names that indicate the action
+- Be specific about what is being handled
+
+```tsx
+// ✅ Good - Event handler naming
+function handleSessionEnd(sessionId: string): void {
+  // Handle session end
+}
+
+function handleSessionEdit(session: Session): void {
+  // Handle session edit
+}
+
+function handleFormSubmit(event: React.FormEvent): void {
+  // Handle form submission
+}
+
+function handleInputChange(event: React.ChangeEvent<HTMLInputElement>): void {
+  // Handle input change
+}
+
+function handleKeyDown(event: React.KeyboardEvent): void {
+  // Handle key down
+}
+
+function handleClick(event: React.MouseEvent): void {
+  // Handle click
+}
+
+// ❌ Avoid - Poor event handler naming
+function end(sessionId: string): void {
+  // Handle session end
+}
+
+function edit(session: Session): void {
+  // Handle session edit
+}
+
+function submit(event: React.FormEvent): void {
+  // Handle form submission
+}
+
+function change(event: React.ChangeEvent<HTMLInputElement>): void {
+  // Handle input change
+}
+
+function keyDown(event: React.KeyboardEvent): void {
+  // Handle key down
+}
+
+function click(event: React.MouseEvent): void {
+  // Handle click
+}
+```
+
+## CSS Class Naming
+
+### Tailwind CSS Classes
+
+- Use Tailwind's utility classes
+- Use the `cn` utility for conditional classes
+- Group related classes together
+- Use semantic class names when possible
+
+```tsx
+// ✅ Good - CSS class organization
+import { cn } from "@/lib/utils";
+
+export function Button({
+  variant = "default",
+  size = "default",
+  className,
+  ...props
+}: ButtonProps) {
+  return (
+    <button
+      className={cn(
+        // Base styles
+        "inline-flex items-center justify-center rounded-md text-sm font-medium",
+        "transition-colors focus-visible:outline-none focus-visible:ring-2",
+        "focus-visible:ring-ring focus-visible:ring-offset-2",
+        "disabled:pointer-events-none disabled:opacity-50",
+
+        // Variant styles
+        variant === "default" &&
+          "bg-primary text-primary-foreground hover:bg-primary/90",
+        variant === "destructive" &&
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        variant === "outline" &&
+          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        variant === "secondary" &&
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        variant === "ghost" && "hover:bg-accent hover:text-accent-foreground",
+        variant === "link" && "text-primary underline-offset-4 hover:underline",
+
+        // Size styles
+        size === "default" && "h-10 px-4 py-2",
+        size === "sm" && "h-9 rounded-md px-3",
+        size === "lg" && "h-11 rounded-md px-8",
+        size === "icon" && "h-10 w-10",
+
+        // Custom classes
+        className
+      )}
+      {...props}
+    />
+  );
+}
+```
+
+## Import Organization
+
+### Import Statements
+
+- Group imports by type and source
+- Use absolute imports for project files
+- Use relative imports for closely related files
+- Order imports consistently
+
+```tsx
+// ✅ Good - Import organization
+// 1. React and external libraries
+import { useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+
+// 2. UI components
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+
+// 3. Custom hooks
+import { useSessionsApi } from "@/hooks/api/use-sessions";
+
+// 4. Utilities and types
+import { cn, formatDate } from "@/lib/utils";
+import type { Session } from "@/types";
+
+// 5. Relative imports (if any)
+import { SessionTimer } from "./session-timer";
+
+// ❌ Avoid - Poor import organization
+import { SessionTimer } from "./session-timer";
+import { useSessionsApi } from "@/hooks/api/use-sessions";
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { cn, formatDate } from "@/lib/utils";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import type { Session } from "@/types";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+```

@@ -1,0 +1,550 @@
+---
+alwaysApply: true
+---
+
+# Performance Optimization for AgileSpace
+
+## React Performance
+
+### Component Optimization
+
+- Use React.memo for expensive components
+- Implement useCallback for event handlers
+- Use useMemo for expensive calculations
+- Avoid unnecessary re-renders
+
+```tsx
+// ✅ Good - Optimized component
+export const SessionCard = React.memo(function SessionCard({
+  session,
+  onEndSession,
+  onEditSession,
+}: SessionCardProps) {
+  const handleEndSession = useCallback(() => {
+    onEndSession(session.id);
+  }, [session.id, onEndSession]);
+
+  const handleEditSession = useCallback(() => {
+    onEditSession(session);
+  }, [session, onEditSession]);
+
+  const formattedDuration = useMemo(() => {
+    return formatDuration(session.start_time, session.end_time);
+  }, [session.start_time, session.end_time]);
+
+  return (
+    <Card className="hover:shadow-md transition-shadow">
+      <CardHeader>
+        <CardTitle className="text-lg">{session.title}</CardTitle>
+        <p className="text-sm text-muted-foreground">{session.description}</p>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            {formattedDuration}
+          </span>
+          <div className="flex space-x-2">
+            <Button size="sm" variant="outline" onClick={handleEditSession}>
+              Edit
+            </Button>
+            <Button size="sm" variant="destructive" onClick={handleEndSession}>
+              End
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+```
+
+### List Optimization
+
+- Use virtualization for large lists
+- Implement proper key props
+- Avoid inline functions in map
+- Use windowing techniques
+
+```tsx
+// ✅ Good - Optimized list rendering
+import { FixedSizeList as List } from "react-window";
+
+export function SessionList({ sessions }: SessionListProps) {
+  const Row = useCallback(
+    ({ index, style }: { index: number; style: CSSProperties }) => {
+      const session = sessions[index];
+      return (
+        <div style={style}>
+          <SessionCard
+            session={session}
+            onEndSession={handleEndSession}
+            onEditSession={handleEditSession}
+          />
+        </div>
+      );
+    },
+    [sessions, handleEndSession, handleEditSession]
+  );
+
+  return (
+    <List height={600} itemCount={sessions.length} itemSize={120} width="100%">
+      {Row}
+    </List>
+  );
+}
+
+// ✅ Good - Simple list with proper keys
+export function SimpleSessionList({ sessions }: SessionListProps) {
+  return (
+    <div className="space-y-4">
+      {sessions.map((session) => (
+        <SessionCard
+          key={session.id} // Use stable, unique keys
+          session={session}
+          onEndSession={handleEndSession}
+          onEditSession={handleEditSession}
+        />
+      ))}
+    </div>
+  );
+}
+```
+
+## Data Fetching Optimization
+
+### TanStack Query Optimization
+
+- Use appropriate stale times
+- Implement proper cache invalidation
+- Use optimistic updates
+- Leverage background refetching
+
+```tsx
+// ✅ Good - Optimized data fetching
+export function useSessionsApi(spaceId: string) {
+  return useQuery({
+    queryKey: ["sessions", spaceId],
+    queryFn: () => getSessions(spaceId),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+  });
+}
+
+// ✅ Good - Optimistic updates
+export function useCreateSessionApi() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createSession,
+    onMutate: async (newSession) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["sessions"] });
+
+      // Snapshot previous value
+      const previousSessions = queryClient.getQueryData([
+        "sessions",
+        newSession.space_id,
+      ]);
+
+      // Optimistically update
+      queryClient.setQueryData(
+        ["sessions", newSession.space_id],
+        (old: Session[] = []) => [
+          ...old,
+          {
+            ...newSession,
+            id: "temp-id",
+            created_at: new Date().toISOString(),
+          },
+        ]
+      );
+
+      return { previousSessions };
+    },
+    onError: (err, newSession, context) => {
+      // Revert on error
+      queryClient.setQueryData(
+        ["sessions", newSession.space_id],
+        context?.previousSessions
+      );
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+    },
+  });
+}
+```
+
+### Pagination and Infinite Loading
+
+- Implement proper pagination
+- Use infinite queries for large datasets
+- Cache paginated data efficiently
+- Handle loading states properly
+
+```tsx
+// ✅ Good - Infinite loading
+export function useInfiniteSessionsApi(spaceId: string) {
+  return useInfiniteQuery({
+    queryKey: ["sessions", "infinite", spaceId],
+    queryFn: ({ pageParam = 0 }) => getSessionsPaginated(spaceId, pageParam),
+    getNextPageParam: (lastPage, pages) => {
+      return lastPage.hasMore ? pages.length : undefined;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+}
+
+// ✅ Good - Paginated list component
+export function InfiniteSessionList({ spaceId }: { spaceId: string }) {
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useInfiniteSessionsApi(spaceId);
+
+  const allSessions = useMemo(() => {
+    return data?.pages.flatMap((page) => page.sessions) ?? [];
+  }, [data]);
+
+  if (isLoading) {
+    return <SessionListSkeleton />;
+  }
+
+  return (
+    <div className="space-y-4">
+      {allSessions.map((session) => (
+        <SessionCard key={session.id} session={session} />
+      ))}
+
+      {hasNextPage && (
+        <div className="flex justify-center">
+          <Button
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            variant="outline"
+          >
+            {isFetchingNextPage ? "Loading..." : "Load More"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Bundle Optimization
+
+### Code Splitting
+
+- Use React.lazy for route-based splitting
+- Implement dynamic imports for heavy components
+- Split vendor bundles appropriately
+- Use webpack bundle analyzer
+
+```tsx
+// ✅ Good - Route-based code splitting
+import { lazy, Suspense } from "react";
+
+const SessionChart = lazy(() => import("./session-chart"));
+const SessionReport = lazy(() => import("./session-report"));
+const Analytics = lazy(() => import("./analytics"));
+
+export function Dashboard() {
+  return (
+    <div className="space-y-6">
+      <Suspense fallback={<div>Loading chart...</div>}>
+        <SessionChart />
+      </Suspense>
+
+      <Suspense fallback={<div>Loading report...</div>}>
+        <SessionReport />
+      </Suspense>
+
+      <Suspense fallback={<div>Loading analytics...</div>}>
+        <Analytics />
+      </Suspense>
+    </div>
+  );
+}
+
+// ✅ Good - Dynamic imports
+export function HeavyComponent() {
+  const [Component, setComponent] = useState<React.ComponentType | null>(null);
+
+  useEffect(() => {
+    import("./heavy-charting-library").then((module) => {
+      setComponent(() => module.default);
+    });
+  }, []);
+
+  if (!Component) {
+    return <div>Loading...</div>;
+  }
+
+  return <Component />;
+}
+```
+
+### Tree Shaking
+
+- Use named imports instead of default imports
+- Avoid importing entire libraries
+- Use ES modules for better tree shaking
+- Configure build tools properly
+
+```tsx
+// ✅ Good - Named imports for tree shaking
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { format, parseISO } from "date-fns";
+
+// ❌ Avoid - Importing entire library
+import * as UI from "@/components/ui";
+import * as dateFns from "date-fns";
+```
+
+## Memory Management
+
+### Memory Leaks Prevention
+
+- Clean up effects properly
+- Remove event listeners
+- Clear intervals and timeouts
+- Handle component unmounting
+
+```tsx
+// ✅ Good - Proper cleanup
+export function SessionTimer({ sessionId }: { sessionId: string }) {
+  const [elapsed, setElapsed] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+
+  useEffect(() => {
+    if (!isRunning) return;
+
+    const interval = setInterval(() => {
+      setElapsed((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && isRunning) {
+        // Pause timer when tab is not visible
+        setIsRunning(false);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isRunning]);
+
+  return <div className="text-lg font-mono">{formatTime(elapsed)}</div>;
+}
+```
+
+### Large Data Handling
+
+- Implement virtual scrolling for large datasets
+- Use pagination for API responses
+- Cache data appropriately
+- Implement data cleanup
+
+```tsx
+// ✅ Good - Large data handling
+export function useVirtualizedSessions(spaceId: string) {
+  const { data: sessions = [] } = useSessionsApi(spaceId);
+
+  const virtualizedData = useMemo(() => {
+    return sessions.map((session, index) => ({
+      id: session.id,
+      data: session,
+      index,
+    }));
+  }, [sessions]);
+
+  return {
+    data: virtualizedData,
+    totalCount: sessions.length,
+  };
+}
+
+// ✅ Good - Data cleanup
+export function useSessionCleanup() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const cleanup = () => {
+      // Remove old session data from cache
+      const now = Date.now();
+      const staleTime = 24 * 60 * 60 * 1000; // 24 hours
+
+      queryClient
+        .getQueryCache()
+        .getAll()
+        .forEach((query) => {
+          if (query.queryKey[0] === "sessions") {
+            const lastUpdated = query.state.dataUpdatedAt;
+            if (now - lastUpdated > staleTime) {
+              queryClient.removeQueries({ queryKey: query.queryKey });
+            }
+          }
+        });
+    };
+
+    const interval = setInterval(cleanup, 60 * 60 * 1000); // Run every hour
+    return () => clearInterval(interval);
+  }, [queryClient]);
+}
+```
+
+## Image and Asset Optimization
+
+### Image Optimization
+
+- Use appropriate image formats (WebP, AVIF)
+- Implement lazy loading
+- Provide proper dimensions
+- Use responsive images
+
+```tsx
+// ✅ Good - Optimized images
+export function OptimizedAvatar({ user, size = "md" }: AvatarProps) {
+  const sizeClasses = {
+    sm: "h-8 w-8",
+    md: "h-10 w-10",
+    lg: "h-12 w-12",
+    xl: "h-16 w-16",
+  };
+
+  return (
+    <Avatar className={sizeClasses[size]}>
+      <AvatarImage
+        src={user.avatar_url}
+        alt={`${user.name}'s avatar`}
+        loading="lazy"
+        onError={(e) => {
+          // Fallback to initials if image fails to load
+          e.currentTarget.style.display = "none";
+        }}
+      />
+      <AvatarFallback>
+        {user.name
+          .split(" ")
+          .map((n) => n[0])
+          .join("")}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+```
+
+### Asset Loading
+
+- Preload critical assets
+- Use appropriate loading strategies
+- Implement proper caching headers
+- Optimize font loading
+
+```tsx
+// ✅ Good - Asset preloading
+export function PreloadCriticalAssets() {
+  useEffect(() => {
+    // Preload critical images
+    const criticalImages = ["/images/logo.svg", "/images/hero-bg.jpg"];
+
+    criticalImages.forEach((src) => {
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "image";
+      link.href = src;
+      document.head.appendChild(link);
+    });
+
+    // Preload critical fonts
+    const fontLink = document.createElement("link");
+    fontLink.rel = "preload";
+    fontLink.as = "font";
+    fontLink.type = "font/woff2";
+    fontLink.href = "/fonts/inter-var.woff2";
+    fontLink.crossOrigin = "anonymous";
+    document.head.appendChild(fontLink);
+  }, []);
+
+  return null;
+}
+```
+
+## Monitoring and Profiling
+
+### Performance Monitoring
+
+- Use React DevTools Profiler
+- Monitor bundle sizes
+- Track Core Web Vitals
+- Implement performance budgets
+
+```tsx
+// ✅ Good - Performance monitoring
+export function PerformanceMonitor() {
+  useEffect(() => {
+    // Monitor Core Web Vitals
+    if ("web-vital" in window) {
+      import("web-vitals").then(
+        ({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+          getCLS(console.log);
+          getFID(console.log);
+          getFCP(console.log);
+          getLCP(console.log);
+          getTTFB(console.log);
+        }
+      );
+    }
+
+    // Monitor React render performance
+    if (process.env.NODE_ENV === "development") {
+      const observer = new PerformanceObserver((list) => {
+        list.getEntries().forEach((entry) => {
+          if (entry.entryType === "measure") {
+            console.log(`${entry.name}: ${entry.duration}ms`);
+          }
+        });
+      });
+      observer.observe({ entryTypes: ["measure"] });
+    }
+  }, []);
+
+  return null;
+}
+```
+
+### Bundle Analysis
+
+- Use webpack-bundle-analyzer
+- Monitor chunk sizes
+- Identify duplicate dependencies
+- Optimize imports
+
+```tsx
+// ✅ Good - Bundle size monitoring
+export function BundleSizeMonitor() {
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      // Monitor bundle size in development
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/webpack-bundle-analyzer/lib/viewer.js";
+      script.onload = () => {
+        console.log("Bundle analyzer loaded");
+      };
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  return null;
+}
+```

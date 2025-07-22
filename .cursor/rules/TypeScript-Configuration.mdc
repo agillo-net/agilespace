@@ -1,0 +1,222 @@
+---
+alwaysApply: true
+---
+
+# TypeScript Configuration for AgileSpace
+
+## Strict Type Checking
+
+Enable strict mode in tsconfig.json:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  }
+}
+```
+
+## Type Definitions
+
+- Explicitly type function returns and object literals
+- Define interfaces for all data structures
+- Use generic types where appropriate
+- Avoid `any` type usage
+
+```tsx
+// ✅ Good - Explicit typing
+interface Session {
+  id: string;
+  title: string;
+  description?: string;
+  start_time: string;
+  end_time?: string;
+  space_id: string;
+  member_id: string;
+}
+
+// ✅ Good - Function with explicit return type
+function formatDuration(startTime: string, endTime?: string): string {
+  if (!endTime) return "In progress";
+  const duration = new Date(endTime).getTime() - new Date(startTime).getTime();
+  return `${Math.floor(duration / 1000 / 60)} minutes`;
+}
+
+// ✅ Good - Generic types
+function useQuery<T>(queryKey: string[], queryFn: () => Promise<T>) {
+  // Implementation
+}
+```
+
+## Database Types
+
+- Use Supabase generated types from `src/types/database.types.ts`
+- Create custom types that extend database types when needed
+- Export all types from `src/types/index.ts`
+
+```tsx
+// ✅ Good - Using database types
+import type { Database } from "@/types/database.types";
+
+type Session = Database["public"]["Tables"]["sessions"]["Row"];
+type SessionInsert = Database["public"]["Tables"]["sessions"]["Insert"];
+type SessionUpdate = Database["public"]["Tables"]["sessions"]["Update"];
+
+// ✅ Good - Custom types extending database types
+interface SessionWithRelations extends Session {
+  member: Profile;
+  tags: Tag[];
+  track?: Track;
+}
+```
+
+## Error Handling
+
+- Minimize use of `@ts-ignore`/`@ts-expect-error`
+- Use proper error types for API responses
+- Handle nullable values explicitly
+
+```tsx
+// ✅ Good - Proper error handling
+interface ApiResponse<T> {
+  data: T | null;
+  error: string | null;
+}
+
+function handleApiResponse<T>(response: ApiResponse<T>): T {
+  if (response.error) {
+    throw new Error(response.error);
+  }
+  if (!response.data) {
+    throw new Error("No data received");
+  }
+  return response.data;
+}
+
+// ✅ Good - Nullable handling
+function getSessionTitle(session: Session | null): string {
+  return session?.title ?? "Untitled Session";
+}
+```
+
+## Component Props
+
+- Use interfaces for component props
+- Make optional props explicit with `?`
+- Use union types for variant props
+
+```tsx
+// ✅ Good - Component props interface
+interface ButtonProps {
+  variant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
+  size?: "default" | "sm" | "lg" | "icon";
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+}
+
+// ✅ Good - Union types for variants
+type ButtonVariant =
+  | "default"
+  | "destructive"
+  | "outline"
+  | "secondary"
+  | "ghost"
+  | "link";
+type ButtonSize = "default" | "sm" | "lg" | "icon";
+```
+
+## Hook Types
+
+- Type custom hooks properly
+- Use generic types for reusable hooks
+- Return proper types from hooks
+
+```tsx
+// ✅ Good - Typed custom hook
+function useSessions<T = Session>(
+  spaceId: string
+): {
+  data: T[] | undefined;
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => void;
+} {
+  return useQuery({
+    queryKey: ["sessions", spaceId],
+    queryFn: () => getSessions(spaceId),
+  });
+}
+
+// ✅ Good - Generic hook
+function useApiQuery<T>(
+  queryKey: string[],
+  queryFn: () => Promise<T>
+): {
+  data: T | undefined;
+  isLoading: boolean;
+  error: Error | null;
+} {
+  return useQuery({ queryKey, queryFn });
+}
+```
+
+## Event Handlers
+
+- Type event handlers properly
+- Use React's built-in event types
+- Handle form events correctly
+
+```tsx
+// ✅ Good - Typed event handlers
+function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+  // Handle form submission
+}
+
+function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
+  const { name, value } = event.target;
+  // Handle input change
+}
+
+function handleClick(event: React.MouseEvent<HTMLButtonElement>) {
+  event.preventDefault();
+  // Handle button click
+}
+```
+
+## Utility Types
+
+- Use TypeScript utility types effectively
+- Create custom utility types when needed
+- Leverage mapped types for complex scenarios
+
+```tsx
+// ✅ Good - Utility types
+type PartialSession = Partial<Session>;
+type SessionKeys = keyof Session;
+type SessionValues = Session[SessionKeys];
+
+// ✅ Good - Custom utility types
+type WithId<T> = T & { id: string };
+type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
+// ✅ Good - Mapped types
+type SessionFormData = {
+  [K in keyof Session as K extends "id" | "created_at" | "updated_at"
+    ? never
+    : K]: Session[K];
+};
+```

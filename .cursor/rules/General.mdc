@@ -1,0 +1,677 @@
+---
+alwaysApply: true
+---
+
+# AgileSpace Project Rules
+
+## Project Overview
+
+AgileSpace is a modern web application that integrates with GitHub to provide comprehensive team effort tracking and visualization. It helps organizations monitor team performance, track issues, and generate insightful charts for better project management and resource allocation.
+
+## Task Management System
+
+### Task Structure
+
+- **Location**: All task files are in the `tasks/` folder (ignored by git)
+- **Status Indicators**:
+  - 🟢 COMPLETED - Feature fully implemented
+  - 🟡 PARTIALLY IMPLEMENTED - Feature partially done
+  - 🔴 NOT IMPLEMENTED - Feature not started
+  - 💡 SUGGESTED - Additional ideas and features
+
+### Task Organization
+
+```
+tasks/
+├── README.md                           # Task system overview
+├── TASKS.md                            # Main task breakdown
+├── HIERARCHICAL_TAGS_IMPLEMENTATION.md # Detailed implementation guide
+├── completed/                          # ✅ Completed features
+├── in-progress/                        # 🔄 Current work
+└── backlog/                           # ❌ Future tasks
+```
+
+### Task File Format
+
+Each task file should include:
+
+- **Status and priority**
+- **Overview and requirements**
+- **Required subtasks with checkboxes**
+- **Technical requirements**
+- **Files to create/modify**
+- **Success criteria**
+- **Notes and dependencies**
+
+## Current Project Status
+
+### ✅ Completed Features (3/13)
+
+1. **Active Users Tracking** - Real-time status updates
+2. **Current Task Display** - Shows what each user is working on
+3. **Task Time Tracking** - Real-time timer and duration tracking
+
+### 🔄 In Progress (1/13)
+
+4. **Hierarchical Tags System** - Enhanced issue type categorization
+
+### ❌ Backlog (9/13)
+
+5. **Daily Reporting** - Excel exports with time distribution
+6. **Effort Analysis** - Estimated vs actual time comparison
+7. **Team Overview** - Daily team productivity metrics
+8. **Weekly/Monthly Reports** - Extended reporting periods
+9. **Holiday Notifications** - Official holiday alerts
+10. **Attendance Tracking** - Login/logout monitoring
+11. **Time Off Requests** - Leave management system
+12. **Issue Creation** - Create GitHub issues from app
+13. **Additional Features** - Real-time notifications, analytics, etc.
+
+## Technology Stack
+
+### Frontend
+
+- **React 19** with TypeScript
+- **TanStack Router** for routing
+- **TanStack Query** for data fetching
+- **Tailwind CSS** for styling
+- **Radix UI** for components
+- **Recharts** for data visualization
+
+### Backend
+
+- **Supabase** for database and authentication
+- **PostgreSQL** for data storage
+- **GitHub API** integration via Octokit
+
+### Development Tools
+
+- **Vite** for build tooling
+- **pnpm** for package management
+- **ESLint** for code linting
+- **TypeScript** for type safety
+
+## Database Schema
+
+### Core Tables
+
+- `profiles` - User profiles with GitHub integration
+- `spaces` - Workspace/team spaces
+- `space_members` - Team membership with status tracking
+- `sessions` - Work sessions with time tracking
+- `tracks` - GitHub issues being tracked
+- `tags` - Hierarchical issue type categorization
+- `session_tags` - Many-to-many relationship for session tagging
+
+### Key Relationships
+
+- Sessions belong to tracks (GitHub issues)
+- Sessions belong to space members (users)
+- Sessions can have multiple tags (issue types)
+- Tags have hierarchical relationships (parent-child)
+
+## Code Organization
+
+### Source Structure
+
+```
+src/
+├── components/     # Reusable UI components
+├── hooks/         # Custom React hooks
+├── lib/           # Utility functions and shared logic
+│   ├── supabase/  # Supabase client and queries
+│   └── github/    # GitHub API integration
+├── routes/        # Page components (TanStack Router)
+├── types/         # TypeScript type definitions
+└── constants/     # Application constants
+```
+
+### Key Patterns
+
+- **Custom Hooks**: Use `use-*` prefix for React hooks
+- **API Hooks**: Use `use-*-api` prefix for data fetching hooks
+- **Components**: Use PascalCase and descriptive names
+- **Queries**: Separate queries and mutations in Supabase lib
+- **Types**: Export types from `src/types/index.ts`
+
+## Development Workflow
+
+### Task Implementation Process
+
+1. **Review Task File**: Check the detailed task file in `tasks/` folder
+2. **Understand Dependencies**: Ensure prerequisites are completed
+3. **Database Changes**: Create migrations if needed
+4. **Backend Updates**: Update queries/mutations
+5. **Frontend Components**: Create/update UI components
+6. **Integration**: Connect frontend to backend
+7. **Testing**: Verify functionality works as expected
+8. **Update Task Status**: Move task file to appropriate folder
+
+### Git Workflow
+
+- **Branch Naming**: `<type>/<ticket-number>-<description>`
+- **Commit Messages**: Follow Conventional Commits
+- **PR Format**: `<type>: <ticket-number> <description>`
+- **Task Files**: Never commit files in `tasks/` folder
+
+### Database Migrations
+
+- **Location**: `supabase/migrations/`
+- **Naming**: `YYYYMMDDHHMMSS_description.sql`
+- **Commands**:
+  - `pnpm supabase migration new <name>`
+  - `pnpm supabase db reset`
+  - `pnpm supabase db push`
+
+## Current Focus Areas
+
+### Immediate Priority (Task 4 - Hierarchical Tags)
+
+- Add hierarchy fields to tags table
+- Create predefined issue type structure
+- Build hierarchical tag selector component
+- Integrate with session creation workflow
+- Update reporting for issue type aggregation
+
+### Key Implementation Details
+
+- **Hierarchical Structure**: Parent-child relationships for tags
+- **Issue Types**: Meeting, Development, Project Management categories
+- **Backward Compatibility**: Existing tags must continue working
+- **Performance**: Efficient queries for large datasets
+- **User Experience**: Intuitive two-level selection
+
+## Code Standards
+
+### TypeScript
+
+- Use strict type checking
+- Define interfaces for all data structures
+- Use generic types where appropriate
+- Avoid `any` type usage
+
+### React
+
+- Use functional components with hooks
+- Implement proper error boundaries
+- Use React Query for data fetching
+- Follow React best practices
+
+### Database
+
+- Use proper foreign key constraints
+- Implement data validation
+- Use indexes for performance
+- Follow PostgreSQL best practices
+
+### Styling
+
+- Use Tailwind CSS utility classes
+- Follow design system patterns
+- Ensure responsive design
+- Maintain accessibility standards
+
+## Testing Strategy
+
+### Unit Tests
+
+- Test individual functions and components
+- Mock external dependencies
+- Use descriptive test names
+- Maintain good test coverage
+
+### Integration Tests
+
+- Test API endpoints
+- Verify database operations
+- Test component interactions
+- Validate data flow
+
+### User Acceptance Tests
+
+- Test complete user workflows
+- Verify feature requirements
+- Test edge cases and error handling
+- Validate user experience
+
+## Performance Considerations
+
+### Frontend
+
+- Use React Query for caching
+- Implement proper loading states
+- Optimize bundle size
+- Use lazy loading where appropriate
+
+### Backend
+
+- Optimize database queries
+- Use proper indexing
+- Implement pagination
+- Cache frequently accessed data
+
+### Monitoring
+
+- Track query performance
+- Monitor user interactions
+- Log errors and exceptions
+- Measure response times
+
+## Security Guidelines
+
+### Authentication
+
+- Use Supabase Auth
+- Implement proper role-based access
+- Validate user permissions
+- Secure API endpoints
+
+### Data Protection
+
+- Validate all inputs
+- Use parameterized queries
+- Implement rate limiting
+- Protect sensitive information
+
+### GitHub Integration
+
+- Use proper OAuth scopes
+- Validate webhook signatures
+- Secure API tokens
+- Handle rate limits
+
+## Deployment
+
+### Environment Setup
+
+- Configure environment variables
+- Set up Supabase project
+- Configure GitHub OAuth
+- Set up monitoring
+
+### Build Process
+
+- Run type checking
+- Execute linting
+- Build production assets
+- Run tests
+
+### Release Process
+
+- Create release branch
+- Update version numbers
+- Generate changelog
+- Deploy to production
+
+## Support and Maintenance
+
+### Documentation
+
+- Keep README updated
+- Document API changes
+- Maintain task documentation
+- Update implementation guides
+
+### Monitoring
+
+- Track application health
+- Monitor error rates
+- Watch performance metrics
+- Alert on issues
+
+### Updates
+
+- Keep dependencies updated
+- Apply security patches
+- Monitor for breaking changes
+- Test thoroughly before updates
+
+## AI Assistance Guidelines
+
+When working with AI assistance:
+
+1. **Reference Task Files**: Always check the relevant task file in `tasks/` folder
+2. **Follow Patterns**: Use existing code patterns and conventions
+3. **Consider Dependencies**: Ensure prerequisites are met before implementation
+4. **Update Documentation**: Keep task files and documentation current
+5. **Test Thoroughly**: Verify implementations work as expected
+6. **Maintain Consistency**: Follow established naming and structure patterns
+
+Remember: The `tasks/` folder contains the source of truth for project requirements and implementation details. Always refer to these files when implementing features or making architectural decisions.
+
+# AgileSpace Project Rules
+
+## Project Overview
+
+AgileSpace is a modern web application that integrates with GitHub to provide comprehensive team effort tracking and visualization. It helps organizations monitor team performance, track issues, and generate insightful charts for better project management and resource allocation.
+
+## Task Management System
+
+### Task Structure
+
+- **Location**: All task files are in the `tasks/` folder (ignored by git)
+- **Status Indicators**:
+  - 🟢 COMPLETED - Feature fully implemented
+  - 🟡 PARTIALLY IMPLEMENTED - Feature partially done
+  - 🔴 NOT IMPLEMENTED - Feature not started
+  - 💡 SUGGESTED - Additional ideas and features
+
+### Task Organization
+
+```
+tasks/
+├── README.md                           # Task system overview
+├── TASKS.md                            # Main task breakdown
+├── HIERARCHICAL_TAGS_IMPLEMENTATION.md # Detailed implementation guide
+├── completed/                          # ✅ Completed features
+├── in-progress/                        # 🔄 Current work
+└── backlog/                           # ❌ Future tasks
+```
+
+### Task File Format
+
+Each task file should include:
+
+- **Status and priority**
+- **Overview and requirements**
+- **Required subtasks with checkboxes**
+- **Technical requirements**
+- **Files to create/modify**
+- **Success criteria**
+- **Notes and dependencies**
+
+## Current Project Status
+
+### ✅ Completed Features (3/13)
+
+1. **Active Users Tracking** - Real-time status updates
+2. **Current Task Display** - Shows what each user is working on
+3. **Task Time Tracking** - Real-time timer and duration tracking
+
+### 🔄 In Progress (1/13)
+
+4. **Hierarchical Tags System** - Enhanced issue type categorization
+
+### ❌ Backlog (9/13)
+
+5. **Daily Reporting** - Excel exports with time distribution
+6. **Effort Analysis** - Estimated vs actual time comparison
+7. **Team Overview** - Daily team productivity metrics
+8. **Weekly/Monthly Reports** - Extended reporting periods
+9. **Holiday Notifications** - Official holiday alerts
+10. **Attendance Tracking** - Login/logout monitoring
+11. **Time Off Requests** - Leave management system
+12. **Issue Creation** - Create GitHub issues from app
+13. **Additional Features** - Real-time notifications, analytics, etc.
+
+## Technology Stack
+
+### Frontend
+
+- **React 19** with TypeScript
+- **TanStack Router** for routing
+- **TanStack Query** for data fetching
+- **Tailwind CSS** for styling
+- **Radix UI** for components
+- **Recharts** for data visualization
+
+### Backend
+
+- **Supabase** for database and authentication
+- **PostgreSQL** for data storage
+- **GitHub API** integration via Octokit
+
+### Development Tools
+
+- **Vite** for build tooling
+- **pnpm** for package management
+- **ESLint** for code linting
+- **TypeScript** for type safety
+
+## Database Schema
+
+### Core Tables
+
+- `profiles` - User profiles with GitHub integration
+- `spaces` - Workspace/team spaces
+- `space_members` - Team membership with status tracking
+- `sessions` - Work sessions with time tracking
+- `tracks` - GitHub issues being tracked
+- `tags` - Hierarchical issue type categorization
+- `session_tags` - Many-to-many relationship for session tagging
+
+### Key Relationships
+
+- Sessions belong to tracks (GitHub issues)
+- Sessions belong to space members (users)
+- Sessions can have multiple tags (issue types)
+- Tags have hierarchical relationships (parent-child)
+
+## Code Organization
+
+### Source Structure
+
+```
+src/
+├── components/     # Reusable UI components
+├── hooks/         # Custom React hooks
+├── lib/           # Utility functions and shared logic
+│   ├── supabase/  # Supabase client and queries
+│   └── github/    # GitHub API integration
+├── routes/        # Page components (TanStack Router)
+├── types/         # TypeScript type definitions
+└── constants/     # Application constants
+```
+
+### Key Patterns
+
+- **Custom Hooks**: Use `use-*` prefix for React hooks
+- **API Hooks**: Use `use-*-api` prefix for data fetching hooks
+- **Components**: Use PascalCase and descriptive names
+- **Queries**: Separate queries and mutations in Supabase lib
+- **Types**: Export types from `src/types/index.ts`
+
+## Development Workflow
+
+### Task Implementation Process
+
+1. **Review Task File**: Check the detailed task file in `tasks/` folder
+2. **Understand Dependencies**: Ensure prerequisites are completed
+3. **Database Changes**: Create migrations if needed
+4. **Backend Updates**: Update queries/mutations
+5. **Frontend Components**: Create/update UI components
+6. **Integration**: Connect frontend to backend
+7. **Testing**: Verify functionality works as expected
+8. **Update Task Status**: Move task file to appropriate folder
+
+### Git Workflow
+
+- **Branch Naming**: `<type>/<ticket-number>-<description>`
+- **Commit Messages**: Follow Conventional Commits
+- **PR Format**: `<type>: <ticket-number> <description>`
+- **Task Files**: Never commit files in `tasks/` folder
+
+### Database Migrations
+
+- **Location**: `supabase/migrations/`
+- **Naming**: `YYYYMMDDHHMMSS_description.sql`
+- **Commands**:
+  - `pnpm supabase migration new <name>`
+  - `pnpm supabase db reset`
+  - `pnpm supabase db push`
+
+## Current Focus Areas
+
+### Immediate Priority (Task 4 - Hierarchical Tags)
+
+- Add hierarchy fields to tags table
+- Create predefined issue type structure
+- Build hierarchical tag selector component
+- Integrate with session creation workflow
+- Update reporting for issue type aggregation
+
+### Key Implementation Details
+
+- **Hierarchical Structure**: Parent-child relationships for tags
+- **Issue Types**: Meeting, Development, Project Management categories
+- **Backward Compatibility**: Existing tags must continue working
+- **Performance**: Efficient queries for large datasets
+- **User Experience**: Intuitive two-level selection
+
+## Code Standards
+
+### TypeScript
+
+- Use strict type checking
+- Define interfaces for all data structures
+- Use generic types where appropriate
+- Avoid `any` type usage
+
+### React
+
+- Use functional components with hooks
+- Implement proper error boundaries
+- Use React Query for data fetching
+- Follow React best practices
+
+### Database
+
+- Use proper foreign key constraints
+- Implement data validation
+- Use indexes for performance
+- Follow PostgreSQL best practices
+
+### Styling
+
+- Use Tailwind CSS utility classes
+- Follow design system patterns
+- Ensure responsive design
+- Maintain accessibility standards
+
+## Testing Strategy
+
+### Unit Tests
+
+- Test individual functions and components
+- Mock external dependencies
+- Use descriptive test names
+- Maintain good test coverage
+
+### Integration Tests
+
+- Test API endpoints
+- Verify database operations
+- Test component interactions
+- Validate data flow
+
+### User Acceptance Tests
+
+- Test complete user workflows
+- Verify feature requirements
+- Test edge cases and error handling
+- Validate user experience
+
+## Performance Considerations
+
+### Frontend
+
+- Use React Query for caching
+- Implement proper loading states
+- Optimize bundle size
+- Use lazy loading where appropriate
+
+### Backend
+
+- Optimize database queries
+- Use proper indexing
+- Implement pagination
+- Cache frequently accessed data
+
+### Monitoring
+
+- Track query performance
+- Monitor user interactions
+- Log errors and exceptions
+- Measure response times
+
+## Security Guidelines
+
+### Authentication
+
+- Use Supabase Auth
+- Implement proper role-based access
+- Validate user permissions
+- Secure API endpoints
+
+### Data Protection
+
+- Validate all inputs
+- Use parameterized queries
+- Implement rate limiting
+- Protect sensitive information
+
+### GitHub Integration
+
+- Use proper OAuth scopes
+- Validate webhook signatures
+- Secure API tokens
+- Handle rate limits
+
+## Deployment
+
+### Environment Setup
+
+- Configure environment variables
+- Set up Supabase project
+- Configure GitHub OAuth
+- Set up monitoring
+
+### Build Process
+
+- Run type checking
+- Execute linting
+- Build production assets
+- Run tests
+
+### Release Process
+
+- Create release branch
+- Update version numbers
+- Generate changelog
+- Deploy to production
+
+## Support and Maintenance
+
+### Documentation
+
+- Keep README updated
+- Document API changes
+- Maintain task documentation
+- Update implementation guides
+
+### Monitoring
+
+- Track application health
+- Monitor error rates
+- Watch performance metrics
+- Alert on issues
+
+### Updates
+
+- Keep dependencies updated
+- Apply security patches
+- Monitor for breaking changes
+- Test thoroughly before updates
+
+## AI Assistance Guidelines
+
+When working with AI assistance:
+
+1. **Reference Task Files**: Always check the relevant task file in `tasks/` folder
+2. **Follow Patterns**: Use existing code patterns and conventions
+3. **Consider Dependencies**: Ensure prerequisites are met before implementation
+4. **Update Documentation**: Keep task files and documentation current
+5. **Test Thoroughly**: Verify implementations work as expected
+6. **Maintain Consistency**: Follow established naming and structure patterns
+
+Remember: The `tasks/` folder contains the source of truth for project requirements and implementation details. Always refer to these files when implementing features or making architectural decisions.

@@ -1,0 +1,182 @@
+---
+alwaysApply: true
+---
+
+# Custom Hooks Best Practices
+
+## Rule: Follow Hook Patterns and Conventions
+
+Custom hooks in [src/hooks/](mdc:src/hooks/) should follow these patterns:
+
+### ✅ Hook Structure:
+
+```tsx
+// File: src/hooks/use-feature-name.ts
+import { useState, useCallback, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+
+interface UseFeatureNameProps {
+  required: string;
+  optional?: boolean;
+}
+
+export function useFeatureName({
+  required,
+  optional = false,
+}: UseFeatureNameProps) {
+  // 1. Local state
+  const [localState, setLocalState] = useState(initialValue);
+
+  // 2. Queries and mutations
+  const query = useQuery({
+    queryKey: ["feature", required],
+    queryFn: () => fetchData(required),
+  });
+
+  // 3. Memoized callbacks
+  const handleAction = useCallback(
+    (param: string) => {
+      // Logic here
+    },
+    [dependency]
+  );
+
+  // 4. Utility functions
+  const isSelected = useCallback(
+    (id: string) => {
+      return localState.includes(id);
+    },
+    [localState]
+  );
+
+  // 5. Return object with clear naming
+  return {
+    // Data
+    data: query.data || [],
+    loading: query.isLoading,
+    error: query.error,
+
+    // State
+    localState,
+
+    // Actions
+    handleAction,
+
+    // Utilities
+    isSelected,
+  };
+}
+```
+
+### ✅ Naming Conventions:
+
+- **File names**: `use-feature-name.ts` (kebab-case)
+- **Function names**: `useFeatureName` (camelCase)
+- **Props interface**: `UseFeatureNameProps`
+- **Return clear, descriptive property names**
+
+### ✅ Hook Responsibilities:
+
+- State management
+- API calls and data fetching
+- Business logic and data transformations
+- Event handlers and callbacks
+- Side effects (useEffect)
+- Memoization (useMemo, useCallback)
+
+### ✅ Return Object Organization:
+
+Group returned values logically:
+
+```tsx
+return {
+  // Data from queries
+  data,
+  loading,
+  error,
+
+  // Local state
+  selectedItems,
+  isExpanded,
+
+  // Actions/handlers
+  handleSelect,
+  handleToggle,
+  handleSubmit,
+
+  // Utilities/computed values
+  isSelected,
+  hasSelection,
+  totalCount,
+};
+```
+
+### ❌ Avoid in Hooks:
+
+- JSX rendering
+- Direct DOM manipulation
+- Component-specific styling logic
+- Hardcoded UI strings (use constants)
+
+### Example Hook Patterns:
+
+#### Data Fetching Hook:
+
+```tsx
+export function useApiData(id: string) {
+  const query = useQuery({
+    queryKey: ["data", id],
+    queryFn: () => fetchData(id),
+  });
+
+  return {
+    data: query.data,
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  };
+}
+```
+
+#### Form Logic Hook:
+
+```tsx
+export function useFormLogic(initialValues: FormData) {
+  const [values, setValues] = useState(initialValues);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleChange = useCallback(
+    (field: string, value: any) => {
+      setValues((prev) => ({ ...prev, [field]: value }));
+      // Clear error when user types
+      if (errors[field]) {
+        setErrors((prev) => ({ ...prev, [field]: "" }));
+      }
+    },
+    [errors]
+  );
+
+  const validate = useCallback(() => {
+    const newErrors = validateForm(values);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [values]);
+
+  return {
+    values,
+    errors,
+    handleChange,
+    validate,
+    isValid: Object.keys(errors).length === 0,
+  };
+}
+```
+
+### Benefits:
+
+- Reusable logic across components
+- Better testability
+- Cleaner separation of concerns
+- Easier debugging and maintenance
+
+---

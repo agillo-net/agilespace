@@ -23,14 +23,21 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 # Supabase
 .branches
 .temp
-supabase/.env
-supabase/.env.local
-supabase/.env.*.local
+supabase/.branches
+supabase/.temp
 
-# dotenvx
-.env.keys
-.env.local
-.env.*.local
+# Tasks and project management (local only)
+tasks/
+*.task
+*.todo
+project-tasks/

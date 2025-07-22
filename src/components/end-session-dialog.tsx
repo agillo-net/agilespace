@@ -3,14 +3,11 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useState, useEffect } from 'react'
-import { getTags } from '@/lib/supabase/queries'
 import type { Tag } from '@/types'
-import { Badge } from '@/components/ui/badge'
-import { X, Eye, Pencil } from 'lucide-react'
-import { cn, isLightColor } from '@/lib/utils'
-import { useQuery } from '@tanstack/react-query'
+import { Eye, Pencil } from 'lucide-react'
 import MDEditor from '@uiw/react-md-editor'
 import { createFireEffect } from '@/lib/celebrate'
+import { HierarchicalTagSelector } from '@/components/hierarchical-tag-selector'
 
 interface EndSessionDialogProps {
     open: boolean
@@ -36,12 +33,6 @@ export function EndSessionDialog({
     const [isPreview, setIsPreview] = useState(false)
     const canSubmit = skipComment || message.trim().length > 0
 
-    const { data: tags = [] } = useQuery({
-        queryKey: ['tags', spaceId],
-        queryFn: () => getTags(spaceId),
-        enabled: open && !!spaceId
-    })
-
     useEffect(() => {
         if (!open) {
             setSkipComment(false)
@@ -59,14 +50,6 @@ export function EndSessionDialog({
             document.body.style.overflow = '';
         };
     }, [open]);
-
-    const toggleTag = (tag: Tag) => {
-        setSelectedTags(prev =>
-            prev.some(t => t.id === tag.id)
-                ? prev.filter(t => t.id !== tag.id)
-                : [...prev, tag]
-        )
-    }
 
     const handleEndSession = () => {
         onEndSession(skipComment, selectedTags);
@@ -114,28 +97,12 @@ export function EndSessionDialog({
                             className="!bg-transparent [&_.w-md-editor]:!bg-transparent [&_.w-md-editor-toolbar]:!bg-transparent [&_.w-md-editor-toolbar-divider]:!bg-border [&_.w-md-editor-toolbar-button]:!text-foreground [&_.w-md-editor-toolbar-button]:hover:!bg-accent [&_.w-md-editor-toolbar-button]:hover:!text-accent-foreground [&_.w-md-editor-text-pre]:!text-foreground [&_.w-md-editor-text-input]:!text-foreground"
                         />
                     </div>
-                    <div className="space-y-2">
-                        <Label>Session Type</Label>
-                        <div className="flex flex-wrap gap-2">
-                            {tags.map(tag => (
-                                <Badge
-                                    key={tag.id}
-                                    variant={selectedTags.some(t => t.id === tag.id) ? "default" : "outline"}
-                                    className={cn(
-                                        "cursor-pointer",
-                                        selectedTags.some(t => t.id === tag.id) && tag.color && isLightColor(tag.color) ? "text-gray-900" : undefined
-                                    )}
-                                    style={{ backgroundColor: selectedTags.some(t => t.id === tag.id) && tag.color ? tag.color : undefined }}
-                                    onClick={() => toggleTag(tag)}
-                                >
-                                    {tag.name}
-                                    {selectedTags.some(t => t.id === tag.id) && (
-                                        <X className="ml-1 h-3 w-3" />
-                                    )}
-                                </Badge>
-                            ))}
-                        </div>
-                    </div>
+                    <HierarchicalTagSelector
+                        spaceId={spaceId}
+                        selectedTags={selectedTags}
+                        onTagsChange={setSelectedTags}
+                        disabled={isPending}
+                    />
                     <div className="flex items-center space-x-2">
                         <Checkbox
                             id="skip-comment"

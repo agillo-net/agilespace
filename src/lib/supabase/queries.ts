@@ -744,6 +744,25 @@ export const getSessionChangeRequests = async (spaceId: string) => {
     ]),
   ];
 
+  // Early return if no user IDs to avoid empty .in() query
+  if (uniqueUserIds.length === 0) {
+    return data.map((request) => ({
+      ...request,
+      reviewer_profile: null,
+      session: request.session
+        ? {
+            ...request.session,
+            space_member: request.session.space_member
+              ? {
+                  ...request.session.space_member,
+                  profile: null,
+                }
+              : null,
+          }
+        : null,
+    }));
+  }
+
   // Fetch profiles for all unique users
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")

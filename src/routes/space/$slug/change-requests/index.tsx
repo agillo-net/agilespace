@@ -39,34 +39,30 @@ function ChangeRequestsPage() {
     } = useSessionChangeRequests(space?.id || '')
 
     // Get unique requesters and reviewers for filter dropdowns
-    const uniqueRequesters = useMemo(() => {
-        const requesters = changeRequests
-            .map(request => ({
-                id: request.session?.space_member?.user_id,
-                name: request.session?.space_member?.profile?.full_name
-            }))
-            .filter((requester): requester is { id: string; name: string } => 
-                !!requester.id && !!requester.name
-            )
+    const { uniqueRequesters, uniqueReviewers } = useMemo(() => {
+        const requesterMap = new Map<string, { id: string; name: string }>()
+        const reviewerMap = new Map<string, { id: string; name: string }>()
         
-        // Remove duplicates
-        const uniqueMap = new Map(requesters.map(r => [r.id, r]))
-        return Array.from(uniqueMap.values())
-    }, [changeRequests])
-
-    const uniqueReviewers = useMemo(() => {
-        const reviewers = changeRequests
-            .map(request => ({
-                id: request.reviewed_by,
-                name: request.reviewer_profile?.full_name
-            }))
-            .filter((reviewer): reviewer is { id: string; name: string } => 
-                !!reviewer.id && !!reviewer.name
-            )
+        for (const request of changeRequests) {
+            // Process requesters
+            const requesterId = request.session?.space_member?.user_id
+            const requesterName = request.session?.space_member?.profile?.full_name
+            if (requesterId && requesterName) {
+                requesterMap.set(requesterId, { id: requesterId, name: requesterName })
+            }
+            
+            // Process reviewers
+            const reviewerId = request.reviewed_by
+            const reviewerName = request.reviewer_profile?.full_name
+            if (reviewerId && reviewerName) {
+                reviewerMap.set(reviewerId, { id: reviewerId, name: reviewerName })
+            }
+        }
         
-        // Remove duplicates
-        const uniqueMap = new Map(reviewers.map(r => [r.id, r]))
-        return Array.from(uniqueMap.values())
+        return {
+            uniqueRequesters: Array.from(requesterMap.values()),
+            uniqueReviewers: Array.from(reviewerMap.values())
+        }
     }, [changeRequests])
 
     const filteredRequests = changeRequests.filter(request => {

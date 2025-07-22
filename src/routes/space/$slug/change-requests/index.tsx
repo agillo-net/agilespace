@@ -1,6 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { getSpaceAndTracks } from '@/lib/supabase/queries'
-import { getCurrentUserSpaceRole } from '@/hooks/api/use-space-role'
 import { useSessionChangeRequests } from '@/hooks/api/use-session-change-requests'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +16,6 @@ export const Route = createFileRoute('/space/$slug/change-requests/')({
 })
 
 function ChangeRequestsPage() {
-    const { slug } = Route.useParams()
     const spaceData = Route.useLoaderData()
     const space = spaceData?.space
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')

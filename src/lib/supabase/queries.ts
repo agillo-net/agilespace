@@ -9,7 +9,6 @@ import type {
   ClosedSession,
   ActiveSession,
 } from "@/types";
-import type { Database } from "@/types/database.types";
 
 const supabase = getSupabaseClient();
 

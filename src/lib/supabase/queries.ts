@@ -730,7 +730,72 @@ export const getSessionChangeRequests = async (spaceId: string) => {
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
-  return data || [];
+  if (!data) return [];
+
+  // Get unique user IDs from space members and reviewers
+  const uniqueUserIds = [
+    ...new Set([
+      ...data
+        .map((request) => request.session?.space_member?.user_id)
+        .filter((id): id is string => id !== null),
+      ...data
+        .map((request) => request.reviewed_by)
+        .filter((id): id is string => id !== null)
+    ]),
+  ];
+
+  // Early return if no user IDs to avoid empty .in() query
+  if (uniqueUserIds.length === 0) {
+    return data.map((request) => ({
+      ...request,
+      reviewer_profile: null,
+      session: request.session
+        ? {
+            ...request.session,
+            space_member: request.session.space_member
+              ? {
+                  ...request.session.space_member,
+                  profile: null,
+                }
+              : null,
+          }
+        : null,
+    }));
+  }
+
+  // Fetch profiles for all unique users
+  const { data: profiles, error: profilesError } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url")
+    .in("id", uniqueUserIds);
+
+  if (profilesError) throw new Error(profilesError.message);
+
+  // Create a map of user IDs to profiles for quick lookup
+  const profileMap = new Map(
+    (profiles || []).map((profile) => [profile.id, profile])
+  );
+
+  // Combine the data
+  return data.map((request) => ({
+    ...request,
+    reviewer_profile: request.reviewed_by
+      ? profileMap.get(request.reviewed_by)
+      : null,
+    session: request.session
+      ? {
+          ...request.session,
+          space_member: request.session.space_member
+            ? {
+                ...request.session.space_member,
+                profile: request.session.space_member.user_id
+                  ? profileMap.get(request.session.space_member.user_id)
+                  : null,
+              }
+            : null,
+        }
+      : null,
+  }));
 };
 
 export const getSessionChangeRequest = async (requestId: string) => {

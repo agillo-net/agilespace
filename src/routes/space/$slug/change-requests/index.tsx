@@ -4,9 +4,16 @@ import { useSessionChangeRequests } from '@/hooks/api/use-session-change-request
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
-import { Check, X, Clock, User } from 'lucide-react'
-import { useState } from 'react'
+import { Check, X, Clock, User, Filter, UserCheck } from 'lucide-react'
+import { useState, useMemo } from 'react'
 import { cn } from '@/lib/utils'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export const Route = createFileRoute('/space/$slug/change-requests/')({
     component: ChangeRequestsPage,
@@ -19,6 +26,8 @@ function ChangeRequestsPage() {
     const spaceData = Route.useLoaderData()
     const space = spaceData?.space
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
+    const [requesterFilter, setRequesterFilter] = useState<string>('all')
+    const [reviewerFilter, setReviewerFilter] = useState<string>('all')
     
     const {
         changeRequests,
@@ -29,9 +38,44 @@ function ChangeRequestsPage() {
         isRejecting
     } = useSessionChangeRequests(space?.id || '')
 
+    // Get unique requesters and reviewers for filter dropdowns
+    const { uniqueRequesters, uniqueReviewers } = useMemo(() => {
+        const requesterMap = new Map<string, { id: string; name: string }>()
+        const reviewerMap = new Map<string, { id: string; name: string }>()
+        
+        for (const request of changeRequests) {
+            // Process requesters
+            const requesterId = request.session?.space_member?.user_id
+            const requesterName = request.session?.space_member?.profile?.full_name
+            if (requesterId && requesterName) {
+                requesterMap.set(requesterId, { id: requesterId, name: requesterName })
+            }
+            
+            // Process reviewers
+            const reviewerId = request.reviewed_by
+            const reviewerName = request.reviewer_profile?.full_name
+            if (reviewerId && reviewerName) {
+                reviewerMap.set(reviewerId, { id: reviewerId, name: reviewerName })
+            }
+        }
+        
+        return {
+            uniqueRequesters: Array.from(requesterMap.values()),
+            uniqueReviewers: Array.from(reviewerMap.values())
+        }
+    }, [changeRequests])
+
     const filteredRequests = changeRequests.filter(request => {
-        if (filter === 'all') return true
-        return request.status === filter
+        // Status filter
+        if (filter !== 'all' && request.status !== filter) return false
+        
+        // Requester filter
+        if (requesterFilter !== 'all' && request.session?.space_member?.user_id !== requesterFilter) return false
+        
+        // Reviewer filter
+        if (reviewerFilter !== 'all' && request.reviewed_by !== reviewerFilter) return false
+        
+        return true
     })
 
     const getStatusBadgeVariant = (status: string) => {
@@ -78,7 +122,7 @@ function ChangeRequestsPage() {
                 {['all', 'pending', 'approved', 'rejected'].map((status) => (
                     <button
                         key={status}
-                        onClick={() => setFilter(status as any)}
+                        onClick={() => setFilter(status as 'all' | 'pending' | 'approved' | 'rejected')}
                         className={cn(
                             "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
                             filter === status
@@ -94,6 +138,62 @@ function ChangeRequestsPage() {
                         )}
                     </button>
                 ))}
+            </div>
+
+            {/* Additional Filters */}
+            <div className="flex flex-wrap gap-4 items-center">
+                <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">Filters:</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <Select value={requesterFilter} onValueChange={setRequesterFilter}>
+                        <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Filter by requester" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All requesters</SelectItem>
+                            {uniqueRequesters.map((requester) => (
+                                <SelectItem key={requester.id} value={requester.id}>
+                                    {requester.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4 text-muted-foreground" />
+                    <Select value={reviewerFilter} onValueChange={setReviewerFilter}>
+                        <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Filter by reviewer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All reviewers</SelectItem>
+                            {uniqueReviewers.map((reviewer) => (
+                                <SelectItem key={reviewer.id} value={reviewer.id}>
+                                    {reviewer.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* Clear filters button */}
+                {(requesterFilter !== 'all' || reviewerFilter !== 'all') && (
+                    <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                            setRequesterFilter('all')
+                            setReviewerFilter('all')
+                        }}
+                    >
+                        Clear filters
+                    </Button>
+                )}
             </div>
 
             {/* Change Requests List */}
@@ -129,7 +229,7 @@ function ChangeRequestsPage() {
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                         <User className="h-4 w-4" />
-                                        <span>Requested by {request.session?.space_member?.nickname || 'Unknown'}</span>
+                                        <span>Requested by {request.session?.space_member?.profile?.full_name || 'Unknown'}</span>
                                         <span>•</span>
                                         <span>{format(new Date(request.created_at || ''), 'MMM dd, yyyy HH:mm')}</span>
                                     </div>
@@ -202,7 +302,8 @@ function ChangeRequestsPage() {
                             {request.status !== 'pending' && request.reviewed_by && request.reviewed_at && (
                                 <div className="pt-4 border-t text-sm text-muted-foreground">
                                     <p>
-                                        {request.status === 'approved' ? 'Approved' : 'Rejected'} on{' '}
+                                        {request.status === 'approved' ? 'Approved' : 'Rejected'} by{' '}
+                                        {request.reviewer_profile?.full_name || 'Unknown'} on{' '}
                                         {format(new Date(request.reviewed_at), 'MMM dd, yyyy HH:mm')}
                                     </p>
                                 </div>

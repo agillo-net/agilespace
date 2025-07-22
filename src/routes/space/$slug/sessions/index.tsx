@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { getSpaceAndTracks } from '@/lib/supabase/queries'
 import { EndSessionDialog } from '@/components/end-session-dialog'
 import { DiscardSessionDialog } from '@/components/discard-session-dialog'
+import { RequestDurationChangeDialog } from '@/components/request-duration-change-dialog'
 import { SearchForm } from '@/components/search-form'
 import { SessionCard } from '@/components/session-card'
 import { getSessionDuration } from '@/lib/utils'
@@ -14,6 +15,7 @@ import React from 'react'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { useAuth } from '@/hooks/api/use-auth'
 import { useSessions } from '@/hooks/api/use-sessions'
+import { useSessionChangeRequests } from '@/hooks/api/use-session-change-requests'
 import { SearchResultsList } from '@/components/search-results-list'
 
 export const Route = createFileRoute('/space/$slug/sessions/')({
@@ -31,6 +33,8 @@ function SessionsPage() {
     const search = Route.useSearch()
     const navigate = useNavigate()
     const { user } = useAuth()
+    const [showDurationChangeDialog, setShowDurationChangeDialog] = React.useState(false)
+    const [selectedSessionForChange, setSelectedSessionForChange] = React.useState<any>(null)
     const {
         searchQuery,
         setSearchQuery,
@@ -69,6 +73,36 @@ function SessionsPage() {
         isCurrentSessionTrack,
         startSessionMutation
     } = useSessions(slug, search.track)
+
+    const { createRequest: createChangeRequest, isCreating } = useSessionChangeRequests(spaceData?.space?.id || '')
+
+    const handleRequestDurationChange = (session: any) => {
+        setSelectedSessionForChange(session)
+        setShowDurationChangeDialog(true)
+    }
+
+    const handleSubmitDurationChangeRequest = async (data: {
+        requestedStartedAt: string
+        requestedEndedAt: string | null
+        reason: string
+    }) => {
+        if (!selectedSessionForChange) return
+
+        try {
+            await createChangeRequest({
+                sessionId: selectedSessionForChange.id,
+                originalStartedAt: selectedSessionForChange.started_at,
+                originalEndedAt: selectedSessionForChange.ended_at,
+                requestedStartedAt: data.requestedStartedAt,
+                requestedEndedAt: data.requestedEndedAt,
+                reason: data.reason
+            })
+            setShowDurationChangeDialog(false)
+            setSelectedSessionForChange(null)
+        } catch (error) {
+            console.error('Failed to submit duration change request:', error)
+        }
+    }
 
     const filteredAndSortedSessions = React.useMemo(() => {
         if (!closedSessions) return []
@@ -274,6 +308,7 @@ function SessionsPage() {
                             tags={session.tags}
                             spaceMember={session.space_member && session.space_member.profile ? { profile: session.space_member.profile } : undefined}
                             onStartSession={handleStartSession}
+                            onRequestDurationChange={() => handleRequestDurationChange(session)}
                             isStarting={startSessionMutation.isPending}
                             hasActiveSession={!!activeSession}
                         />
@@ -303,6 +338,14 @@ function SessionsPage() {
                     />
                 </>
             )}
+            
+            <RequestDurationChangeDialog
+                open={showDurationChangeDialog}
+                onOpenChange={setShowDurationChangeDialog}
+                session={selectedSessionForChange}
+                onSubmit={handleSubmitDurationChangeRequest}
+                isPending={isCreating}
+            />
         </div>
     )
 } 

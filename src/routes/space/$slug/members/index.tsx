@@ -68,9 +68,9 @@ function MembersPage() {
                     </TableHeader>
                     <TableBody>
                         {members && members.map(({ member, profile, timeWorked }) => {
-                            const name = profile.full_name || 'Unknown'
+                            const name = profile?.full_name || 'Unknown'
                             const joinedDate = member.joined_at ? new Date(member.joined_at).toLocaleString() : 'N/A'
-                            const avatarUrl = profile.avatar_url || 'https://www.gravatar.com/avatar/' + btoa(name.trim().toLowerCase())
+                            const avatarUrl = profile?.avatar_url || 'https://www.gravatar.com/avatar/' + btoa(name.trim().toLowerCase())
                             const avatarFallback = name.slice(0, 2).toUpperCase()
 
                             // Find active session for this member

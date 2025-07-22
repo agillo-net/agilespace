@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
 import { useAuth } from "@/hooks/api/use-auth";
-import { LayoutDashboard, ListMusic, Calendar, Users, Tags } from 'lucide-react'
+import { useIsSpaceAdmin } from "@/hooks/api/use-space-role";
+import { LayoutDashboard, ListMusic, Calendar, Users, Tags, Clock } from 'lucide-react'
 import { Link, useRouter } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import type { User } from '@supabase/supabase-js'
@@ -55,6 +56,12 @@ const sidebarMenu = [
         tooltip: "Tags",
         link: "/space/$slug/tags",
     },
+    {
+        label: "Change Requests",
+        icon: <Clock />,
+        tooltip: "Duration Change Requests",
+        link: "/space/$slug/change-requests",
+    },
 ];
 
 // Function to map user data to the format required by NavUser
@@ -91,6 +98,7 @@ const mapSpace = (space: Space | null) => {
 export function SpaceSidebar({ space, ...props }: React.ComponentProps<typeof Sidebar> & SpaceSidebarProps) {
     const { user } = useAuth()
     const router = useRouter()
+    const isAdmin = useIsSpaceAdmin(space?.id || '')
 
     const userData = React.useMemo(() => {
         return mapUser(user);
@@ -99,6 +107,13 @@ export function SpaceSidebar({ space, ...props }: React.ComponentProps<typeof Si
     const spaceData = React.useMemo(() => {
         return mapSpace(space);
     }, [space]);
+
+    const filteredSidebarMenu = React.useMemo(() => {
+        return sidebarMenu.filter(item => {
+            // Show all menu items to all space members
+            return true;
+        });
+    }, [isAdmin]);
 
 
     return (
@@ -122,7 +137,7 @@ export function SpaceSidebar({ space, ...props }: React.ComponentProps<typeof Si
                             Navigation
                         </SidebarGroupLabel>
                         <SidebarMenu>
-                            {sidebarMenu.map((item) => {
+                            {filteredSidebarMenu.map((item) => {
                                 const currentPath = router.state.location.pathname
                                 const isActive = currentPath === item.link.replace('$slug', space?.name?.toLowerCase() || '')
 

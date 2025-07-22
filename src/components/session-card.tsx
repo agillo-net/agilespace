@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn, isLightColor, getGitHubIssueUrl } from '@/lib/utils'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { Play, Trash2 } from 'lucide-react'
+import { Play, Trash2, Clock } from 'lucide-react'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -16,6 +16,7 @@ interface SessionCardProps {
     onEndSession?: () => void
     onDiscardSession?: () => void
     onStartSession?: (trackId: string) => void
+    onRequestDurationChange?: () => void
     isEnding?: boolean
     isDiscarding?: boolean
     isStarting?: boolean
@@ -39,6 +40,7 @@ export function SessionCard({
     onEndSession,
     onDiscardSession,
     onStartSession,
+    onRequestDurationChange,
     isEnding,
     isDiscarding,
     isStarting,
@@ -161,6 +163,24 @@ export function SessionCard({
                     >
                         <Trash2 className="h-5 w-5" />
                     </button>
+                )}
+                {endedAt && onRequestDurationChange && (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    onClick={onRequestDurationChange}
+                                    size="icon"
+                                    variant="ghost"
+                                >
+                                    <Clock className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Request Duration Change</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 )}
                 {endedAt && onStartSession && (
                     <TooltipProvider>

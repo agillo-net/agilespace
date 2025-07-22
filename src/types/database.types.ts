@@ -61,6 +61,62 @@ export type Database = {
         }
         Relationships: []
       }
+      session_duration_change_requests: {
+        Row: {
+          created_at: string | null
+          id: string
+          original_ended_at: string | null
+          original_started_at: string
+          reason: string | null
+          requested_by: string | null
+          requested_ended_at: string | null
+          requested_started_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          session_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          original_ended_at?: string | null
+          original_started_at: string
+          reason?: string | null
+          requested_by?: string | null
+          requested_ended_at?: string | null
+          requested_started_at: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          session_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          original_ended_at?: string | null
+          original_started_at?: string
+          reason?: string | null
+          requested_by?: string | null
+          requested_ended_at?: string | null
+          requested_started_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          session_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_duration_change_requests_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       session_tags: {
         Row: {
           session_id: string

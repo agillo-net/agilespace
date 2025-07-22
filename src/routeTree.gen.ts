@@ -18,6 +18,7 @@ import { Route as SpaceSlugTracksIndexRouteImport } from './routes/space/$slug/t
 import { Route as SpaceSlugTagsIndexRouteImport } from './routes/space/$slug/tags/index'
 import { Route as SpaceSlugSessionsIndexRouteImport } from './routes/space/$slug/sessions/index'
 import { Route as SpaceSlugMembersIndexRouteImport } from './routes/space/$slug/members/index'
+import { Route as SpaceSlugChangeRequestsIndexRouteImport } from './routes/space/$slug/change-requests/index'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -64,6 +65,12 @@ const SpaceSlugMembersIndexRoute = SpaceSlugMembersIndexRouteImport.update({
   path: '/members/',
   getParentRoute: () => SpaceSlugRouteRoute,
 } as any)
+const SpaceSlugChangeRequestsIndexRoute =
+  SpaceSlugChangeRequestsIndexRouteImport.update({
+    id: '/change-requests/',
+    path: '/change-requests/',
+    getParentRoute: () => SpaceSlugRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/space/$slug': typeof SpaceSlugRouteRouteWithChildren
   '/space/$slug/': typeof SpaceSlugIndexRoute
+  '/space/$slug/change-requests': typeof SpaceSlugChangeRequestsIndexRoute
   '/space/$slug/members': typeof SpaceSlugMembersIndexRoute
   '/space/$slug/sessions': typeof SpaceSlugSessionsIndexRoute
   '/space/$slug/tags': typeof SpaceSlugTagsIndexRoute
@@ -81,6 +89,7 @@ export interface FileRoutesByTo {
   '/spaces': typeof SpacesRouteRoute
   '/login': typeof LoginRoute
   '/space/$slug': typeof SpaceSlugIndexRoute
+  '/space/$slug/change-requests': typeof SpaceSlugChangeRequestsIndexRoute
   '/space/$slug/members': typeof SpaceSlugMembersIndexRoute
   '/space/$slug/sessions': typeof SpaceSlugSessionsIndexRoute
   '/space/$slug/tags': typeof SpaceSlugTagsIndexRoute
@@ -93,6 +102,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/space/$slug': typeof SpaceSlugRouteRouteWithChildren
   '/space/$slug/': typeof SpaceSlugIndexRoute
+  '/space/$slug/change-requests/': typeof SpaceSlugChangeRequestsIndexRoute
   '/space/$slug/members/': typeof SpaceSlugMembersIndexRoute
   '/space/$slug/sessions/': typeof SpaceSlugSessionsIndexRoute
   '/space/$slug/tags/': typeof SpaceSlugTagsIndexRoute
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/space/$slug'
     | '/space/$slug/'
+    | '/space/$slug/change-requests'
     | '/space/$slug/members'
     | '/space/$slug/sessions'
     | '/space/$slug/tags'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/spaces'
     | '/login'
     | '/space/$slug'
+    | '/space/$slug/change-requests'
     | '/space/$slug/members'
     | '/space/$slug/sessions'
     | '/space/$slug/tags'
@@ -127,6 +139,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/space/$slug'
     | '/space/$slug/'
+    | '/space/$slug/change-requests/'
     | '/space/$slug/members/'
     | '/space/$slug/sessions/'
     | '/space/$slug/tags/'
@@ -205,11 +218,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SpaceSlugMembersIndexRouteImport
       parentRoute: typeof SpaceSlugRouteRoute
     }
+    '/space/$slug/change-requests/': {
+      id: '/space/$slug/change-requests/'
+      path: '/change-requests'
+      fullPath: '/space/$slug/change-requests'
+      preLoaderRoute: typeof SpaceSlugChangeRequestsIndexRouteImport
+      parentRoute: typeof SpaceSlugRouteRoute
+    }
   }
 }
 
 interface SpaceSlugRouteRouteChildren {
   SpaceSlugIndexRoute: typeof SpaceSlugIndexRoute
+  SpaceSlugChangeRequestsIndexRoute: typeof SpaceSlugChangeRequestsIndexRoute
   SpaceSlugMembersIndexRoute: typeof SpaceSlugMembersIndexRoute
   SpaceSlugSessionsIndexRoute: typeof SpaceSlugSessionsIndexRoute
   SpaceSlugTagsIndexRoute: typeof SpaceSlugTagsIndexRoute
@@ -218,6 +239,7 @@ interface SpaceSlugRouteRouteChildren {
 
 const SpaceSlugRouteRouteChildren: SpaceSlugRouteRouteChildren = {
   SpaceSlugIndexRoute: SpaceSlugIndexRoute,
+  SpaceSlugChangeRequestsIndexRoute: SpaceSlugChangeRequestsIndexRoute,
   SpaceSlugMembersIndexRoute: SpaceSlugMembersIndexRoute,
   SpaceSlugSessionsIndexRoute: SpaceSlugSessionsIndexRoute,
   SpaceSlugTagsIndexRoute: SpaceSlugTagsIndexRoute,

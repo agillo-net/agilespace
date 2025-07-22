@@ -9,6 +9,7 @@ import type {
   ClosedSession,
   ActiveSession,
 } from "@/types";
+import type { Database } from "@/types/database.types";
 
 const supabase = getSupabaseClient();
 
@@ -705,3 +706,56 @@ export async function getTracksWithSessionData(spaceId: string) {
     };
   });
 }
+
+// Session Duration Change Requests
+export const getSessionChangeRequests = async (spaceId: string) => {
+  const { data, error } = await supabase
+    .from("session_duration_change_requests")
+    .select(`
+      *,
+      session:sessions!inner(
+        *,
+        track:tracks!inner(
+          id,
+          title,
+          space_id
+        ),
+        space_member:space_members!inner(
+          id,
+          user_id,
+          nickname
+        )
+      )
+    `)
+    .eq("session.track.space_id", spaceId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
+export const getSessionChangeRequest = async (requestId: string) => {
+  const { data, error } = await supabase
+    .from("session_duration_change_requests")
+    .select(`
+      *,
+      session:sessions!inner(
+        *,
+        track:tracks!inner(
+          id,
+          title,
+          space_id
+        ),
+        space_member:space_members!inner(
+          id,
+          user_id,
+          nickname
+        )
+      )
+    `)
+    .eq("id", requestId)
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+};

@@ -314,3 +314,100 @@ export async function updateMemberStatus({
   if (error) throw new Error(error.message);
   return data;
 }
+
+// Session Duration Change Requests
+export async function createSessionChangeRequest({
+  sessionId,
+  originalStartedAt,
+  originalEndedAt,
+  requestedStartedAt,
+  requestedEndedAt,
+  reason,
+}: {
+  sessionId: string;
+  originalStartedAt: string;
+  originalEndedAt: string | null;
+  requestedStartedAt: string;
+  requestedEndedAt: string | null;
+  reason?: string;
+}) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  const { data, error } = await supabase
+    .from("session_duration_change_requests")
+    .insert({
+      session_id: sessionId,
+      requested_by: user.id,
+      original_started_at: originalStartedAt,
+      original_ended_at: originalEndedAt,
+      requested_started_at: requestedStartedAt,
+      requested_ended_at: requestedEndedAt,
+      reason,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function approveSessionChangeRequest(requestId: string) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  // Get the change request first
+  const { data: request, error: requestError } = await supabase
+    .from("session_duration_change_requests")
+    .select("*, session_id, requested_started_at, requested_ended_at")
+    .eq("id", requestId)
+    .single();
+
+  if (requestError) throw new Error(requestError.message);
+  if (!request) throw new Error("Change request not found");
+
+  // Update the session with new times
+  const { error: sessionUpdateError } = await supabase
+    .from("sessions")
+    .update({
+      started_at: request.requested_started_at,
+      ended_at: request.requested_ended_at,
+    })
+    .eq("id", request.session_id);
+
+  if (sessionUpdateError) throw new Error(sessionUpdateError.message);
+
+  // Update the change request status
+  const { data, error } = await supabase
+    .from("session_duration_change_requests")
+    .update({
+      status: "approved",
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", requestId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function rejectSessionChangeRequest(requestId: string) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  const { data, error } = await supabase
+    .from("session_duration_change_requests")
+    .update({
+      status: "rejected",
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", requestId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}

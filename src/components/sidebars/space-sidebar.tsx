@@ -109,7 +109,7 @@ export function SpaceSidebar({ space, ...props }: React.ComponentProps<typeof Si
     }, [space]);
 
     const filteredSidebarMenu = React.useMemo(() => {
-        return sidebarMenu.filter(item => {
+        return sidebarMenu.filter(() => {
             // Show all menu items to all space members
             return true;
         });

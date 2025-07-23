@@ -1,7 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { getSpaceAndTracks } from '@/lib/supabase/queries'
 import { useSessionChangeRequests } from '@/hooks/api/use-session-change-requests'
-import type { SessionChangeRequest } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'

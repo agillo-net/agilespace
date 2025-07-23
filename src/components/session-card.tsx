@@ -177,7 +177,7 @@ export function SessionCard({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Request Duration Change</p>
+                                <p>Request Session Change</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>

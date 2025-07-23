@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { getSpaceAndTracks } from '@/lib/supabase/queries'
 import { EndSessionDialog } from '@/components/end-session-dialog'
 import { DiscardSessionDialog } from '@/components/discard-session-dialog'
-import { RequestDurationChangeDialog } from '@/components/request-duration-change-dialog'
+import { RequestSessionChangeDialog } from '@/components/request-session-change-dialog'
 import { SearchForm } from '@/components/search-form'
 import { SessionCard } from '@/components/session-card'
 import { getSessionDuration } from '@/lib/utils'
@@ -84,6 +84,7 @@ function SessionsPage() {
     const handleSubmitDurationChangeRequest = async (data: {
         requestedStartedAt: string
         requestedEndedAt: string | null
+        requestedTrackId?: string
         reason: string
     }) => {
         if (!selectedSessionForChange) return
@@ -93,14 +94,16 @@ function SessionsPage() {
                 sessionId: selectedSessionForChange.id,
                 originalStartedAt: selectedSessionForChange.started_at,
                 originalEndedAt: selectedSessionForChange.ended_at,
+                originalTrackId: selectedSessionForChange.track.id,
                 requestedStartedAt: data.requestedStartedAt,
                 requestedEndedAt: data.requestedEndedAt,
+                requestedTrackId: data.requestedTrackId,
                 reason: data.reason
             })
             setShowDurationChangeDialog(false)
             setSelectedSessionForChange(null)
         } catch (error) {
-            console.error('Failed to submit duration change request:', error)
+            console.error('Failed to submit session change request:', error)
         }
     }
 
@@ -338,11 +341,12 @@ function SessionsPage() {
                     />
                 </>
             )}
-            
-            <RequestDurationChangeDialog
+
+            <RequestSessionChangeDialog
                 open={showDurationChangeDialog}
                 onOpenChange={setShowDurationChangeDialog}
                 session={selectedSessionForChange}
+                tracks={spaceData?.tracks || []}
                 onSubmit={handleSubmitDurationChangeRequest}
                 isPending={isCreating}
             />

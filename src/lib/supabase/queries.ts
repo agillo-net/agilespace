@@ -605,20 +605,17 @@ export async function getMemberSessionAggregations(
   if (!data) return {};
 
   // Aggregate session durations by space_member_id
-  const aggregations = data.reduce(
-    (acc, session) => {
-      const memberId = session.space_member_id;
-      if (!memberId) return acc;
+  const aggregations = data.reduce((acc, session) => {
+    const memberId = session.space_member_id;
+    if (!memberId) return acc;
 
-      const start = new Date(session.started_at).getTime();
-      const end = new Date(session.ended_at!).getTime();
-      const duration = end - start;
+    const start = new Date(session.started_at).getTime();
+    const end = new Date(session.ended_at!).getTime();
+    const duration = end - start;
 
-      acc[memberId] = (acc[memberId] || 0) + duration;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
+    acc[memberId] = (acc[memberId] || 0) + duration;
+    return acc;
+  }, {} as Record<string, number>);
 
   return aggregations;
 }
@@ -634,14 +631,16 @@ export async function getTracksWithSessionData(spaceId: string) {
   if (!tracks || tracks.length === 0) return [];
 
   // Get all sessions for these tracks with member and profile data
-  const trackIds = tracks.map(track => track.id);
+  const trackIds = tracks.map((track) => track.id);
   const { data: sessions, error: sessionsError } = await supabase
     .from("sessions")
-    .select(`
+    .select(
+      `
       *,
       space_member:space_members!inner(*),
       track:tracks!inner(*)
-    `)
+    `
+    )
     .in("track_id", trackIds)
     .not("ended_at", "is", null);
 
@@ -671,8 +670,10 @@ export async function getTracksWithSessionData(spaceId: string) {
 
   // Process each track with its session data
   return tracks.map((track) => {
-    const trackSessions = (sessions || []).filter(session => session.track_id === track.id);
-    
+    const trackSessions = (sessions || []).filter(
+      (session) => session.track_id === track.id
+    );
+
     // Calculate total time
     const totalTime = trackSessions.reduce((total, session) => {
       if (!session.ended_at) return total;
@@ -682,18 +683,24 @@ export async function getTracksWithSessionData(spaceId: string) {
     }, 0);
 
     // Get unique participants
-    const participantIds = [...new Set(
-      trackSessions
-        .map(session => session.space_member?.user_id)
-        .filter((id): id is string => id !== null)
-    )];
+    const participantIds = [
+      ...new Set(
+        trackSessions
+          .map((session) => session.space_member?.user_id)
+          .filter((id): id is string => id !== null)
+      ),
+    ];
 
-    const participants = participantIds.map(userId => {
+    const participants = participantIds.map((userId) => {
       const profile = profileMap.get(userId);
       return {
         id: userId,
-        name: profile?.full_name || 'Unknown',
-        avatar_url: profile?.avatar_url || `https://www.gravatar.com/avatar/${btoa((profile?.full_name || 'Unknown').trim().toLowerCase())}`
+        name: profile?.full_name || "Unknown",
+        avatar_url:
+          profile?.avatar_url ||
+          `https://www.gravatar.com/avatar/${btoa(
+            (profile?.full_name || "Unknown").trim().toLowerCase()
+          )}`,
       };
     });
 
@@ -701,16 +708,17 @@ export async function getTracksWithSessionData(spaceId: string) {
       ...track,
       totalTime,
       participants,
-      sessionCount: trackSessions.length
+      sessionCount: trackSessions.length,
     };
   });
 }
 
-// Session Duration Change Requests
+// Session Change Requests
 export const getSessionChangeRequests = async (spaceId: string) => {
   const { data, error } = await supabase
-    .from("session_duration_change_requests")
-    .select(`
+    .from("session_change_requests")
+    .select(
+      `
       *,
       session:sessions!inner(
         *,
@@ -724,8 +732,17 @@ export const getSessionChangeRequests = async (spaceId: string) => {
           user_id,
           nickname
         )
+      ),
+      original_track:tracks!original_track_id(
+        id,
+        title
+      ),
+      requested_track:tracks!requested_track_id(
+        id,
+        title
       )
-    `)
+    `
+    )
     .eq("session.track.space_id", spaceId)
     .order("created_at", { ascending: false });
 
@@ -740,7 +757,7 @@ export const getSessionChangeRequests = async (spaceId: string) => {
         .filter((id): id is string => id !== null),
       ...data
         .map((request) => request.reviewed_by)
-        .filter((id): id is string => id !== null)
+        .filter((id): id is string => id !== null),
     ]),
   ];
 
@@ -800,8 +817,9 @@ export const getSessionChangeRequests = async (spaceId: string) => {
 
 export const getSessionChangeRequest = async (requestId: string) => {
   const { data, error } = await supabase
-    .from("session_duration_change_requests")
-    .select(`
+    .from("session_change_requests")
+    .select(
+      `
       *,
       session:sessions!inner(
         *,
@@ -815,8 +833,17 @@ export const getSessionChangeRequest = async (requestId: string) => {
           user_id,
           nickname
         )
+      ),
+      original_track:tracks!original_track_id(
+        id,
+        title
+      ),
+      requested_track:tracks!requested_track_id(
+        id,
+        title
       )
-    `)
+    `
+    )
     .eq("id", requestId)
     .single();
 

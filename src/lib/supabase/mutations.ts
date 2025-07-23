@@ -315,34 +315,40 @@ export async function updateMemberStatus({
   return data;
 }
 
-// Session Duration Change Requests
+// Session Change Requests
 export async function createSessionChangeRequest({
   sessionId,
   originalStartedAt,
   originalEndedAt,
+  originalTrackId,
   requestedStartedAt,
   requestedEndedAt,
+  requestedTrackId,
   reason,
 }: {
   sessionId: string;
   originalStartedAt: string;
   originalEndedAt: string | null;
+  originalTrackId: string;
   requestedStartedAt: string;
   requestedEndedAt: string | null;
+  requestedTrackId?: string;
   reason?: string;
 }) {
   const user = await getUser();
   if (!user) throw new Error("Authentication required");
 
   const { data, error } = await supabase
-    .from("session_duration_change_requests")
+    .from("session_change_requests")
     .insert({
       session_id: sessionId,
       requested_by: user.id,
       original_started_at: originalStartedAt,
       original_ended_at: originalEndedAt,
+      original_track_id: originalTrackId,
       requested_started_at: requestedStartedAt,
       requested_ended_at: requestedEndedAt,
+      requested_track_id: requestedTrackId,
       reason,
     })
     .select()
@@ -358,28 +364,37 @@ export async function approveSessionChangeRequest(requestId: string) {
 
   // Get the change request first
   const { data: request, error: requestError } = await supabase
-    .from("session_duration_change_requests")
-    .select("*, session_id, requested_started_at, requested_ended_at")
+    .from("session_change_requests")
+    .select(
+      "*, session_id, requested_started_at, requested_ended_at, requested_track_id"
+    )
     .eq("id", requestId)
     .single();
 
   if (requestError) throw new Error(requestError.message);
   if (!request) throw new Error("Change request not found");
 
-  // Update the session with new times
+  // Update the session with new times and track
+  const sessionUpdates: any = {
+    started_at: request.requested_started_at,
+    ended_at: request.requested_ended_at,
+  };
+
+  // Only update track if a new track was requested
+  if (request.requested_track_id) {
+    sessionUpdates.track_id = request.requested_track_id;
+  }
+
   const { error: sessionUpdateError } = await supabase
     .from("sessions")
-    .update({
-      started_at: request.requested_started_at,
-      ended_at: request.requested_ended_at,
-    })
+    .update(sessionUpdates)
     .eq("id", request.session_id);
 
   if (sessionUpdateError) throw new Error(sessionUpdateError.message);
 
   // Update the change request status
   const { data, error } = await supabase
-    .from("session_duration_change_requests")
+    .from("session_change_requests")
     .update({
       status: "approved",
       reviewed_by: user.id,
@@ -398,7 +413,7 @@ export async function rejectSessionChangeRequest(requestId: string) {
   if (!user) throw new Error("Authentication required");
 
   const { data, error } = await supabase
-    .from("session_duration_change_requests")
+    .from("session_change_requests")
     .update({
       status: "rejected",
       reviewed_by: user.id,

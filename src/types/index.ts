@@ -51,3 +51,11 @@ export type TrackWithSessionData = Track & {
   }[];
   sessionCount: number;
 };
+
+export type SessionChangeRequest =
+  Database["public"]["Tables"]["session_change_requests"]["Row"] & {
+    session: ClosedSession | null;
+    original_track: Pick<Track, "id" | "title"> | null;
+    requested_track: Pick<Track, "id" | "title"> | null;
+    reviewer_profile: Pick<Profile, "id" | "full_name" | "avatar_url"> | null;
+  };

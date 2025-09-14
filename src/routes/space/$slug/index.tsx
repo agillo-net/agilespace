@@ -15,6 +15,7 @@ import { TrackStatsChart } from '@/components/track-stats-chart'
 import { ActiveSessionsList } from '@/components/active-sessions-list'
 import { TeamMembersCard } from '@/components/team-members-card'
 import { useSpaceDashboard } from '@/hooks/api/use-space-dashboard'
+  import { useSessions } from '@/hooks/api/use-sessions'
 
 export const Route = createFileRoute('/space/$slug/')({
   component: SpaceHome,
@@ -43,6 +44,8 @@ function SpaceHome() {
     sessionActivityData,
     trackStatsData,
   } = useSpaceDashboard(slug);
+  
+  const { handleStartSession, startSessionMutation, activeSession } = useSessions(slug);
 
   return (
     <div className='space-y-6'>
@@ -98,7 +101,12 @@ function SpaceHome() {
             </CollapsibleTrigger>
           </div>
           <CollapsibleContent>
-            <ActiveSessionsList sessions={spaceActiveSessions || []} />
+            <ActiveSessionsList 
+              sessions={spaceActiveSessions || []} 
+              onStartSession={handleStartSession}
+              isStarting={startSessionMutation.isPending}
+              hasActiveSession={!!activeSession}
+            />
           </CollapsibleContent>
         </Collapsible>
 

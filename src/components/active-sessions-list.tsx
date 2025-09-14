@@ -1,17 +1,22 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from "@/components/ui/button";
 import { getGitHubIssueUrl } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Play } from "lucide-react";
 import type { getSpaceActiveSessions } from "@/lib/supabase/queries";
 
 type ActiveSessions = Awaited<ReturnType<typeof getSpaceActiveSessions>>;
 
 interface ActiveSessionsListProps {
     sessions: ActiveSessions;
+    onStartSession?: (trackId: string) => void;
+    isStarting?: boolean;
+    hasActiveSession?: boolean;
 }
 
-export function ActiveSessionsList({ sessions }: ActiveSessionsListProps) {
+export function ActiveSessionsList({ sessions, onStartSession, isStarting, hasActiveSession }: ActiveSessionsListProps) {
     return (
         <Card className='py-0'>
             <CardContent className="p-0">
@@ -45,6 +50,26 @@ export function ActiveSessionsList({ sessions }: ActiveSessionsListProps) {
                                 <Badge variant="secondary" className="bg-green-50 text-green-700 hover:bg-green-100 text-xs">
                                     Active
                                 </Badge>
+                                {onStartSession && (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => onStartSession(session.track.id)}
+                                                    disabled={isStarting || hasActiveSession}
+                                                >
+                                                    <Play className="h-4 w-4 mr-1" />
+                                                    Start Session
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Start a new session for this track</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -56,4 +81,4 @@ export function ActiveSessionsList({ sessions }: ActiveSessionsListProps) {
             </CardContent>
         </Card>
     );
-} 
+}

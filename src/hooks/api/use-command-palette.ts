@@ -4,7 +4,7 @@ import { useParams } from "@tanstack/react-router";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DEBOUNCE_TIME } from "@/constants";
 import { getSpaceAndTracks } from "@/lib/supabase/queries";
-import { searchIssues } from "@/lib/github/queries";
+import { searchIssues, checkRepositoryAccess } from "@/lib/github/queries";
 import { useSessions } from "@/hooks/api/use-sessions";
 import type { GitHubIssue } from "@/types";
 
@@ -58,18 +58,38 @@ export function useCommandPalette() {
     }
   }, [open, debouncedSearchQuery, refetch]);
 
-  const handleStartSession = (trackId: string) => {
+  const handleStartSession = async (trackId: string) => {
     if (
       !sessionsHook.activeSession &&
       !sessionsHook.startSessionMutation.isPending
     ) {
+      // Find the track to get repository info
+      const track = spaceData?.tracks?.find(t => t.id === trackId);
+      if (track) {
+        const hasAccess = await checkRepositoryAccess(track.repo_owner, track.repo_name);
+        if (!hasAccess) {
+          // Could show a toast or alert here
+          return;
+        }
+      }
+      
       sessionsHook.startSessionMutation.mutate(trackId);
       setOpen(false);
       setSearchQuery("");
     }
   };
 
-  const handleCreateTrackAndStartSession = (issue: GitHubIssue) => {
+  const handleCreateTrackAndStartSession = async (issue: GitHubIssue) => {
+    if (!issue.repository.owner || !issue.repository.name) {
+      return;
+    }
+    
+    const hasAccess = await checkRepositoryAccess(issue.repository.owner, issue.repository.name);
+    if (!hasAccess) {
+      // Could show a toast or alert here
+      return;
+    }
+    
     sessionsHook.createTrackAndStartSessionMutation.mutate(issue);
     setOpen(false);
     setSearchQuery("");

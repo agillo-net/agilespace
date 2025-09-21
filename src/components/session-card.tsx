@@ -1,4 +1,5 @@
 import { formatDistanceToNow } from 'date-fns'
+import { useState, useEffect } from 'react'
 import type { Track, Tag } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { cn, isLightColor, getGitHubIssueUrl } from '@/lib/utils'
@@ -7,6 +8,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Play, Trash2, Clock } from 'lucide-react'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { checkRepositoryAccess } from '@/lib/github/queries'
 
 interface SessionCardProps {
     track: Track
@@ -50,6 +52,22 @@ export function SessionCard({
     tags,
     spaceMember
 }: SessionCardProps) {
+    const [hasRepoAccess, setHasRepoAccess] = useState<boolean>(true);
+
+    useEffect(() => {
+        const checkAccess = async () => {
+            if (onStartSession && endedAt) {
+                const access = await checkRepositoryAccess(
+                    track.repo_owner,
+                    track.repo_name
+                );
+                setHasRepoAccess(access);
+            }
+        };
+
+        checkAccess();
+    }, [track.repo_owner, track.repo_name, onStartSession, endedAt]);
+
     return (
         <div className="flex items-center justify-between p-4 border rounded-lg gap-4">
             <div className="flex-1">
@@ -188,7 +206,7 @@ export function SessionCard({
                             <TooltipTrigger asChild>
                                 <Button
                                     onClick={() => onStartSession(track.id)}
-                                    disabled={isStarting || hasActiveSession}
+                                    disabled={isStarting || hasActiveSession || !hasRepoAccess}
                                     size="icon"
                                     variant="ghost"
                                 >
@@ -196,7 +214,12 @@ export function SessionCard({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Start New Session</p>
+                                <p>
+                                    {!hasRepoAccess 
+                                        ? "You don't have access to this repository" 
+                                        : "Start New Session"
+                                    }
+                                </p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -204,4 +227,4 @@ export function SessionCard({
             </div>
         </div>
     )
-} 
+}

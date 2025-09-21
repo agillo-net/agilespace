@@ -26,10 +26,33 @@ export async function getRepo(org: string, repo: string) {
   }
 }
 
+export async function checkRepositoryAccess(
+  owner: string,
+  repo: string
+): Promise<boolean> {
+  const octokit = await getOctokitClient();
+  if (!octokit) return false;
+
+  try {
+    // Try to get the repository - this will fail if user doesn't have access
+    await octokit.rest.repos.get({ owner, repo });
+    return true;
+  } catch (error: unknown) {
+    // If it's a 404 or 403, user doesn't have access
+    if (error && typeof error === 'object' && 'status' in error && 
+        (error.status === 404 || error.status === 403)) {
+      return false;
+    }
+    // For other errors, assume no access for safety
+    console.error("Error checking repository access:", error);
+    return false;
+  }
+}
+
 export async function searchIssues(
   orgs: string[] | string,
   query: string = "",
-  options: {} = {}
+  options: object = {}
 ): Promise<GitHubIssue[]> {
   const octokit = await getOctokitClient();
   if (!octokit) throw new Error("Octokit client not initialized");

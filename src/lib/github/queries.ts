@@ -103,3 +103,31 @@ export async function getUser(userId: number) {
     throw error;
   }
 }
+
+export async function getOrgRepositories(org: string) {
+  const octokit = await getOctokitClient();
+  if (!octokit) throw new Error("Octokit client not initialized");
+  try {
+    const response = await octokit.rest.repos.listForOrg({
+      org,
+      type: "all",
+      sort: "updated",
+      per_page: 100,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching organization repositories:", error);
+    throw error;
+  }
+}
+
+export async function getOrganizationById(orgId: number) {
+  const octokit = await getOctokitClient();
+  if (!octokit) throw new Error("Octokit client not initialized");
+
+  const response = await octokit.rest.orgs.get({
+    org: orgId.toString(),
+  });
+
+  return response.data;
+}

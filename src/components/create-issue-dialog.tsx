@@ -122,10 +122,7 @@ export function CreateIssueDialog({
             // Check if the saved repository still exists in the current organization
             const repoExists = repositories.some(repo => repo.full_name === lastSelectedRepo)
             if (repoExists) {
-                // Small delay to avoid conflicts with other state updates
-                setTimeout(() => {
-                    form.setValue('repository', lastSelectedRepo)
-                }, 100)
+                form.setValue('repository', lastSelectedRepo)
             }
         }
     }, [isOpen, repositories, lastSelectedRepo, repositoryValue, form])

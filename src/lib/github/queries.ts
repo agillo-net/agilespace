@@ -124,10 +124,15 @@ export async function getOrgRepositories(org: string) {
 export async function getOrganizationById(orgId: number) {
   const octokit = await getOctokitClient();
   if (!octokit) throw new Error("Octokit client not initialized");
-
-  const response = await octokit.rest.orgs.get({
-    org: orgId.toString(),
-  });
-
-  return response.data;
+  
+  // GitHub API doesn't have a direct endpoint to get org by ID
+  // We need to get the user's organizations and find the one with matching ID
+  const response = await octokit.rest.orgs.listForAuthenticatedUser();
+  const org = response.data.find(o => o.id === orgId);
+  
+  if (!org) {
+    throw new Error(`Organization with ID ${orgId} not found`);
+  }
+  
+  return org;
 }

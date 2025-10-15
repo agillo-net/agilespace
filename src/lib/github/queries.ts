@@ -103,3 +103,36 @@ export async function getUser(userId: number) {
     throw error;
   }
 }
+
+export async function getOrgRepositories(org: string) {
+  const octokit = await getOctokitClient();
+  if (!octokit) throw new Error("Octokit client not initialized");
+  try {
+    const response = await octokit.rest.repos.listForOrg({
+      org,
+      type: "all",
+      sort: "updated",
+      per_page: 100,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching organization repositories:", error);
+    throw error;
+  }
+}
+
+export async function getOrganizationById(orgId: number) {
+  const octokit = await getOctokitClient();
+  if (!octokit) throw new Error("Octokit client not initialized");
+  
+  // GitHub API doesn't have a direct endpoint to get org by ID
+  // We need to get the user's organizations and find the one with matching ID
+  const response = await octokit.rest.orgs.listForAuthenticatedUser();
+  const org = response.data.find(o => o.id === orgId);
+  
+  if (!org) {
+    throw new Error(`Organization with ID ${orgId} not found`);
+  }
+  
+  return org;
+}

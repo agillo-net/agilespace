@@ -4,7 +4,11 @@ import {
 } from '@/components/ui/sidebar'
 import { SpaceSidebar } from '@/components/sidebars/space-sidebar'
 import { getUserMemberSpace } from '@/lib/supabase/queries'
+import { getOrganizationById } from '@/lib/github/queries'
 import { Navbar } from '@/components/navbar'
+import { CreateIssueDialog } from '@/components/create-issue-dialog'
+import { useCreateIssueDialog } from '@/hooks/api/use-create-issue-dialog'
+import { useQuery } from '@tanstack/react-query'
 
 export const Route = createFileRoute('/space/$slug')({
   component: SpaceLayout,
@@ -31,6 +35,14 @@ export const Route = createFileRoute('/space/$slug')({
 
 function SpaceLayout() {
   const { space } = Route.useLoaderData()
+  const { open, setOpen } = useCreateIssueDialog()
+
+  // Fetch organization data to get the login
+  const { data: organization } = useQuery({
+    queryKey: ["organization", space.github_org_id],
+    queryFn: () => space.github_org_id ? getOrganizationById(space.github_org_id) : null,
+    enabled: !!space.github_org_id,
+  })
 
   return (
     <>
@@ -46,6 +58,11 @@ function SpaceLayout() {
           </div>
         </SidebarInset>
       </div>
+      <CreateIssueDialog 
+        isOpen={open} 
+        onOpenChange={setOpen} 
+        organizationLogin={organization?.login || ""} 
+      />
     </>
   )
 }

@@ -38,7 +38,7 @@ export function CommandPalette() {
             >
                 <Search className="h-4 w-4 xl:mr-2" />
                 <span className="hidden xl:inline-flex">Search issues...</span>
-                <CommandShortcut className="pointer-events-none absolute right-1.5 top-2.5 inline-flex h-4 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 xl:static xl:ml-auto">
+                <CommandShortcut className="pointer-events-none inline-flex h-4 select-none items-center gap-1 rounded border bg-muted p-1 xl:static xl:ml-auto">
                     <span className="text-xs">⌘</span>K
                 </CommandShortcut>
             </Button>

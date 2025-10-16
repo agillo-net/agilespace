@@ -216,8 +216,8 @@ export function useTeamInsights(slug: string) {
       return {
         peakCollaborationHours,
         teamSyncScore,
-        communicationFrequency: Math.random() * 100, // Placeholder - would need chat/comment data
-        knowledgeSharing: Math.random() * 100 // Placeholder - would need knowledge base data
+        communicationFrequency: 0, // Not yet implemented: would need chat/comment data
+        knowledgeSharing: 0 // Not yet implemented: would need knowledge base data
       };
     },
     enabled: !!dashboardData?.spaceData?.space?.id,
@@ -338,7 +338,7 @@ export function useTeamInsights(slug: string) {
       return {
         averageSessionDuration: Math.round(averageSessionDuration * 100) / 100,
         teamProductivity: Math.round(teamProductivity * 100) / 100,
-        goalCompletion: Math.random() * 100, // Placeholder - would need goal tracking
+        goalCompletion: 0, // Not yet implemented: would need goal tracking logic
         improvementAreas,
         strengths
       };

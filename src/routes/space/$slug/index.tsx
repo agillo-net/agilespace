@@ -19,7 +19,8 @@ import { ProductivityTrendChart } from '@/components/dashboard/productivity-tren
 import { FocusTimeDistribution } from '@/components/dashboard/focus-time-distribution'
 import { useEnhancedDashboard } from '@/hooks/use-enhanced-dashboard'
 import { useSpaceDashboard } from '@/hooks/api/use-space-dashboard'
-import { DashboardSettings, DEFAULT_SECTIONS, type DashboardSection, type DashboardFilter } from '@/components/dashboard/dashboard-settings'
+import { DashboardSettings, DEFAULT_SECTIONS } from '@/components/dashboard/dashboard-settings'
+import type { DashboardSection, DashboardFilter } from '@/components/dashboard/dashboard-settings'
 
 export const Route = createFileRoute('/space/$slug/')({
   component: SpaceHome,

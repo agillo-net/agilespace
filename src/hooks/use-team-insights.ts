@@ -160,12 +160,15 @@ export function useTeamInsights(slug: string) {
         return acc;
       }, {}) || {};
 
-      return Object.values(memberStats).map(member => ({
-        ...member,
-        totalHours: Math.round(member.totalHours / 3600), // Convert to hours
-        activityLevel: member.totalHours > 40 ? 'high' : member.totalHours > 20 ? 'medium' : 'low' as const,
-        preferredTracks: Array.from(member.tracks)
-      }));
+      return Object.values(memberStats).map(member => {
+        const hoursWorked = Math.round(member.totalHours / 3600); // Convert seconds to hours
+        return {
+          ...member,
+          totalHours: hoursWorked,
+          activityLevel: hoursWorked > 40 ? 'high' : hoursWorked > 20 ? 'medium' : 'low' as const,
+          preferredTracks: Array.from(member.tracks)
+        };
+      });
     },
     enabled: !!dashboardData?.spaceData?.space?.id,
     refetchInterval: 5 * 60 * 1000,

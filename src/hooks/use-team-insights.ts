@@ -85,14 +85,15 @@ export function useTeamInsights(slug: string) {
         return acc;
       }, {}) || {};
 
-      const crossTrackCollaboration = Object.values(trackGroups)
+      const trackGroupValues = Object.values(trackGroups) as Set<string>[];
+      const crossTrackCollaboration = trackGroupValues
         .filter((users: Set<string>) => users.size > 1).length;
 
       return {
         totalMembers,
         activeMembers,
         collaborationScore: totalMembers > 0 ? (activeMembers / totalMembers) * 100 : 0,
-        sharedSessions: Object.values(trackGroups).reduce((sum: number, users: Set<string>) => sum + Math.max(0, users.size - 1), 0),
+        sharedSessions: trackGroupValues.reduce((sum: number, users: Set<string>) => sum + Math.max(0, users.size - 1), 0),
         crossTrackCollaboration
       };
     },

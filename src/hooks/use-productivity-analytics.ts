@@ -240,7 +240,7 @@ export function useProductivityAnalytics(slug: string) {
           id: string;
           user_id: string;
           role: string;
-          profile: { id: string; full_name: string };
+          profile: { id: string; full_name: string }[];
         }[];
       }) => {
         const spaceMember = session.space_member[0];
@@ -253,7 +253,7 @@ export function useProductivityAnalytics(slug: string) {
         if (!userMetrics.has(userId)) {
           userMetrics.set(userId, {
             userId,
-            name: spaceMember.profile?.full_name || 'Unknown User',
+            name: spaceMember.profile?.[0]?.full_name || 'Unknown User',
             role: spaceMember.role,
             totalHours: 0,
             sessionCount: 0,

@@ -180,7 +180,12 @@ export function useEnhancedDashboard(spaceSlug: string) {
            ended_at,
            space_member:space_members!inner(
              id,
-             user_id
+             user_id,
+             profile:profiles!inner(
+               id,
+               full_name,
+               avatar_url
+             )
            ),
            track:tracks!inner(
              title,
@@ -193,35 +198,16 @@ export function useEnhancedDashboard(spaceSlug: string) {
 
       if (error) throw error;
 
-      // Get unique user IDs
-        const userIds = [...new Set(
-          sessions?.map((session: { space_member: { user_id: string }[] }) => 
-            session.space_member?.[0]?.user_id
-          ).filter(Boolean)
-        )];
-
-        // Fetch profiles
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
-          .in('id', userIds);
-
-        const profileMap = new Map(
-          profiles?.map(profile => [profile.id, profile]) || []
-        );
-
         const events: ActivityTimelineEvent[] = [];
 
-        sessions?.forEach((session: { 
-          id: string; 
-          started_at: string; 
-          ended_at?: string; 
-          space_member: { user_id: string }[]; 
-          track: { title: string }[] 
+        sessions?.forEach((session: {
+          id: string;
+          started_at: string;
+          ended_at?: string;
+          space_member: { user_id: string; profile: { full_name: string; avatar_url?: string }[] }[];
+          track: { title: string }[]
         }) => {
-          const profile = session.space_member?.[0]?.user_id 
-            ? profileMap.get(session.space_member[0].user_id) 
-            : null;
+          const profile = session.space_member?.[0]?.profile?.[0];
           const track = session.track?.[0];
          
          // Session start event

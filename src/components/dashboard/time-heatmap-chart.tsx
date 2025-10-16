@@ -37,11 +37,11 @@ const formatDuration = (minutes: number) => {
   return `${hours}h ${mins}m`
 }
 
-export function TimeHeatmapChart({ 
-  data, 
+export function TimeHeatmapChart({
+  data,
   title = "Team Activity Heatmap",
   description = "Visual representation of team activity patterns throughout the week",
-  className 
+  className
 }: TimeHeatmapChartProps) {
   // Create a map for quick lookup
   const dataMap = new Map<string, TimeHeatmapData>()
@@ -50,15 +50,16 @@ export function TimeHeatmapChart({
   })
 
   // Calculate peak activity stats
-  const peakHour = data.length > 0 
-    ? data.reduce((prev, current) => 
+  const peakHour = data.length > 0
+    ? data.reduce((prev, current) =>
         prev.sessions > current.sessions ? prev : current
       )
     : null
   const totalSessions = data.reduce((sum, d) => sum + d.sessions, 0)
 
   return (
-    <Card className={className}>
+    <TooltipProvider>
+      <Card className={className}>
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -118,30 +119,28 @@ export function TimeHeatmapChart({
                     const intensity = cellData?.intensity || 0
 
                     return (
-                      <TooltipProvider key={hour}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div
-                              className={`w-3 h-3 rounded-sm cursor-pointer transition-all hover:ring-2 hover:ring-primary/50 ${getIntensityColor(intensity)}`}
-                            />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="text-sm">
-                              <div className="font-medium">
-                                {day} {hour}:00 - {hour + 1}:00
-                              </div>
-                              <div className="text-muted-foreground">
-                                {sessions} session{sessions !== 1 ? 's' : ''}
-                              </div>
-                              {duration > 0 && (
-                                <div className="text-muted-foreground">
-                                  {formatDuration(duration)} total
-                                </div>
-                              )}
+                      <Tooltip key={hour}>
+                        <TooltipTrigger asChild>
+                          <div
+                            className={`w-3 h-3 rounded-sm cursor-pointer transition-all hover:ring-2 hover:ring-primary/50 ${getIntensityColor(intensity)}`}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="text-sm">
+                            <div className="font-medium">
+                              {day} {hour}:00 - {hour + 1}:00
                             </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                            <div className="text-muted-foreground">
+                              {sessions} session{sessions !== 1 ? 's' : ''}
+                            </div>
+                            {duration > 0 && (
+                              <div className="text-muted-foreground">
+                                {formatDuration(duration)} total
+                              </div>
+                            )}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
                     )
                   })}
                 </div>
@@ -162,5 +161,6 @@ export function TimeHeatmapChart({
         </div>
       </CardContent>
     </Card>
+    </TooltipProvider>
   )
 }

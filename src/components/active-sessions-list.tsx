@@ -56,4 +56,4 @@ export function ActiveSessionsList({ sessions }: ActiveSessionsListProps) {
             </CardContent>
         </Card>
     );
-} 
+}

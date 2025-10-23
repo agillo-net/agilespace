@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import React from "react";
+import { useMemo } from "react";
 import {
   getSpaceAndTracks,
   getActiveSession,
@@ -66,7 +66,7 @@ export function useSpaceDashboard(slug: string) {
   const totalTags = spaceData?.tags?.length || 0;
 
   // Prepare session activity data for the line chart
-  const sessionActivityData = React.useMemo(() => {
+  const sessionActivityData = useMemo(() => {
     if (!closedSessions) return [];
 
     // Group sessions by date
@@ -86,7 +86,7 @@ export function useSpaceDashboard(slug: string) {
   }, [closedSessions]);
 
   // Prepare track statistics data for the bar chart
-  const trackStatsData = React.useMemo(() => {
+  const trackStatsData = useMemo(() => {
     if (!spaceData?.tracks || !sessionStats) return [];
 
     return spaceData.tracks.map((track) => ({

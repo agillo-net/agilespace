@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { getSpaceAndTracks } from '@/lib/supabase/queries'
+import type { ClosedSession } from '@/types'
 import { EndSessionDialog } from '@/components/end-session-dialog'
 import { DiscardSessionDialog } from '@/components/discard-session-dialog'
 import { RequestDurationChangeDialog } from '@/components/request-duration-change-dialog'
@@ -34,7 +35,7 @@ function SessionsPage() {
     const navigate = useNavigate()
     const { user } = useAuth()
     const [showDurationChangeDialog, setShowDurationChangeDialog] = React.useState(false)
-    const [selectedSessionForChange, setSelectedSessionForChange] = React.useState<any>(null)
+    const [selectedSessionForChange, setSelectedSessionForChange] = React.useState<ClosedSession | null>(null)
     const {
         searchQuery,
         setSearchQuery,
@@ -76,7 +77,7 @@ function SessionsPage() {
 
     const { createRequest: createChangeRequest, isCreating } = useSessionChangeRequests(spaceData?.space?.id || '')
 
-    const handleRequestDurationChange = (session: any) => {
+    const handleRequestDurationChange = (session: ClosedSession) => {
         setSelectedSessionForChange(session)
         setShowDurationChangeDialog(true)
     }
@@ -348,4 +349,4 @@ function SessionsPage() {
             />
         </div>
     )
-} 
+}

@@ -124,15 +124,93 @@ export async function getOrgRepositories(org: string) {
 export async function getOrganizationById(orgId: number) {
   const octokit = await getOctokitClient();
   if (!octokit) throw new Error("Octokit client not initialized");
-  
+
   // GitHub API doesn't have a direct endpoint to get org by ID
   // We need to get the user's organizations and find the one with matching ID
   const response = await octokit.rest.orgs.listForAuthenticatedUser();
   const org = response.data.find(o => o.id === orgId);
-  
+
   if (!org) {
     throw new Error(`Organization with ID ${orgId} not found`);
   }
-  
+
   return org;
+}
+
+export async function getUserRepoPermission(owner: string, repo: string) {
+  const octokit = await getOctokitClient();
+  if (!octokit) throw new Error("Octokit client not initialized");
+
+  try {
+    const response = await octokit.rest.repos.getCollaboratorPermissionLevel({
+      owner,
+      repo,
+      username: (await getCurrentUser()).data.login,
+    });
+
+    return response.data.permission;
+  } catch (error: any) {
+    // If we get 404, user doesn't have access
+    if (error.status === 404) {
+      return 'none';
+    }
+    console.error("Error fetching repo permission:", error);
+    throw error;
+  }
+}
+
+export async function getOrgReposWithPermissions(org: string) {
+  const octokit = await getOctokitClient();
+  if (!octokit) throw new Error("Octokit client not initialized");
+
+  try {
+    // Get all repos for the org that the user has access to
+    const response = await octokit.rest.repos.listForOrg({
+      org,
+      type: "all",
+      sort: "updated",
+      per_page: 100,
+    });
+
+    // For each repo, get the user's permission level
+    const reposWithPermissions = await Promise.all(
+      response.data.map(async (repo) => {
+        try {
+          const permissionResponse = await octokit.rest.repos.getCollaboratorPermissionLevel({
+            owner: repo.owner.login,
+            repo: repo.name,
+            username: (await getCurrentUser()).data.login,
+          });
+
+          return {
+            owner: repo.owner.login,
+            name: repo.name,
+            permission: permissionResponse.data.permission,
+            full_name: repo.full_name,
+            private: repo.private,
+          };
+        } catch (error: any) {
+          // If we get 404, user doesn't have access to this specific repo
+          if (error.status === 404) {
+            return {
+              owner: repo.owner.login,
+              name: repo.name,
+              permission: 'none',
+              full_name: repo.full_name,
+              private: repo.private,
+            };
+          }
+          // For other errors, skip this repo
+          console.error(`Error fetching permission for ${repo.full_name}:`, error);
+          return null;
+        }
+      })
+    );
+
+    // Filter out null values (repos that had errors)
+    return reposWithPermissions.filter((repo) => repo !== null);
+  } catch (error) {
+    console.error("Error fetching org repositories with permissions:", error);
+    throw error;
+  }
 }

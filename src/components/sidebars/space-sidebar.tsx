@@ -13,12 +13,12 @@ import {
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
 import { useAuth } from "@/hooks/api/use-auth";
+import { useProfile } from "@/hooks/api/use-profile";
 import { useIsSpaceAdmin } from "@/hooks/api/use-space-role";
-import { LayoutDashboard, ListMusic, Calendar, Users, Tags, Clock } from 'lucide-react'
+import { LayoutDashboard, ListMusic, Calendar, Users, Tags, Clock, CalendarDays } from 'lucide-react'
 import { Link, useRouter } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import type { User } from '@supabase/supabase-js'
-import type { Space } from "@/types";
+import type { Profile, Space } from "@/types";
 
 interface SpaceSidebarProps {
     space: Space | null;
@@ -62,19 +62,25 @@ const sidebarMenu = [
         tooltip: "Duration Change Requests",
         link: "/space/$slug/change-requests",
     },
+    {
+        label: "Time Off",
+        icon: <CalendarDays />,
+        tooltip: "Time Off Requests",
+        link: "/space/$slug/time-off",
+    },
 ];
 
-// Function to map user data to the format required by NavUser
-const mapUser = (user: User | null) => {
-    if (!user) return {
-        name: "Guest",
-        email: "",
+// Function to map profile data to the format required by NavUser
+const mapUserData = (profile: Profile | null | undefined, email: string | undefined) => {
+    if (!profile) return {
+        name: "Loading...",
+        email: email || "",
         avatar: "",
     }
     return {
-        name: user.user_metadata?.full_name || user.user_metadata?.user_name || "Unknown User",
-        email: user.email || "",
-        avatar: user.user_metadata?.avatar_url || "",
+        name: profile.full_name || profile.github_username || "Unknown User",
+        email: email || "",
+        avatar: profile.avatar_url || "",
     };
 }
 
@@ -97,12 +103,13 @@ const mapSpace = (space: Space | null) => {
 
 export function SpaceSidebar({ space, ...props }: React.ComponentProps<typeof Sidebar> & SpaceSidebarProps) {
     const { user } = useAuth()
+    const { data: profile } = useProfile()
     const router = useRouter()
     const isAdmin = useIsSpaceAdmin(space?.id || '')
 
     const userData = React.useMemo(() => {
-        return mapUser(user);
-    }, [user])
+        return mapUserData(profile, user?.email);
+    }, [profile, user?.email])
 
     const spaceData = React.useMemo(() => {
         return mapSpace(space);

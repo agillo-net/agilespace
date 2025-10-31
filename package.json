@@ -10,7 +10,16 @@
     "preview": "vite preview",
     "supabase": "supabase",
     "supabase:start": "supabase start",
-    "supabase:db:generate": "supabase gen types typescript --local > src/types/database.types.ts"
+    "supabase:db:generate": "supabase gen types typescript --local > src/types/database.types.ts",
+    "db:reset": "bash ./supabase/scripts/reset-db.sh",
+    "db:reset:remote": "bash ./supabase/scripts/reset-db-remote.sh",
+    "db:apply": "bash ./supabase/scripts/apply-schemas.sh",
+    "db:apply:remote": "bash ./supabase/scripts/apply-schemas-remote.sh",
+    "db:seed": "bash ./supabase/scripts/seed-data.sh",
+    "db:combine": "bash ./supabase/scripts/combine-schemas.sh",
+    "db:setup": "pnpm db:reset --force && pnpm db:apply && pnpm db:seed",
+    "db:setup:remote": "pnpm db:reset:remote --force && pnpm db:apply:remote",
+    "db:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/types/database.types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
@@ -87,7 +96,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
-    "supabase": "^2.24.3",
+    "supabase": "^2.54.11",
     "tw-animate-css": "^1.2.9",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",

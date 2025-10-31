@@ -101,7 +101,8 @@ export function useProductivityAnalytics(slug: string) {
         `)
         .eq('tracks.space_id', dashboardData.spaceData?.space?.id)
         .gte('started_at', thirtyDaysAgo.toISOString())
-        .not('ended_at', 'is', null);
+        .not('ended_at', 'is', null)
+        .limit(100000);
 
       if (error) throw error;
 

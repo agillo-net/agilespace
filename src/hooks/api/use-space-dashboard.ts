@@ -4,6 +4,11 @@ import {
   getSpaceAndTracks,
   getActiveSession,
   getClosedSessions,
+  getClosedSessionsCount,
+  getActiveSessionsCount,
+  getTracksCount,
+  getSpaceMembersCount,
+  getTagsCount,
   getTrackSessionStats,
   getSpaceActiveSessions,
   getSpaceMembersWithProfiles,
@@ -23,10 +28,45 @@ export function useSpaceDashboard(slug: string) {
     enabled: !!slug,
   });
 
-  // Load closed sessions
+  // Load closed sessions (for charts, limited to recent sessions)
   const { data: closedSessions } = useQuery({
     queryKey: ["closedSessions", spaceData?.space?.id],
     queryFn: () => getClosedSessions(spaceData?.space?.id || ""),
+    enabled: !!spaceData?.space?.id,
+  });
+
+  // Load total sessions count (efficient count query for statistics)
+  const { data: totalSessionsCount } = useQuery({
+    queryKey: ["totalSessionsCount", spaceData?.space?.id],
+    queryFn: () => getClosedSessionsCount(spaceData?.space?.id || ""),
+    enabled: !!spaceData?.space?.id,
+  });
+
+  // Load active sessions count (efficient count query for statistics)
+  const { data: activeSessionsCountData } = useQuery({
+    queryKey: ["activeSessionsCount", spaceData?.space?.id],
+    queryFn: () => getActiveSessionsCount(spaceData?.space?.id || ""),
+    enabled: !!spaceData?.space?.id,
+  });
+
+  // Load tracks count (efficient count query for statistics)
+  const { data: tracksCountData } = useQuery({
+    queryKey: ["tracksCount", spaceData?.space?.id],
+    queryFn: () => getTracksCount(spaceData?.space?.id || ""),
+    enabled: !!spaceData?.space?.id,
+  });
+
+  // Load members count (efficient count query for statistics)
+  const { data: membersCountData } = useQuery({
+    queryKey: ["membersCount", spaceData?.space?.id],
+    queryFn: () => getSpaceMembersCount(spaceData?.space?.id || ""),
+    enabled: !!spaceData?.space?.id,
+  });
+
+  // Load tags count (efficient count query for statistics)
+  const { data: tagsCountData } = useQuery({
+    queryKey: ["tagsCount", spaceData?.space?.id],
+    queryFn: () => getTagsCount(spaceData?.space?.id || ""),
     enabled: !!spaceData?.space?.id,
   });
 
@@ -38,32 +78,19 @@ export function useSpaceDashboard(slug: string) {
     enabled: !!spaceData?.tracks?.length,
   });
 
-  // Load all active sessions for the space
+  // Load all active sessions for the space (for display in the list)
   const { data: spaceActiveSessions } = useQuery({
     queryKey: ["spaceActiveSessions", spaceData?.space?.id],
     queryFn: () => getSpaceActiveSessions(spaceData?.space?.id || ""),
     enabled: !!spaceData?.space?.id,
   });
 
-  // Load space members to get accurate member count
-  const { data: spaceMembers } = useQuery({
-    queryKey: ["spaceMembers", slug],
-    queryFn: () => getSpaceMembersWithProfiles(slug),
-    enabled: !!slug,
-  });
-
-  // Calculate total sessions
-  const totalSessions = closedSessions?.length || 0;
-  const activeSessionsCount = activeSession ? 1 : 0;
-
-  // Calculate total tracks
-  const totalTracks = spaceData?.tracks?.length || 0;
-
-  // Calculate total members
-  const totalMembers = spaceMembers?.length || 0;
-
-  // Calculate total tags
-  const totalTags = spaceData?.tags?.length || 0;
+  // Use count queries for all statistics (efficient and accurate)
+  const totalSessions = totalSessionsCount || 0;
+  const activeSessionsCount = activeSessionsCountData || 0;
+  const totalTracks = tracksCountData || 0;
+  const totalMembers = membersCountData || 0;
+  const totalTags = tagsCountData || 0;
 
   // Prepare session activity data for the line chart
   const sessionActivityData = useMemo(() => {

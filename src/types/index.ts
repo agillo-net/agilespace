@@ -13,6 +13,8 @@ export type Session = Database["public"]["Tables"]["sessions"]["Row"];
 
 export type Tag = Database["public"]["Tables"]["tags"]["Row"];
 
+export type GitHubRepoPermission = Database["public"]["Tables"]["github_repo_permissions"]["Row"];
+
 // This interface extends the Space interface to include membership information
 export interface SpaceWithMembership extends Space {
   is_member: boolean;

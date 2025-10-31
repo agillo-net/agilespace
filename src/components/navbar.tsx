@@ -5,31 +5,17 @@ import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Timer } from "@/components/timer"
 import { CommandPalette } from "@/components/command-palette"
-import { CreateIssueDialog } from "@/components/create-issue-dialog"
-import { useCreateIssueDialog } from "@/hooks/api/use-create-issue-dialog"
-import { useParams } from "@tanstack/react-router"
-import { useQuery } from "@tanstack/react-query"
-import { getSpaceAndTracks } from "@/lib/supabase/queries"
-import { getOrganizationById } from "@/lib/github/queries"
+import { NotificationBell } from "@/components/notifications"
 
-export function Navbar() {
+interface NavbarProps {
+    createIssueOpen?: boolean
+    setCreateIssueOpen?: (open: boolean) => void
+    organizationLogin?: string
+    spaceId?: string
+}
+
+export function Navbar({ createIssueOpen, setCreateIssueOpen, organizationLogin, spaceId }: NavbarProps = {}) {
     const { state, toggleSidebar, isMobile } = useSidebar()
-    const { open, setOpen } = useCreateIssueDialog()
-    const { slug } = useParams({ from: "/space/$slug" })
-
-    // Get space data to access github_org_id
-    const { data: spaceData } = useQuery({
-        queryKey: ["space", slug],
-        queryFn: () => getSpaceAndTracks(slug),
-        enabled: !!slug,
-    })
-
-    // Get organization data using github_org_id
-  const { data: organizationData } = useQuery({
-    queryKey: ["organization", spaceData?.space?.github_org_id],
-    queryFn: () => getOrganizationById(spaceData!.space!.github_org_id!),
-    enabled: !!spaceData?.space?.github_org_id,
-  })
 
     return (
         <>
@@ -55,9 +41,9 @@ export function Navbar() {
                         <CommandPalette />
                         <Button
                              variant="outline"
-                             onClick={() => setOpen(true)}
+                             onClick={() => setCreateIssueOpen?.(true)}
                              className="relative h-9 xl:h-10 flex items-center gap-2 pr-16 px-3 py-2 hidden sm:flex"
-                             disabled={!organizationData}
+                             disabled={!organizationLogin}
                          >
                              <Plus className="h-4 w-4" />
                              Create Issue
@@ -65,29 +51,24 @@ export function Navbar() {
                                  <span className="text-xs">⇧⌘1</span>
                              </CommandShortcut>
                          </Button>
-                         
+
                          {/* Mobile version - icon only */}
                          <Button
                              variant="outline"
-                             onClick={() => setOpen(true)}
+                             onClick={() => setCreateIssueOpen?.(true)}
                              className="sm:hidden w-9 h-9"
-                             disabled={!organizationData}
+                             disabled={!organizationLogin}
                          >
                              <Plus className="h-4 w-4" />
                              <span className="sr-only">Create Issue</span>
                          </Button>
                     </div>
-                    <Timer />
+                    <div className="flex items-center gap-2">
+                        <NotificationBell spaceId={spaceId} />
+                        <Timer />
+                    </div>
                 </div>
             </nav>
-            
-            {organizationData && (
-                <CreateIssueDialog
-                    isOpen={open}
-                    onOpenChange={setOpen}
-                    organizationLogin={organizationData.login}
-                />
-            )}
         </>
     )
 }

@@ -64,7 +64,8 @@ export function useTeamInsights(slug: string) {
           track:tracks(*)
         `)
         .eq('space_id', dashboardData.spaceData.space.id)
-        .gte('start_time', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+        .gte('start_time', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        .limit(100000);
 
       const { data: spaceMembers } = await supabase
         .from('space_members')
@@ -117,7 +118,8 @@ export function useTeamInsights(slug: string) {
           track:tracks(*)
         `)
         .eq('space_id', dashboardData.spaceData.space.id)
-        .gte('start_time', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+        .gte('start_time', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        .limit(100000);
 
       const memberStats = sessions?.reduce((acc: Record<string, {
         userId: string;
@@ -186,7 +188,8 @@ export function useTeamInsights(slug: string) {
         .from('sessions')
         .select('*')
         .eq('space_id', dashboardData.spaceData.space.id)
-        .gte('start_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+        .gte('start_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .limit(100000);
 
       // Calculate peak collaboration hours
       const hourlyActivity = sessions?.reduce((acc: Record<number, number>, session) => {
@@ -243,7 +246,8 @@ export function useTeamInsights(slug: string) {
           track:tracks(*)
         `)
         .eq('space_id', dashboardData.spaceData.space.id)
-        .gte('start_time', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+        .gte('start_time', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        .limit(100000);
 
       // Group sessions by track and calculate expertise levels
       const trackExpertise = sessions?.reduce((acc: Record<string, { experts: Set<string>; novices: Set<string> }>, session) => {
@@ -310,7 +314,8 @@ export function useTeamInsights(slug: string) {
         .from('sessions')
         .select('*')
         .eq('space_id', dashboardData.spaceData.space.id)
-        .gte('start_time', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+        .gte('start_time', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        .limit(100000);
 
       const totalDuration = sessions?.reduce((sum, session) => sum + (session.duration || 0), 0) || 0;
       const averageSessionDuration = sessions?.length ? totalDuration / sessions.length / 3600 : 0;

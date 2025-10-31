@@ -1,4 +1,4 @@
-import { createRootRouteWithContext, Outlet, ErrorComponent } from '@tanstack/react-router'
+import { createRootRouteWithContext, Outlet } from '@tanstack/react-router'
 import { Toaster } from '@/components/ui/sonner'
 
 export const Route = createRootRouteWithContext()({

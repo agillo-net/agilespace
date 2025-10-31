@@ -3,8 +3,7 @@ import { NotificationItem } from "./notification-item";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { CheckCheck, Trash2, Loader2, Settings } from "lucide-react";
+import { CheckCheck, Trash2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 

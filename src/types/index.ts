@@ -17,8 +17,10 @@ export type GitHubRepoPermission = Database["public"]["Tables"]["github_repo_per
 
 // This interface extends the Space interface to include membership information
 export interface SpaceWithMembership extends Space {
+  id: string;
   is_member: boolean;
   member_role: string | null;
+  github_org_id: number | null;
 }
 
 type SearchResultItem = components["schemas"]["issue-search-result-item"];

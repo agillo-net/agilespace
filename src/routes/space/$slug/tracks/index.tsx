@@ -148,9 +148,9 @@ function TracksPage() {
                                 {/* Overlapping Avatars */}
                                 {track.participants.length > 0 && (
                                     <div className="flex -space-x-2">
-                                        {track.participants.slice(0, 3).map((participant) => (
+                                        {track.participants.slice(0, 3).map((participant: { id: string; avatar_url: string | null; name: string }) => (
                                             <Avatar key={participant.id} className="h-8 w-8 border-2 border-white">
-                                                <AvatarImage src={participant.avatar_url} alt={participant.name} />
+                                                <AvatarImage src={participant.avatar_url || undefined} alt={participant.name} />
                                                 <AvatarFallback className="text-xs">
                                                     {participant.name.slice(0, 2).toUpperCase()}
                                                 </AvatarFallback>

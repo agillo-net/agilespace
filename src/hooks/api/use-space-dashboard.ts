@@ -11,7 +11,6 @@ import {
   getTagsCount,
   getTrackSessionStats,
   getSpaceActiveSessions,
-  getSpaceMembersWithProfiles,
 } from "@/lib/supabase/queries";
 
 export function useSpaceDashboard(slug: string) {
@@ -22,7 +21,7 @@ export function useSpaceDashboard(slug: string) {
   });
 
   // Load active session
-  const { data: activeSession } = useQuery({
+  useQuery({
     queryKey: ["activeSession", slug],
     queryFn: () => getActiveSession(),
     enabled: !!slug,
@@ -105,7 +104,7 @@ export function useSpaceDashboard(slug: string) {
 
     // Convert to array format for recharts
     return Object.entries(sessionsByDate)
-      .map(([date, count]) => ({
+      .map(([date, count]): { date: string; sessions: number } => ({
         date,
         sessions: count,
       }))

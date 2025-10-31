@@ -14,7 +14,7 @@ interface NavbarProps {
     spaceId?: string
 }
 
-export function Navbar({ createIssueOpen, setCreateIssueOpen, organizationLogin, spaceId }: NavbarProps = {}) {
+export function Navbar({ setCreateIssueOpen, organizationLogin, spaceId }: NavbarProps = {}) {
     const { state, toggleSidebar, isMobile } = useSidebar()
 
     return (

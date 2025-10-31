@@ -59,6 +59,13 @@ export const ANALYTICS_PERMISSIONS = {
   EXPORT: 'analytics:export',
 } as const;
 
+export const TIME_OFF_PERMISSIONS = {
+  VIEW: 'time_off:view',
+  CREATE: 'time_off:create',
+  APPROVE: 'time_off:approve',
+  CANCEL: 'time_off:cancel',
+} as const;
+
 // Combined permissions object
 export const PERMISSIONS = {
   SPACE: SPACE_PERMISSIONS,
@@ -68,6 +75,7 @@ export const PERMISSIONS = {
   CHANGE_REQUESTS: CHANGE_REQUEST_PERMISSIONS,
   REPOS: REPO_PERMISSIONS,
   ANALYTICS: ANALYTICS_PERMISSIONS,
+  TIME_OFF: TIME_OFF_PERMISSIONS,
 } as const;
 
 // =====================================================
@@ -81,6 +89,7 @@ export type PrPermission = (typeof PR_PERMISSIONS)[keyof typeof PR_PERMISSIONS];
 export type ChangeRequestPermission = (typeof CHANGE_REQUEST_PERMISSIONS)[keyof typeof CHANGE_REQUEST_PERMISSIONS];
 export type RepoPermission = (typeof REPO_PERMISSIONS)[keyof typeof REPO_PERMISSIONS];
 export type AnalyticsPermission = (typeof ANALYTICS_PERMISSIONS)[keyof typeof ANALYTICS_PERMISSIONS];
+export type TimeOffPermission = (typeof TIME_OFF_PERMISSIONS)[keyof typeof TIME_OFF_PERMISSIONS];
 
 export type Permission =
   | SpacePermission
@@ -89,7 +98,8 @@ export type Permission =
   | PrPermission
   | ChangeRequestPermission
   | RepoPermission
-  | AnalyticsPermission;
+  | AnalyticsPermission
+  | TimeOffPermission;
 
 // =====================================================
 // ROLE TYPES
@@ -115,6 +125,7 @@ export const PERMISSION_CATEGORIES = {
   CHANGE_REQUESTS: 'change_requests',
   REPOS: 'repos',
   ANALYTICS: 'analytics',
+  TIME_OFF: 'time_off',
 } as const;
 
 export type PermissionCategory = (typeof PERMISSION_CATEGORIES)[keyof typeof PERMISSION_CATEGORIES];
@@ -170,6 +181,12 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     ANALYTICS_PERMISSIONS.VIEW_OWN,
     ANALYTICS_PERMISSIONS.VIEW_TEAM,
     ANALYTICS_PERMISSIONS.EXPORT,
+
+    // Time Off
+    TIME_OFF_PERMISSIONS.VIEW,
+    TIME_OFF_PERMISSIONS.CREATE,
+    TIME_OFF_PERMISSIONS.APPROVE,
+    TIME_OFF_PERMISSIONS.CANCEL,
   ],
 
   member: [
@@ -204,6 +221,10 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     // Analytics
     ANALYTICS_PERMISSIONS.VIEW_OWN,
     ANALYTICS_PERMISSIONS.VIEW_TEAM,
+
+    // Time Off
+    TIME_OFF_PERMISSIONS.VIEW,
+    TIME_OFF_PERMISSIONS.CREATE,
   ],
 
   observer: [
@@ -223,6 +244,9 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     // Analytics (read-only)
     ANALYTICS_PERMISSIONS.VIEW_OWN,
     ANALYTICS_PERMISSIONS.VIEW_TEAM,
+
+    // Time Off (view only)
+    TIME_OFF_PERMISSIONS.VIEW,
   ],
 };
 

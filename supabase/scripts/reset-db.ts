@@ -55,7 +55,8 @@ async function resetDatabase() {
 
   try {
     // Drop tables in reverse order of dependencies
-    const tables = [
+    // Whitelist of valid table names to prevent SQL injection
+    const VALID_TABLES = [
       'session_tags',
       'tags',
       'sessions',
@@ -66,12 +67,14 @@ async function resetDatabase() {
       'space_members',
       'spaces',
       'profiles',
-    ];
+    ] as const;
 
     console.log('📋 Dropping tables...');
-    for (const table of tables) {
+    for (const table of VALID_TABLES) {
+      // Validate table name against whitelist (already done by const array)
+      // Use identifier quoting for additional safety
       const { error } = await supabase.rpc('exec_sql', {
-        sql: `DROP TABLE IF EXISTS ${table} CASCADE;`,
+        sql: `DROP TABLE IF EXISTS "${table}" CASCADE;`,
       });
 
       if (error) {

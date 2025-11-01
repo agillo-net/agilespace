@@ -5,6 +5,16 @@ import type { User } from "@supabase/supabase-js";
 
 const supabase = getSupabaseClient();
 
+/**
+ * Get or create a user profile from GitHub OAuth data.
+ *
+ * @param user - The authenticated Supabase user
+ * @returns The user's profile, or null if GitHub metadata is incomplete
+ * @throws Error if user parameter is missing
+ *
+ * Note: Returns null when GitHub metadata is incomplete. Callers should handle
+ * this case gracefully - the profile will be created by the database trigger.
+ */
 export async function getOrCreateProfile(user: User) {
   if (!user) throw new Error("User is required");
 

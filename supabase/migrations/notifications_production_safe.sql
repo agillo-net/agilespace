@@ -268,12 +268,7 @@ $$ LANGUAGE plpgsql;
 -- STEP 5: CREATE TRIGGERS (Safe to recreate)
 -- =====================================================
 
-DROP TRIGGER IF EXISTS trigger_update_notification_preferences_updated_at ON notification_preferences;
-CREATE TRIGGER trigger_update_notification_preferences_updated_at
-  BEFORE UPDATE ON notification_preferences
-  FOR EACH ROW
-  EXECUTE FUNCTION update_notification_preferences_updated_at();
-
+-- Create function first, then the trigger that uses it
 CREATE OR REPLACE FUNCTION update_notification_preferences_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -281,6 +276,12 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_update_notification_preferences_updated_at ON notification_preferences;
+CREATE TRIGGER trigger_update_notification_preferences_updated_at
+  BEFORE UPDATE ON notification_preferences
+  FOR EACH ROW
+  EXECUTE FUNCTION update_notification_preferences_updated_at();
 
 DROP TRIGGER IF EXISTS trigger_set_notification_read_at ON notifications;
 CREATE TRIGGER trigger_set_notification_read_at

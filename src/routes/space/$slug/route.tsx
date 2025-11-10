@@ -35,6 +35,7 @@ export const Route = createFileRoute('/space/$slug')({
 
 function SpaceLayout() {
   const { space } = Route.useLoaderData()
+  // Use the hook only once at the top level
   const { open, setOpen } = useCreateIssueDialog()
 
   // Fetch organization data to get the login
@@ -46,7 +47,7 @@ function SpaceLayout() {
 
   return (
     <>
-      <Navbar />
+      <Navbar createIssueOpen={open} setCreateIssueOpen={setOpen} organizationLogin={organization?.login || ""} spaceId={space.id} />
       <hr />
       <div className="w-full flex flex-1 min-h-screen bg-gray-50">
         <SpaceSidebar space={space} />
@@ -58,10 +59,10 @@ function SpaceLayout() {
           </div>
         </SidebarInset>
       </div>
-      <CreateIssueDialog 
-        isOpen={open} 
-        onOpenChange={setOpen} 
-        organizationLogin={organization?.login || ""} 
+      <CreateIssueDialog
+        isOpen={open}
+        onOpenChange={setOpen}
+        organizationLogin={organization?.login || ""}
       />
     </>
   )

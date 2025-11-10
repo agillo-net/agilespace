@@ -6,6 +6,7 @@ import { DEBOUNCE_TIME } from "@/constants";
 import { getSpaceAndTracks } from "@/lib/supabase/queries";
 import { searchIssues } from "@/lib/github/queries";
 import { useSessions } from "@/hooks/api/use-sessions";
+import { useAccessibleRepos } from "@/hooks/api/use-repo-permissions";
 import type { GitHubIssue } from "@/types";
 
 export function useCommandPalette() {
@@ -17,15 +18,22 @@ export function useCommandPalette() {
   const sessionsHook = useSessions(slug);
 
   // Get space data for tracks
-  const { data: spaceData } = useQuery({
+  const { data: spaceData, refetch: refetchSpaceData } = useQuery({
     queryKey: ["space", slug],
     queryFn: () => getSpaceAndTracks(slug),
     enabled: !!slug,
+    staleTime: 0, // Always consider data stale to ensure fresh tracks
   });
+
+  // Get accessible repos for the user (only fetch when we have space data)
+  const { data: accessibleRepos } = useAccessibleRepos(
+    spaceData?.space?.id || '',
+    "read"
+  );
 
   // Search GitHub issues in the whole org
   const {
-    data: searchResults,
+    data: rawSearchResults,
     isLoading: isSearching,
     refetch,
   } = useQuery({
@@ -36,6 +44,19 @@ export function useCommandPalette() {
     staleTime: 0, // 5 minutes
     gcTime: 0, // 5 minutes
   });
+
+  // Filter search results by accessible repos
+  const searchResults = React.useMemo(() => {
+    if (!rawSearchResults || !accessibleRepos) return rawSearchResults;
+
+    return rawSearchResults.filter((issue) => {
+      return accessibleRepos.some(
+        (repo) =>
+          repo.repo_owner === issue.repository.owner &&
+          repo.repo_name === issue.repository.name
+      );
+    });
+  }, [rawSearchResults, accessibleRepos]);
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -52,11 +73,14 @@ export function useCommandPalette() {
   React.useEffect(() => {
     if (!open) {
       setSearchQuery("");
-    } else if (debouncedSearchQuery.trim()) {
-      // Refetch search results when dialog opens and there's a debounced search query
-      refetch();
+    } else {
+      // Refetch tracks and search results when dialog opens to ensure fresh data
+      refetchSpaceData();
+      if (debouncedSearchQuery.trim()) {
+        refetch();
+      }
     }
-  }, [open, debouncedSearchQuery, refetch]);
+  }, [open, debouncedSearchQuery, refetch, refetchSpaceData]);
 
   const handleStartSession = (trackId: string) => {
     if (

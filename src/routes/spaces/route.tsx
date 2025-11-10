@@ -23,7 +23,9 @@ export const Route = createFileRoute("/spaces")({
 });
 
 function RouteComponent() {
-  const { userOrgs } = useLoaderData({ from: "/spaces" });
+  const loaderData = useLoaderData({ from: "/spaces" });
+  const userOrgs = loaderData?.userOrgs || [];
+
   const {
     spacesWithMemberStatus,
     spacesWithMemberStatusLoading,
@@ -44,7 +46,7 @@ function RouteComponent() {
         <h1 className="text-3xl font-bold">Organizations</h1>
       </div>
 
-      {userOrgs.length ? (
+      {userOrgs && userOrgs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {userOrgs.map((org) => {
             const space =
@@ -68,7 +70,7 @@ function RouteComponent() {
       ) : (
         <div className="text-center py-10">
           <p className="text-muted-foreground">
-            No organizations found matching your search.
+            No organizations found. Make sure you're logged in with GitHub and are a member of at least one organization.
           </p>
         </div>
       )}

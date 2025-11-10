@@ -18,8 +18,14 @@ import {
 } from "@/components/ui/select"
 import { MembersListSkeleton } from '@/components/skeleton/members-list-skeleton'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { RefreshCw } from 'lucide-react'
 import { getGitHubIssueUrl, getSessionDuration, formatTime } from '@/lib/utils'
 import { useSpaceMembers } from '@/hooks/api/use-space-members'
+import { useSyncRepoPermissions } from '@/hooks/api/use-repo-permissions'
+import { getSpaceBySlug } from '@/lib/supabase/queries'
+import { useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/space/$slug/members/')({
     component: MembersPage,
@@ -31,6 +37,29 @@ function MembersPage() {
     const showDuration = false // Control visibility of duration display
     const { members, isLoading, activeSessions } = useSpaceMembers(slug, timeFilter);
 
+    // Fetch space data
+    const { data: space } = useQuery({
+        queryKey: ['space', slug],
+        queryFn: () => getSpaceBySlug(slug),
+        enabled: !!slug,
+    });
+
+    const syncPermissions = useSyncRepoPermissions(space?.id || '');
+
+    const handleSyncPermissions = async () => {
+        if (!space?.github_org_id) {
+            toast.error("Space doesn't have a GitHub organization linked");
+            return;
+        }
+
+        try {
+            const result = await syncPermissions.mutateAsync(space.github_org_id);
+            toast.success(`Successfully synced ${result.synced} repositories!`);
+        } catch (error: any) {
+            toast.error(error.message || "Failed to sync permissions");
+        }
+    };
+
     if (isLoading) {
         return (
             <MembersListSkeleton />
@@ -41,18 +70,29 @@ function MembersPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold">Members</h1>
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Time Period:</span>
-                    <Select value={timeFilter} onValueChange={(value: "today" | "week" | "month") => setTimeFilter(value)}>
-                        <SelectTrigger className="w-32">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="today">Today</SelectItem>
-                            <SelectItem value="week">Week</SelectItem>
-                            <SelectItem value="month">Month</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="flex items-center gap-4">
+                    <Button
+                        onClick={handleSyncPermissions}
+                        disabled={syncPermissions.isPending || !space?.github_org_id}
+                        variant="outline"
+                        size="sm"
+                    >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${syncPermissions.isPending ? 'animate-spin' : ''}`} />
+                        {syncPermissions.isPending ? 'Syncing...' : 'Sync GitHub Permissions'}
+                    </Button>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Time Period:</span>
+                        <Select value={timeFilter} onValueChange={(value: "today" | "week" | "month") => setTimeFilter(value)}>
+                            <SelectTrigger className="w-32">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="today">Today</SelectItem>
+                                <SelectItem value="week">Week</SelectItem>
+                                <SelectItem value="month">Month</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </div>
             <div className="rounded-md border">

@@ -7,7 +7,8 @@ import {
     CommandShortcut
 } from "@/components/ui/command"
 import { Button } from "@/components/ui/button"
-import { Search, Play, Plus, Github } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Search, Play, Plus, Github, CheckCircle2, Circle } from "lucide-react"
 import { useCommandPalette } from "@/hooks/api/use-command-palette"
 import { cn } from "@/lib/utils"
 
@@ -85,42 +86,50 @@ export function CommandPalette() {
                                     }}
                                     disabled={!canSelect}
                                     className={cn(
-                                        "flex items-center justify-between",
+                                        "flex items-center justify-between gap-3 py-3",
                                         canSelect ? "cursor-pointer hover:bg-accent" : "cursor-not-allowed opacity-50"
                                     )}
                                 >
-                                    <div className="flex items-center gap-2 max-w-[80%]">
+                                    <div className="flex items-start gap-3 flex-1 min-w-0">
                                         {existingTrack ? (
-                                            <Github className="h-4 w-4 shrink-0" />
+                                            <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600 mt-0.5" />
                                         ) : (
-                                            <Plus className="h-4 w-4 shrink-0" />
+                                            <Circle className="h-5 w-5 shrink-0 text-muted-foreground mt-0.5" />
                                         )}
-                                        <div className="flex flex-col w-full">
-                                            <span className="font-medium">{issue.title}</span>
-                                            <span className="text-xs text-muted-foreground truncate">
-                                                {issue.repository.owner}/{issue.repository.name}#{issue.number}
-                                            </span>
+                                        <div className="flex flex-col gap-1 flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium truncate">{issue.title}</span>
+                                                {existingTrack && (
+                                                    <Badge variant="secondary" className="text-xs shrink-0">
+                                                        Tracked
+                                                    </Badge>
+                                                )}
+                                                {isActive && (
+                                                    <Badge variant="default" className="text-xs shrink-0 bg-green-600">
+                                                        Active
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                <Github className="h-3 w-3 shrink-0" />
+                                                <span className="truncate">
+                                                    {issue.repository.owner}/{issue.repository.name}#{issue.number}
+                                                </span>
+                                            </div>
+                                            {existingTrack && (
+                                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                                    <span>{sessionCount} sessions</span>
+                                                    <span>•</span>
+                                                    <span>{totalDuration}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                    <div className="flex flex-col items-end gap-1 flex-shrink-0 min-w-[90px] text-xs text-muted-foreground text-right">
-                                        <div className="flex items-center gap-1">
-                                            {isActive && (
-                                                <span className="text-green-600 font-medium">Active</span>
-                                            )}
-                                            {existingTrack ? (
-                                                <Play className="h-3 w-3" />
-                                            ) : (
-                                                <Plus className="h-3 w-3" />
-                                            )}
-                                        </div>
+                                    <div className="flex items-center gap-1 shrink-0">
                                         {existingTrack ? (
-                                            <>
-                                                <span>{sessionCount} sessions</span>
-                                                <span>{totalDuration}</span>
-                                                <span>Existing track</span>
-                                            </>
+                                            <Play className="h-4 w-4 text-muted-foreground" />
                                         ) : (
-                                            <span>Create & start</span>
+                                            <Plus className="h-4 w-4 text-muted-foreground" />
                                         )}
                                     </div>
                                 </CommandItem>

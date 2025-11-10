@@ -46,6 +46,7 @@ export function useSessions(slug: string, initialTrackFilter?: string | null) {
   const { data: spaceData, isLoading: isLoadingSpace } = useQuery({
     queryKey: ["space", slug],
     queryFn: () => getSpaceAndTracks(slug),
+    staleTime: 0, // Always consider data stale to ensure fresh tracks
   });
 
   const { data: closedSessions, isLoading: isLoadingSessions } = useQuery({

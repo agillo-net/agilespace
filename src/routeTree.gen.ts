@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SpaceSlugRouteRouteImport } from './routes/space/$slug/route'
 import { Route as SpaceSlugIndexRouteImport } from './routes/space/$slug/index'
 import { Route as SpaceSlugTracksIndexRouteImport } from './routes/space/$slug/tracks/index'
+import { Route as SpaceSlugTimeOffIndexRouteImport } from './routes/space/$slug/time-off/index'
 import { Route as SpaceSlugTagsIndexRouteImport } from './routes/space/$slug/tags/index'
 import { Route as SpaceSlugSessionsIndexRouteImport } from './routes/space/$slug/sessions/index'
 import { Route as SpaceSlugMembersIndexRouteImport } from './routes/space/$slug/members/index'
@@ -50,6 +51,11 @@ const SpaceSlugTracksIndexRoute = SpaceSlugTracksIndexRouteImport.update({
   path: '/tracks/',
   getParentRoute: () => SpaceSlugRouteRoute,
 } as any)
+const SpaceSlugTimeOffIndexRoute = SpaceSlugTimeOffIndexRouteImport.update({
+  id: '/time-off/',
+  path: '/time-off/',
+  getParentRoute: () => SpaceSlugRouteRoute,
+} as any)
 const SpaceSlugTagsIndexRoute = SpaceSlugTagsIndexRouteImport.update({
   id: '/tags/',
   path: '/tags/',
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/space/$slug/members': typeof SpaceSlugMembersIndexRoute
   '/space/$slug/sessions': typeof SpaceSlugSessionsIndexRoute
   '/space/$slug/tags': typeof SpaceSlugTagsIndexRoute
+  '/space/$slug/time-off': typeof SpaceSlugTimeOffIndexRoute
   '/space/$slug/tracks': typeof SpaceSlugTracksIndexRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/space/$slug/members': typeof SpaceSlugMembersIndexRoute
   '/space/$slug/sessions': typeof SpaceSlugSessionsIndexRoute
   '/space/$slug/tags': typeof SpaceSlugTagsIndexRoute
+  '/space/$slug/time-off': typeof SpaceSlugTimeOffIndexRoute
   '/space/$slug/tracks': typeof SpaceSlugTracksIndexRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/space/$slug/members/': typeof SpaceSlugMembersIndexRoute
   '/space/$slug/sessions/': typeof SpaceSlugSessionsIndexRoute
   '/space/$slug/tags/': typeof SpaceSlugTagsIndexRoute
+  '/space/$slug/time-off/': typeof SpaceSlugTimeOffIndexRoute
   '/space/$slug/tracks/': typeof SpaceSlugTracksIndexRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/space/$slug/members'
     | '/space/$slug/sessions'
     | '/space/$slug/tags'
+    | '/space/$slug/time-off'
     | '/space/$slug/tracks'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/space/$slug/members'
     | '/space/$slug/sessions'
     | '/space/$slug/tags'
+    | '/space/$slug/time-off'
     | '/space/$slug/tracks'
   id:
     | '__root__'
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/space/$slug/members/'
     | '/space/$slug/sessions/'
     | '/space/$slug/tags/'
+    | '/space/$slug/time-off/'
     | '/space/$slug/tracks/'
   fileRoutesById: FileRoutesById
 }
@@ -197,6 +209,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SpaceSlugTracksIndexRouteImport
       parentRoute: typeof SpaceSlugRouteRoute
     }
+    '/space/$slug/time-off/': {
+      id: '/space/$slug/time-off/'
+      path: '/time-off'
+      fullPath: '/space/$slug/time-off'
+      preLoaderRoute: typeof SpaceSlugTimeOffIndexRouteImport
+      parentRoute: typeof SpaceSlugRouteRoute
+    }
     '/space/$slug/tags/': {
       id: '/space/$slug/tags/'
       path: '/tags'
@@ -234,6 +253,7 @@ interface SpaceSlugRouteRouteChildren {
   SpaceSlugMembersIndexRoute: typeof SpaceSlugMembersIndexRoute
   SpaceSlugSessionsIndexRoute: typeof SpaceSlugSessionsIndexRoute
   SpaceSlugTagsIndexRoute: typeof SpaceSlugTagsIndexRoute
+  SpaceSlugTimeOffIndexRoute: typeof SpaceSlugTimeOffIndexRoute
   SpaceSlugTracksIndexRoute: typeof SpaceSlugTracksIndexRoute
 }
 
@@ -243,6 +263,7 @@ const SpaceSlugRouteRouteChildren: SpaceSlugRouteRouteChildren = {
   SpaceSlugMembersIndexRoute: SpaceSlugMembersIndexRoute,
   SpaceSlugSessionsIndexRoute: SpaceSlugSessionsIndexRoute,
   SpaceSlugTagsIndexRoute: SpaceSlugTagsIndexRoute,
+  SpaceSlugTimeOffIndexRoute: SpaceSlugTimeOffIndexRoute,
   SpaceSlugTracksIndexRoute: SpaceSlugTracksIndexRoute,
 }
 

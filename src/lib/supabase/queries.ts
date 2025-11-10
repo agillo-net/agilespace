@@ -383,6 +383,68 @@ export async function getActiveSession(userId?: string) {
   return data;
 }
 
+export async function getClosedSessionsCount(
+  spaceId: string
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("sessions")
+    .select("*", { count: 'exact', head: true })
+    .eq("space_id", spaceId)
+    .not("ended_at", "is", null);
+
+  if (error) throw new Error(error.message);
+  return count || 0;
+}
+
+export async function getActiveSessionsCount(
+  spaceId: string
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("sessions")
+    .select("*", { count: 'exact', head: true })
+    .eq("space_id", spaceId)
+    .is("ended_at", null);
+
+  if (error) throw new Error(error.message);
+  return count || 0;
+}
+
+export async function getTracksCount(
+  spaceId: string
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("tracks")
+    .select("*", { count: 'exact', head: true })
+    .eq("space_id", spaceId);
+
+  if (error) throw new Error(error.message);
+  return count || 0;
+}
+
+export async function getSpaceMembersCount(
+  spaceId: string
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("space_members")
+    .select("*", { count: 'exact', head: true })
+    .eq("space_id", spaceId);
+
+  if (error) throw new Error(error.message);
+  return count || 0;
+}
+
+export async function getTagsCount(
+  spaceId: string
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("tags")
+    .select("*", { count: 'exact', head: true })
+    .eq("space_id", spaceId);
+
+  if (error) throw new Error(error.message);
+  return count || 0;
+}
+
 export async function getClosedSessions(
   spaceId: string
 ): Promise<ClosedSession[]> {
@@ -405,7 +467,8 @@ export async function getClosedSessions(
     )
     .eq("tracks.space_id", spaceId)
     .not("ended_at", "is", null)
-    .order("ended_at", { ascending: false });
+    .order("ended_at", { ascending: false })
+    .limit(100000);
 
   if (sessionsError) throw new Error(sessionsError.message);
   if (!sessions) return [];
@@ -823,3 +886,278 @@ export const getSessionChangeRequest = async (requestId: string) => {
   if (error) throw new Error(error.message);
   return data;
 };
+
+// =====================================================
+// TIME OFF QUERIES
+// =====================================================
+
+/**
+ * Fetches time off requests for a space with optional filtering
+ */
+export const getTimeOffRequests = async (
+  spaceId: string,
+  filters?: {
+    status?: "pending" | "approved" | "rejected" | "cancelled";
+    userId?: string;
+    spaceMemberId?: string;
+  }
+) => {
+  let query = supabase
+    .from("time_off_requests")
+    .select(`
+      *,
+      space_member:space_members!inner(
+        id,
+        user_id,
+        nickname
+      )
+    `)
+    .eq("space_id", spaceId)
+    .order("requested_at", { ascending: false });
+
+  // Apply filters
+  if (filters?.status) {
+    query = query.eq("status", filters.status);
+  }
+  if (filters?.userId) {
+    query = query.eq("user_id", filters.userId);
+  }
+  if (filters?.spaceMemberId) {
+    query = query.eq("space_member_id", filters.spaceMemberId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw new Error(error.message);
+
+  if (!data || data.length === 0) {
+    return [];
+  }
+
+  // Collect all user IDs (requesters and reviewers)
+  const userIds = new Set<string>();
+  data.forEach((request: any) => {
+    if (request.space_member?.user_id) {
+      userIds.add(request.space_member.user_id);
+    }
+    if (request.reviewed_by) {
+      userIds.add(request.reviewed_by);
+    }
+  });
+
+  // Fetch all profiles at once
+  const { data: profiles, error: profileError } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url")
+    .in("id", Array.from(userIds));
+
+  if (profileError) throw new Error(profileError.message);
+
+  // Create a profile map
+  const profileMap = new Map(
+    (profiles || []).map((profile) => [profile.id, profile])
+  );
+
+  // Map profiles to requests
+  return data.map((request: any) => ({
+    ...request,
+    space_member: {
+      ...request.space_member,
+      profile: request.space_member?.user_id
+        ? profileMap.get(request.space_member.user_id)
+        : null,
+    },
+    reviewer_profile: request.reviewed_by
+      ? profileMap.get(request.reviewed_by)
+      : null,
+  }));
+};
+
+/**
+ * Fetches a single time off request by ID
+ */
+export const getTimeOffRequestById = async (requestId: string) => {
+  const { data, error } = await supabase
+    .from("time_off_requests")
+    .select(`
+      *,
+      space_member:space_members!inner(
+        id,
+        user_id,
+        nickname
+      )
+    `)
+    .eq("id", requestId)
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  // Collect user IDs to fetch profiles
+  const userIds: string[] = [];
+  if (data.space_member?.user_id) {
+    userIds.push(data.space_member.user_id);
+  }
+  if (data.reviewed_by) {
+    userIds.push(data.reviewed_by);
+  }
+
+  // Fetch profiles if needed
+  if (userIds.length > 0) {
+    const { data: profiles, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, full_name, avatar_url")
+      .in("id", userIds);
+
+    if (profileError) throw new Error(profileError.message);
+
+    const profileMap = new Map(
+      (profiles || []).map((profile) => [profile.id, profile])
+    );
+
+    return {
+      ...data,
+      space_member: {
+        ...data.space_member,
+        profile: data.space_member?.user_id
+          ? profileMap.get(data.space_member.user_id)
+          : null,
+      },
+      reviewer_profile: data.reviewed_by
+        ? profileMap.get(data.reviewed_by)
+        : null,
+    };
+  }
+
+  return data;
+};
+
+/**
+ * Checks for conflicting time off requests for a space member
+ */
+export const checkTimeOffConflicts = async (
+  spaceMemberId: string,
+  startDate: string,
+  endDate: string,
+  excludeRequestId?: string
+) => {
+  const { data, error } = await supabase.rpc("check_time_off_conflicts", {
+    p_space_member_id: spaceMemberId,
+    p_start_date: startDate,
+    p_end_date: endDate,
+    p_exclude_request_id: excludeRequestId || null,
+  });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
+/**
+ * Gets team time off for a date range (for calendar view)
+ */
+export const getTeamTimeOff = async (
+  spaceId: string,
+  startDate: string,
+  endDate: string,
+  statusFilter?: ("pending" | "approved" | "rejected" | "cancelled")[]
+) => {
+  const { data, error } = await supabase.rpc("get_team_time_off", {
+    p_space_id: spaceId,
+    p_start_date: startDate,
+    p_end_date: endDate,
+    p_status_filter: statusFilter || ["approved"],
+  });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
+/**
+ * Gets time off statistics for a space member
+ */
+export const getUserTimeOffStats = async (
+  spaceId: string,
+  userId: string,
+  year?: number
+) => {
+  const currentYear = year || new Date().getFullYear();
+  const startDate = `${currentYear}-01-01`;
+  const endDate = `${currentYear}-12-31`;
+
+  const { data, error } = await supabase
+    .from("time_off_requests")
+    .select("total_days, status, type")
+    .eq("space_id", spaceId)
+    .eq("user_id", userId)
+    .gte("start_date", startDate)
+    .lte("end_date", endDate);
+
+  if (error) throw new Error(error.message);
+
+  // Calculate statistics
+  const stats = {
+    total_days_requested: 0,
+    total_days_approved: 0,
+    total_days_pending: 0,
+    by_type: {} as Record<string, number>,
+  };
+
+  data?.forEach((request) => {
+    const days = Number(request.total_days);
+    stats.total_days_requested += days;
+
+    if (request.status === "approved") {
+      stats.total_days_approved += days;
+      stats.by_type[request.type] =
+        (stats.by_type[request.type] || 0) + days;
+    } else if (request.status === "pending") {
+      stats.total_days_pending += days;
+    }
+  });
+
+  return stats;
+};
+
+// =====================================================
+// GITHUB REPO PERMISSIONS
+// =====================================================
+
+export async function getRepoPermissions(spaceId: string) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  const { data, error } = await supabase
+    .from("github_repo_permissions")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("space_id", spaceId)
+    .order("repo_owner")
+    .order("repo_name");
+
+  if (error) throw new Error(`Failed to fetch repo permissions: ${error.message}`);
+
+  return data || [];
+}
+
+export async function getRepoPermission(
+  spaceId: string,
+  repoOwner: string,
+  repoName: string
+) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  const { data, error } = await supabase
+    .from("github_repo_permissions")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("space_id", spaceId)
+    .eq("repo_owner", repoOwner)
+    .eq("repo_name", repoName)
+    .single();
+
+  if (error && error.code !== "PGRST116") {
+    throw new Error(`Failed to fetch repo permission: ${error.message}`);
+  }
+
+  return data || null;
+}

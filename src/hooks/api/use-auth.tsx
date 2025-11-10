@@ -8,6 +8,7 @@ import {
 import { getSupabaseClient } from "@/lib/supabase/client";
 import type { Session, User, AuthChangeEvent } from "@supabase/supabase-js";
 import { getOctokitClient } from "@/lib/github/client";
+import { getOrCreateProfile } from "@/lib/supabase/mutations";
 
 interface AuthContextType {
   user: User | null;
@@ -58,6 +59,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session.user);
         const token = session.provider_token ?? null;
         setGithubToken(token);
+
+        // Sync profile on initial load (non-blocking)
+        getOrCreateProfile(session.user).catch((error) => {
+          console.error("Failed to sync profile on load:", error);
+        });
       }
     };
 
@@ -71,6 +77,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(session.user);
             const token = session.provider_token ?? null;
             setGithubToken(token);
+
+            // Sync profile with GitHub data on sign in (non-blocking)
+            if (event === "SIGNED_IN") {
+              getOrCreateProfile(session.user)
+                .then(() => console.log("Profile synced with GitHub data"))
+                .catch((error) => console.error("Failed to sync profile:", error));
+            }
           }
         } else if (event === "SIGNED_OUT") {
           setUser(null);

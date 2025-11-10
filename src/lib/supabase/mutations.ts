@@ -1,12 +1,36 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { getUser } from "./queries";
-import type { Tag } from "@/types";
+import type { Tag, Profile } from "@/types";
 import type { User } from "@supabase/supabase-js";
 
 const supabase = getSupabaseClient();
 
-export async function getOrCreateProfile(user: User) {
+/**
+ * Get or create a user profile from GitHub OAuth data.
+ *
+ * @param user - The authenticated Supabase user
+ * @returns The user's profile, or null if GitHub metadata is incomplete
+ * @throws Error if user parameter is missing
+ *
+ * Note: Returns null when GitHub metadata is incomplete. Callers should handle
+ * this case gracefully - the profile will be created by the database trigger.
+ */
+export async function getOrCreateProfile(user: User): Promise<Profile | null> {
   if (!user) throw new Error("User is required");
+
+  // Extract GitHub metadata
+  const {
+    provider_id: github_id,
+    preferred_username: github_username,
+    full_name,
+    avatar_url,
+  } = user.user_metadata;
+
+  if (!github_id || !github_username) {
+    console.warn("User metadata is incomplete - missing GitHub ID or username. Skipping profile sync.");
+    // Don't throw error, just return null - profile will be created by database trigger
+    return null;
+  }
 
   // First, try to get the profile
   const { data: existingProfile, error: getError } = await supabase
@@ -21,25 +45,34 @@ export async function getOrCreateProfile(user: User) {
   }
 
   if (existingProfile) {
-    return existingProfile;
+    // Profile exists - update it with latest GitHub data
+    const { data: updatedProfile, error: updateError } = await supabase
+      .from("profiles")
+      .update({
+        full_name: full_name || existingProfile.full_name,
+        github_username: github_username || existingProfile.github_username,
+        github_id: github_id || existingProfile.github_id,
+        avatar_url: avatar_url || existingProfile.avatar_url,
+      })
+      .eq("id", user.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error("Failed to update profile:", updateError.message);
+      // Return existing profile if update fails
+      return existingProfile;
+    }
+
+    return updatedProfile;
   }
 
-  // If profile doesn't exist, create it.
-  const {
-    provider_id: github_id,
-    preferred_username: github_username,
-    full_name,
-    avatar_url,
-  } = user.user_metadata;
-  if (!github_id || !full_name || !github_username) {
-    throw new Error("User metadata is incomplete for profile creation");
-  }
-
+  // If profile doesn't exist, create it
   const { data: newProfile, error: createError } = await supabase
     .from("profiles")
     .insert({
       id: user.id,
-      full_name,
+      full_name: full_name || github_username, // Fallback to username if no full_name
       github_username,
       github_id,
       avatar_url,
@@ -65,16 +98,26 @@ export async function createSpace({
   avatar_url: string;
   github_org_id: number;
 }) {
+  // Use the database function to create space and add creator as admin
+  const { data: spaceId, error: rpcError } = await supabase.rpc(
+    "create_space_with_admin",
+    {
+      p_name: name,
+      p_slug: slug,
+      p_avatar_url: avatar_url,
+      p_github_org_id: github_org_id,
+    }
+  );
+
+  if (rpcError) throw new Error(rpcError.message);
+
+  // Fetch the created space
   const { data, error } = await supabase
     .from("spaces")
-    .insert({
-      name,
-      slug,
-      avatar_url,
-      github_org_id,
-    })
-    .select()
+    .select("*")
+    .eq("id", spaceId)
     .single();
+
   if (error) throw new Error(error.message);
   return data;
 }
@@ -114,6 +157,12 @@ export async function createTrack({
   const user = await getUser();
   const userId = user?.id;
   if (!userId) throw new Error("User ID is required");
+
+  // Check if user has access to this repository
+  const hasAccess = await checkUserRepoAccess(space_id, repo_owner, repo_name, "read");
+  if (!hasAccess) {
+    throw new Error(`You don't have access to repository ${repo_owner}/${repo_name}. Please contact your space admin to sync permissions.`);
+  }
 
   const { data, error } = await supabase
     .from("tracks")
@@ -410,4 +459,257 @@ export async function rejectSessionChangeRequest(requestId: string) {
 
   if (error) throw new Error(error.message);
   return data;
+}
+
+// =====================================================
+// TIME OFF MUTATIONS
+// =====================================================
+
+/**
+ * Creates a new time off request
+ */
+export async function createTimeOffRequest(params: {
+  spaceId: string;
+  spaceMemberId: string;
+  type: "vacation" | "sick_leave" | "personal" | "unpaid" | "other";
+  startDate: string;
+  endDate: string;
+  isHalfDay?: boolean;
+  halfDayPeriod?: "morning" | "afternoon";
+  reason?: string;
+  notes?: string;
+  totalDays: number;
+}) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  const { data, error } = await supabase
+    .from("time_off_requests")
+    .insert({
+      space_id: params.spaceId,
+      user_id: user.id,
+      space_member_id: params.spaceMemberId,
+      type: params.type,
+      start_date: params.startDate,
+      end_date: params.endDate,
+      is_half_day: params.isHalfDay || false,
+      half_day_period: params.halfDayPeriod || null,
+      reason: params.reason || null,
+      notes: params.notes || null,
+      total_days: params.totalDays,
+      status: "pending",
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/**
+ * Updates an existing time off request (for pending requests only)
+ */
+export async function updateTimeOffRequest(
+  requestId: string,
+  params: {
+    type?: "vacation" | "sick_leave" | "personal" | "unpaid" | "other";
+    startDate?: string;
+    endDate?: string;
+    isHalfDay?: boolean;
+    halfDayPeriod?: "morning" | "afternoon" | null;
+    reason?: string;
+    notes?: string;
+    totalDays?: number;
+  }
+) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  const updateData: any = {};
+  if (params.type !== undefined) updateData.type = params.type;
+  if (params.startDate !== undefined) updateData.start_date = params.startDate;
+  if (params.endDate !== undefined) updateData.end_date = params.endDate;
+  if (params.isHalfDay !== undefined) updateData.is_half_day = params.isHalfDay;
+  if (params.halfDayPeriod !== undefined)
+    updateData.half_day_period = params.halfDayPeriod;
+  if (params.reason !== undefined) updateData.reason = params.reason;
+  if (params.notes !== undefined) updateData.notes = params.notes;
+  if (params.totalDays !== undefined) updateData.total_days = params.totalDays;
+
+  const { data, error } = await supabase
+    .from("time_off_requests")
+    .update(updateData)
+    .eq("id", requestId)
+    .eq("user_id", user.id) // Ensure user can only update their own requests
+    .eq("status", "pending") // Only allow updates to pending requests
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/**
+ * Approves a time off request (admin only)
+ */
+export async function approveTimeOffRequest(
+  requestId: string,
+  reviewerNotes?: string
+) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  const { data, error } = await supabase
+    .from("time_off_requests")
+    .update({
+      status: "approved",
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+      reviewer_notes: reviewerNotes || null,
+    })
+    .eq("id", requestId)
+    .eq("status", "pending") // Only allow approving pending requests
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/**
+ * Rejects a time off request (admin only)
+ */
+export async function rejectTimeOffRequest(
+  requestId: string,
+  reviewerNotes?: string
+) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  const { data, error } = await supabase
+    .from("time_off_requests")
+    .update({
+      status: "rejected",
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+      reviewer_notes: reviewerNotes || null,
+    })
+    .eq("id", requestId)
+    .eq("status", "pending") // Only allow rejecting pending requests
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/**
+ * Cancels a time off request (user can cancel their own requests)
+ */
+export async function cancelTimeOffRequest(requestId: string) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  const { data, error } = await supabase
+    .from("time_off_requests")
+    .update({
+      status: "cancelled",
+    })
+    .eq("id", requestId)
+    .eq("user_id", user.id) // Users can only cancel their own requests
+    .in("status", ["pending", "approved"]) // Can cancel pending or approved requests
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/**
+ * Deletes a time off request
+ */
+export async function deleteTimeOffRequest(requestId: string) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  const { error } = await supabase
+    .from("time_off_requests")
+    .delete()
+    .eq("id", requestId);
+
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// =====================================================
+// GITHUB REPO PERMISSIONS
+// =====================================================
+
+export async function syncRepoPermissions(
+  spaceId: string,
+  repos: { owner: string; name: string; permission: string }[]
+) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  // Prepare data for upsert
+  const permissionsData = repos.map((repo) => ({
+    user_id: user.id,
+    space_id: spaceId,
+    repo_owner: repo.owner,
+    repo_name: repo.name,
+    permission_level: repo.permission,
+    last_synced_at: new Date().toISOString(),
+  }));
+
+  // Upsert permissions (insert or update if exists)
+  const { error } = await supabase
+    .from("github_repo_permissions")
+    .upsert(permissionsData, {
+      onConflict: "user_id,space_id,repo_owner,repo_name",
+    });
+
+  if (error) throw new Error(`Failed to sync repo permissions: ${error.message}`);
+
+  return { success: true, synced: repos.length };
+}
+
+export async function checkUserRepoAccess(
+  spaceId: string,
+  repoOwner: string,
+  repoName: string,
+  minPermission: string = "read"
+) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  const { data, error } = await supabase.rpc("user_has_repo_access", {
+    p_user_id: user.id,
+    p_space_id: spaceId,
+    p_repo_owner: repoOwner,
+    p_repo_name: repoName,
+    p_min_permission: minPermission,
+  });
+
+  if (error) throw new Error(`Failed to check repo access: ${error.message}`);
+
+  return data as boolean;
+}
+
+export async function getUserAccessibleRepos(
+  spaceId: string,
+  minPermission: string = "read"
+) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  const { data, error } = await supabase.rpc("get_user_accessible_repos", {
+    p_user_id: user.id,
+    p_space_id: spaceId,
+    p_min_permission: minPermission,
+  });
+
+  if (error) throw new Error(`Failed to get accessible repos: ${error.message}`);
+
+  return data as { repo_owner: string; repo_name: string; permission_level: string }[];
 }

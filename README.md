@@ -45,6 +45,17 @@ The application will be available at `http://localhost:5173`
 
 ## Database Management
 
+### Quick Database Commands
+
+```bash
+pnpm db:apply       # Apply database schemas
+pnpm db:reset       # Reset database (⚠️ deletes data!)
+pnpm db:seed        # Seed sample data
+pnpm db:setup       # Fresh setup (reset + apply + seed)
+pnpm db:types       # Generate TypeScript types
+pnpm db:combine     # Combine schemas into one file
+```
+
 ### Local Supabase Setup
 
 1. Initialize Supabase (first time only):
@@ -79,6 +90,8 @@ pnpm supabase db reset
 pnpm supabase db push
 ```
 
+**📚 For detailed database management instructions, see [docs/database/](docs/database/)**
+
 ## Project Structure
 
 ```
@@ -96,6 +109,16 @@ agilespace/
 └── public/           # Static assets
 ```
 
+## Features
+
+- ✅ **GitHub Integration** - OAuth login, profile sync, repository tracking
+- ✅ **Team Workspaces (Spaces)** - Organize teams and projects
+- ✅ **Issue Tracking** - Track GitHub issues and work sessions
+- ✅ **Permissions System** - Role-based access control with per-member overrides
+- ✅ **Time Off Management** - Request, approve, and track team time off
+- ✅ **Notifications** - Real-time in-app notifications
+- ✅ **Analytics Dashboard** - Team insights and performance metrics
+
 ## Database Schema
 
 The application uses the following main tables:
@@ -105,6 +128,15 @@ The application uses the following main tables:
 - `sessions`: Work sessions
 - `tracks`: Issue tracking
 - `tags`: Session tags
+- `permissions`: Permission definitions
+- `role_permissions`: Role-to-permission mappings
+- `space_member_permissions`: Per-member permission overrides
+- `time_off_requests`: Time off management
+- `github_repo_permissions`: Repository access tracking
+- `notifications`: In-app notifications
+- `notification_preferences`: User notification settings
+
+**📚 For complete database documentation, see [docs/database/](docs/database/)**
 
 ## Contributing
 
@@ -205,6 +237,18 @@ git push origin feat/AS-123-your-feature-name
 ```
 
 6. Create a Pull Request using the template above
+
+## Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[Quick Start Guide](docs/guides/QUICK_START.md)** - Get started in minutes
+- **[Migration Guide](docs/MIGRATION_GUIDE.md)** - Database migration instructions
+- **[Database Documentation](docs/database/)** - Schema and management guides
+- **[Feature Guides](docs/features/)** - Permissions, time off, notifications, etc.
+- **[Deployment Guide](docs/guides/DEPLOYMENT_GUIDE.md)** - Production deployment
+
+**📚 [View Full Documentation](docs/README.md)**
 
 ## License
 

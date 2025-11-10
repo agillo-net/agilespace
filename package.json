@@ -15,6 +15,7 @@
     "db:reset:remote": "bash ./supabase/scripts/reset-db-remote.sh",
     "db:apply": "bash ./supabase/scripts/apply-schemas.sh",
     "db:apply:remote": "bash ./supabase/scripts/apply-schemas-remote.sh",
+    "db:backup:remote": "bash ./supabase/scripts/backup-remote.sh",
     "db:seed": "bash ./supabase/scripts/seed-data.sh",
     "db:combine": "bash ./supabase/scripts/combine-schemas.sh",
     "db:setup": "pnpm db:reset --force && pnpm db:apply && pnpm db:seed",

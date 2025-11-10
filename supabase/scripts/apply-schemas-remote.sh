@@ -26,9 +26,17 @@ echo ""
 
 # Load environment variables
 if [ -f .env.local ]; then
-    export $(grep -v '^#' .env.local | xargs)
+    set -a
+    source .env.local
+    set +a
 elif [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
+    set -a
+    source .env
+    set +a
+elif [ -f supabase/.env ]; then
+    set -a
+    source supabase/.env
+    set +a
 fi
 
 # Build DATABASE_URL if not set

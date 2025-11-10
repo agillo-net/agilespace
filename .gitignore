@@ -34,3 +34,7 @@ supabase/.env.*.local
 .env.keys
 .env.local
 .env.*.local
+
+# Database backups and test scripts
+supabase/backups/
+test-connection.sh

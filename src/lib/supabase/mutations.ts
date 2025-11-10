@@ -1,6 +1,6 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { getUser } from "./queries";
-import type { Tag } from "@/types";
+import type { Tag, Profile } from "@/types";
 import type { User } from "@supabase/supabase-js";
 
 const supabase = getSupabaseClient();
@@ -15,7 +15,7 @@ const supabase = getSupabaseClient();
  * Note: Returns null when GitHub metadata is incomplete. Callers should handle
  * this case gracefully - the profile will be created by the database trigger.
  */
-export async function getOrCreateProfile(user: User) {
+export async function getOrCreateProfile(user: User): Promise<Profile | null> {
   if (!user) throw new Error("User is required");
 
   // Extract GitHub metadata

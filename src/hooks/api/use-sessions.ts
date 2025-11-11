@@ -96,6 +96,16 @@ export function useSessions(slug: string, initialTrackFilter?: string | null) {
     enabled: !!spaceData?.space?.id && !!searchResults && searchResults.length > 0,
   });
 
+  // Fetch session stats for search result tracks
+  const { data: searchResultSessionStats } = useQuery({
+    queryKey: ["searchResultSessionStats", Array.from(searchResultTracks?.values() || []).map((t) => t.id)],
+    queryFn: () =>
+      getTrackSessionStats(
+        Array.from(searchResultTracks?.values() || []).map((t) => t.id)
+      ),
+    enabled: !!searchResultTracks && searchResultTracks.size > 0,
+  });
+
   const endSessionMutation = useMutation({
     mutationFn: async ({
       sessionId,
@@ -295,8 +305,15 @@ export function useSessions(slug: string, initialTrackFilter?: string | null) {
   };
 
   const getSessionCount = (trackId: string) => {
-    if (!sessionStats) return 0;
-    return sessionStats.counts[trackId] || 0;
+    // Check search result stats first (for tracks found via search)
+    if (searchResultSessionStats?.counts[trackId]) {
+      return searchResultSessionStats.counts[trackId];
+    }
+    // Fall back to regular session stats (for already loaded tracks)
+    if (sessionStats?.counts[trackId]) {
+      return sessionStats.counts[trackId];
+    }
+    return 0;
   };
 
   const handleStartSession = (trackId: string) => {
@@ -326,9 +343,15 @@ export function useSessions(slug: string, initialTrackFilter?: string | null) {
   };
 
   const getTotalDuration = (trackId: string) => {
-    if (!sessionStats) return "0h 0m";
-    const duration = sessionStats.durations[trackId] || 0;
-    return formatTime(duration);
+    // Check search result stats first (for tracks found via search)
+    if (searchResultSessionStats?.durations[trackId]) {
+      return formatTime(searchResultSessionStats.durations[trackId]);
+    }
+    // Fall back to regular session stats (for already loaded tracks)
+    if (sessionStats?.durations[trackId]) {
+      return formatTime(sessionStats.durations[trackId]);
+    }
+    return "0h 0m";
   };
 
   const isCurrentSessionTrack = (trackId: string) => {

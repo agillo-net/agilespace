@@ -26,6 +26,8 @@ export function CommandPalette() {
         handleCreateTrackAndStartSession,
         getTrackForIssue,
         isCurrentSessionTrack,
+        getSessionCount,
+        getTotalDuration,
         debouncedSearchQuery
     } = useCommandPalette()
 
@@ -65,8 +67,8 @@ export function CommandPalette() {
                         searchResults.map((issue) => {
                             const existingTrack = getTrackForIssue(issue)
                             const isActive = existingTrack ? isCurrentSessionTrack(existingTrack.id) : false
-                            const sessionCount = existingTrack ? sessionsHook.getSessionCount(existingTrack.id) : null
-                            const totalDuration = existingTrack ? sessionsHook.getTotalDuration(existingTrack.id) : null
+                            const sessionCount = existingTrack ? getSessionCount(existingTrack.id) : null
+                            const totalDuration = existingTrack ? getTotalDuration(existingTrack.id) : null
 
                             // Check if any session is active (not just this specific issue)
                             const hasActiveSession = sessionsHook.activeSession !== null

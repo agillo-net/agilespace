@@ -3,10 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DEBOUNCE_TIME } from "@/constants";
-import { getSpaceAndTracks, findTracksByIssues } from "@/lib/supabase/queries";
+import { getSpaceAndTracks, findTracksByIssues, getTrackSessionStats } from "@/lib/supabase/queries";
 import { searchIssues } from "@/lib/github/queries";
 import { useSessions } from "@/hooks/api/use-sessions";
 import { useAccessibleRepos } from "@/hooks/api/use-repo-permissions";
+import { formatTime } from "@/lib/utils";
 import type { GitHubIssue } from "@/types";
 
 export function useCommandPalette() {
@@ -71,6 +72,16 @@ export function useCommandPalette() {
         })) || []
       ),
     enabled: !!spaceData?.space?.id && !!searchResults && searchResults.length > 0,
+  });
+
+  // Fetch session stats for command palette search result tracks
+  const { data: commandPaletteSessionStats } = useQuery({
+    queryKey: ["commandPaletteSessionStats", Array.from(searchResultTracks?.values() || []).map((t) => t.id)],
+    queryFn: () =>
+      getTrackSessionStats(
+        Array.from(searchResultTracks?.values() || []).map((t) => t.id)
+      ),
+    enabled: !!searchResultTracks && searchResultTracks.size > 0,
   });
 
   React.useEffect(() => {
@@ -138,6 +149,24 @@ export function useCommandPalette() {
     return sessionsHook.activeSession?.track.id === trackId;
   };
 
+  const getSessionCount = (trackId: string) => {
+    // Check command palette session stats for search results
+    if (commandPaletteSessionStats?.counts[trackId]) {
+      return commandPaletteSessionStats.counts[trackId];
+    }
+    // Fall back to sessionsHook stats
+    return sessionsHook.getSessionCount(trackId);
+  };
+
+  const getTotalDuration = (trackId: string) => {
+    // Check command palette session stats for search results
+    if (commandPaletteSessionStats?.durations[trackId]) {
+      return formatTime(commandPaletteSessionStats.durations[trackId]);
+    }
+    // Fall back to sessionsHook stats
+    return sessionsHook.getTotalDuration(trackId);
+  };
+
   return {
     open,
     setOpen,
@@ -152,6 +181,8 @@ export function useCommandPalette() {
     handleCreateTrackAndStartSession,
     getTrackForIssue,
     isCurrentSessionTrack,
+    getSessionCount,
+    getTotalDuration,
     refetch,
   };
 }

@@ -469,9 +469,8 @@ export async function getClosedSessionsCount(
 ): Promise<number> {
   const { count, error } = await supabase
     .from("sessions")
-    .select("*", { count: 'exact', head: true })
-    .eq("space_id", spaceId)
-    .not("ended_at", "is", null);
+    .select("*, tracks!inner(space_id)", { count: 'exact', head: true })
+    .eq("tracks.space_id", spaceId);
 
   if (error) throw new Error(error.message);
   return count || 0;
@@ -482,8 +481,8 @@ export async function getActiveSessionsCount(
 ): Promise<number> {
   const { count, error } = await supabase
     .from("sessions")
-    .select("*", { count: 'exact', head: true })
-    .eq("space_id", spaceId)
+    .select("*, tracks!inner(space_id)", { count: 'exact', head: true })
+    .eq("tracks.space_id", spaceId)
     .is("ended_at", null);
 
   if (error) throw new Error(error.message);

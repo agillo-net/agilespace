@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DEBOUNCE_TIME } from "@/constants";
-import { getSpaceAndTracks } from "@/lib/supabase/queries";
+import { getSpaceAndTracks, findTracksByIssues } from "@/lib/supabase/queries";
 import { searchIssues } from "@/lib/github/queries";
 import { useSessions } from "@/hooks/api/use-sessions";
 import { useAccessibleRepos } from "@/hooks/api/use-repo-permissions";
@@ -58,6 +58,21 @@ export function useCommandPalette() {
     });
   }, [rawSearchResults, accessibleRepos]);
 
+  // Fetch tracks for current search results to show correct UI state
+  const { data: searchResultTracks } = useQuery({
+    queryKey: ["searchResultTracks", spaceData?.space?.id, searchResults?.map(r => `${r.repository.owner}/${r.repository.name}#${r.number}`)],
+    queryFn: () =>
+      findTracksByIssues(
+        spaceData?.space?.id || "",
+        searchResults?.map((issue) => ({
+          repoOwner: issue.repository.owner || "",
+          repoName: issue.repository.name || "",
+          issueNumber: issue.number,
+        })) || []
+      ),
+    enabled: !!spaceData?.space?.id && !!searchResults && searchResults.length > 0,
+  });
+
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -100,13 +115,23 @@ export function useCommandPalette() {
   };
 
   const getTrackForIssue = (issue: GitHubIssue) => {
-    if (!spaceData?.tracks) return null;
-    return spaceData.tracks.find(
+    // First check loaded tracks (fast for most cases)
+    const loadedTrack = spaceData?.tracks?.find(
       (track) =>
         track.repo_owner === issue.repository.owner &&
         track.repo_name === issue.repository.name &&
         track.issue_number === issue.number
     );
+
+    if (loadedTrack) return loadedTrack;
+
+    // Then check database-fetched tracks for search results (handles >1000 tracks)
+    if (searchResultTracks) {
+      const key = `${issue.repository.owner}/${issue.repository.name}#${issue.number}`;
+      return searchResultTracks.get(key) || null;
+    }
+
+    return null;
   };
 
   const isCurrentSessionTrack = (trackId: string) => {

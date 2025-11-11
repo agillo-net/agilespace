@@ -5,6 +5,7 @@ import {
   getClosedSessions,
   getActiveSession,
   getTrackSessionStats,
+  findTrackByIssue,
 } from "@/lib/supabase/queries";
 import { searchIssues } from "@/lib/github/queries";
 import {
@@ -201,7 +202,15 @@ export function useSessions(slug: string, initialTrackFilter?: string | null) {
         throw new Error("Space or space member not found");
       }
 
-      let track = getTrackForIssue(issue);
+      // Query database directly to check if track exists (handles >1000 tracks correctly)
+      let track = await findTrackByIssue(
+        spaceData.space.id,
+        issue.repository.owner || "",
+        issue.repository.name || "",
+        issue.number
+      );
+
+      // If not found, create it
       if (!track) {
         track = await createTrack({
           space_id: spaceData.space.id,

@@ -252,9 +252,33 @@ export const getSpaceTracks = async (spaceId: string) => {
   const { data, error } = await supabase
     .from("tracks")
     .select("*")
-    .eq("space_id", spaceId);
+    .eq("space_id", spaceId)
+    .limit(100000); // Set high limit to avoid default 1000 row limit
   if (error) throw new Error(error.message);
   return data || [];
+};
+
+/**
+ * Finds a specific track by space, repo, and issue number.
+ * This is more efficient than loading all tracks when checking for duplicates.
+ */
+export const findTrackByIssue = async (
+  spaceId: string,
+  repoOwner: string,
+  repoName: string,
+  issueNumber: number
+) => {
+  const { data, error } = await supabase
+    .from("tracks")
+    .select("*")
+    .eq("space_id", spaceId)
+    .eq("repo_owner", repoOwner)
+    .eq("repo_name", repoName)
+    .eq("issue_number", issueNumber)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
 };
 
 export const getSpaceAndTracks = async (

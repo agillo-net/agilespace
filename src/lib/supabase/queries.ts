@@ -291,25 +291,22 @@ export const findTracksByIssues = async (
 ) => {
   if (issues.length === 0) return new Map();
 
-  // Build OR conditions for all issues
-  const conditions = issues.map(
-    (issue) =>
-      `(repo_owner.eq.${issue.repoOwner},repo_name.eq.${issue.repoName},issue_number.eq.${issue.issueNumber})`
+  // For a small number of issues, use individual queries (simpler and more reliable)
+  // For larger batches, we'd need a different approach
+  const trackPromises = issues.map((issue) =>
+    findTrackByIssue(spaceId, issue.repoOwner, issue.repoName, issue.issueNumber)
   );
 
-  const { data, error } = await supabase
-    .from("tracks")
-    .select("*")
-    .eq("space_id", spaceId)
-    .or(conditions.join(","));
-
-  if (error) throw new Error(error.message);
+  const tracks = await Promise.all(trackPromises);
 
   // Create a map with key format: "owner/repo#number"
   const trackMap = new Map();
-  (data || []).forEach((track) => {
-    const key = `${track.repo_owner}/${track.repo_name}#${track.issue_number}`;
-    trackMap.set(key, track);
+  tracks.forEach((track, index) => {
+    if (track) {
+      const issue = issues[index];
+      const key = `${issue.repoOwner}/${issue.repoName}#${issue.issueNumber}`;
+      trackMap.set(key, track);
+    }
   });
 
   return trackMap;

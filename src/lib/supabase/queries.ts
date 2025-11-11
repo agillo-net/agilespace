@@ -281,6 +281,40 @@ export const findTrackByIssue = async (
   return data;
 };
 
+/**
+ * Finds tracks for multiple issues in a single query.
+ * Returns a map of issue keys to tracks for efficient lookup.
+ */
+export const findTracksByIssues = async (
+  spaceId: string,
+  issues: Array<{ repoOwner: string; repoName: string; issueNumber: number }>
+) => {
+  if (issues.length === 0) return new Map();
+
+  // Build OR conditions for all issues
+  const conditions = issues.map(
+    (issue) =>
+      `(repo_owner.eq.${issue.repoOwner},repo_name.eq.${issue.repoName},issue_number.eq.${issue.issueNumber})`
+  );
+
+  const { data, error } = await supabase
+    .from("tracks")
+    .select("*")
+    .eq("space_id", spaceId)
+    .or(conditions.join(","));
+
+  if (error) throw new Error(error.message);
+
+  // Create a map with key format: "owner/repo#number"
+  const trackMap = new Map();
+  (data || []).forEach((track) => {
+    const key = `${track.repo_owner}/${track.repo_name}#${track.issue_number}`;
+    trackMap.set(key, track);
+  });
+
+  return trackMap;
+};
+
 export const getSpaceAndTracks = async (
   spaceSlug: string
 ): Promise<{

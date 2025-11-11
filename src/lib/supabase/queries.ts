@@ -253,6 +253,7 @@ export const getSpaceTracks = async (spaceId: string) => {
     .from("tracks")
     .select("*")
     .eq("space_id", spaceId)
+    .order("created_at", { ascending: false }) // Order by newest first
     .limit(100000); // Set high limit to avoid default 1000 row limit
   if (error) throw new Error(error.message);
   return data || [];
@@ -279,6 +280,62 @@ export const findTrackByIssue = async (
 
   if (error) throw new Error(error.message);
   return data;
+};
+
+/**
+ * Finds tracks for multiple issues in a single database query.
+ * Returns a map of issue keys to tracks for efficient lookup.
+ * This uses a single query to check all issues at once.
+ */
+export const findTracksByIssues = async (
+  spaceId: string,
+  issues: Array<{ repoOwner: string; repoName: string; issueNumber: number }>
+) => {
+  if (issues.length === 0) return new Map();
+
+  // Get unique repo owners and names
+  const repoKeys = new Set<string>();
+  const issueNumbersByRepo = new Map<string, number[]>();
+
+  issues.forEach(issue => {
+    const repoKey = `${issue.repoOwner}/${issue.repoName}`;
+    repoKeys.add(repoKey);
+
+    if (!issueNumbersByRepo.has(repoKey)) {
+      issueNumbersByRepo.set(repoKey, []);
+    }
+    issueNumbersByRepo.get(repoKey)!.push(issue.issueNumber);
+  });
+
+  // Query all tracks for these repos and space
+  const allIssueNumbers = issues.map(i => i.issueNumber);
+
+  const { data, error } = await supabase
+    .from("tracks")
+    .select("*")
+    .eq("space_id", spaceId)
+    .in("issue_number", allIssueNumbers);
+
+  if (error) throw new Error(error.message);
+
+  // Filter to only matching repo/issue combinations and create map
+  const trackMap = new Map();
+  (data || []).forEach((track) => {
+    // Check if this track matches any of our issues
+    const matchingIssue = issues.find(
+      issue =>
+        issue.repoOwner === track.repo_owner &&
+        issue.repoName === track.repo_name &&
+        issue.issueNumber === track.issue_number
+    );
+
+    if (matchingIssue) {
+      const key = `${track.repo_owner}/${track.repo_name}#${track.issue_number}`;
+      trackMap.set(key, track);
+    }
+  });
+
+  return trackMap;
 };
 
 export const getSpaceAndTracks = async (

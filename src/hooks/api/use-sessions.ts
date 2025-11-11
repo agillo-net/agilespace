@@ -6,6 +6,7 @@ import {
   getActiveSession,
   getTrackSessionStats,
   findTrackByIssue,
+  findTracksByIssues,
 } from "@/lib/supabase/queries";
 import { searchIssues } from "@/lib/github/queries";
 import {
@@ -78,6 +79,21 @@ export function useSessions(slug: string, initialTrackFilter?: string | null) {
     queryFn: () =>
       getTrackSessionStats(spaceData?.tracks?.map((t) => t.id) || []),
     enabled: !!spaceData?.tracks?.length,
+  });
+
+  // Fetch tracks for current search results to show correct UI state
+  const { data: searchResultTracks } = useQuery({
+    queryKey: ["searchResultTracks", spaceData?.space?.id, searchResults?.map(r => `${r.repository.owner}/${r.repository.name}#${r.number}`)],
+    queryFn: () =>
+      findTracksByIssues(
+        spaceData?.space?.id || "",
+        searchResults?.map((issue) => ({
+          repoOwner: issue.repository.owner || "",
+          repoName: issue.repository.name || "",
+          issueNumber: issue.number,
+        })) || []
+      ),
+    enabled: !!spaceData?.space?.id && !!searchResults && searchResults.length > 0,
   });
 
   const endSessionMutation = useMutation({
@@ -290,13 +306,23 @@ export function useSessions(slug: string, initialTrackFilter?: string | null) {
   };
 
   const getTrackForIssue = (issue: GitHubIssue) => {
-    if (!spaceData?.tracks) return null;
-    return spaceData.tracks.find(
+    // First check loaded tracks (fast for most cases)
+    const loadedTrack = spaceData?.tracks?.find(
       (track) =>
         track.repo_owner === issue.repository.owner &&
         track.repo_name === issue.repository.name &&
         track.issue_number === issue.number
     );
+
+    if (loadedTrack) return loadedTrack;
+
+    // Then check database-fetched tracks for search results (handles >1000 tracks)
+    if (searchResultTracks) {
+      const key = `${issue.repository.owner}/${issue.repository.name}#${issue.number}`;
+      return searchResultTracks.get(key) || null;
+    }
+
+    return null;
   };
 
   const getTotalDuration = (trackId: string) => {

@@ -19,6 +19,7 @@ import { ProductivityTrendChart } from '@/components/dashboard/productivity-tren
 import { FocusTimeDistribution } from '@/components/dashboard/focus-time-distribution'
 import { useEnhancedDashboard } from '@/hooks/use-enhanced-dashboard'
 import { useSpaceDashboard } from '@/hooks/api/use-space-dashboard'
+import { useSessions } from '@/hooks/api/use-sessions'
 import { DashboardSettings, DEFAULT_SECTIONS } from '@/components/dashboard/dashboard-settings'
 import type { DashboardSection, DashboardFilter } from '@/components/dashboard/dashboard-settings'
 
@@ -51,6 +52,9 @@ function SpaceHome() {
     sessionTypes: [],
     minDuration: 5
   })
+
+  // Session management hook
+  const { handleStartSession, activeSession, startSessionMutation } = useSessions(slug)
 
   // Helper function to check if a section should be visible
   const isSectionVisible = (sectionId: string) => {
@@ -222,7 +226,12 @@ function SpaceHome() {
               </CollapsibleTrigger>
             </div>
             <CollapsibleContent>
-              <ActiveSessionsList sessions={spaceActiveSessions || []} />
+              <ActiveSessionsList
+                sessions={spaceActiveSessions || []}
+                onStartSession={handleStartSession}
+                isStarting={startSessionMutation.isPending}
+                hasActiveSession={!!activeSession}
+              />
             </CollapsibleContent>
           </Collapsible>
         )}

@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
     Table,
@@ -16,14 +16,17 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { MembersListSkeleton } from '@/components/skeleton/members-list-skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Play } from 'lucide-react'
 import { getGitHubIssueUrl, getSessionDuration, formatTime } from '@/lib/utils'
 import { useSpaceMembers } from '@/hooks/api/use-space-members'
+import { useSessions } from '@/hooks/api/use-sessions'
 import { useSyncRepoPermissions } from '@/hooks/api/use-repo-permissions'
 import { getSpaceBySlug } from '@/lib/supabase/queries'
+import { checkRepositoryAccess } from '@/lib/github/queries'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
@@ -34,8 +37,12 @@ export const Route = createFileRoute('/space/$slug/members/')({
 function MembersPage() {
     const { slug } = Route.useParams()
     const [timeFilter, setTimeFilter] = useState<"today" | "week" | "month">("today")
+    const [repoAccessMap, setRepoAccessMap] = useState<Record<string, boolean>>({})
     const showDuration = false // Control visibility of duration display
     const { members, isLoading, activeSessions } = useSpaceMembers(slug, timeFilter);
+
+    // Session management hook
+    const { handleStartSession, activeSession, startSessionMutation } = useSessions(slug);
 
     // Fetch space data
     const { data: space } = useQuery({
@@ -45,6 +52,32 @@ function MembersPage() {
     });
 
     const syncPermissions = useSyncRepoPermissions(space?.id || '');
+
+    // Check repository access for all active sessions
+    useEffect(() => {
+        const checkAccess = async () => {
+            if (!activeSessions || activeSessions.length === 0) return;
+
+            const accessChecks = activeSessions.map(async (session) => {
+                const key = `${session.track.repo_owner}/${session.track.repo_name}`;
+                const hasAccess = await checkRepositoryAccess(
+                    session.track.repo_owner,
+                    session.track.repo_name
+                );
+                return { key, hasAccess };
+            });
+
+            const results = await Promise.all(accessChecks);
+            const accessMap = results.reduce((acc, { key, hasAccess }) => {
+                acc[key] = hasAccess;
+                return acc;
+            }, {} as Record<string, boolean>);
+
+            setRepoAccessMap(accessMap);
+        };
+
+        checkAccess();
+    }, [activeSessions]);
 
     const handleSyncPermissions = async () => {
         if (!space?.github_org_id) {
@@ -114,8 +147,8 @@ function MembersPage() {
                             const avatarFallback = name.slice(0, 2).toUpperCase()
 
                             // Find active session for this member
-                            const activeSession = activeSessions?.find(session => session?.space_member.user_id === member.user_id)
-                            const sessionDuration = activeSession ? getSessionDuration(activeSession.started_at, new Date().toISOString()) : null
+                            const memberSession = activeSessions?.find(session => session?.space_member.user_id === member.user_id)
+                            const sessionDuration = memberSession ? getSessionDuration(memberSession.started_at, new Date().toISOString()) : null
 
                             return (
                                 <TableRow key={member.id}>
@@ -136,20 +169,54 @@ function MembersPage() {
                                         </span>
                                     </TableCell>
                                     <TableCell>
-                                        {activeSession ? (
+                                        {memberSession ? (
                                             <div className={showDuration ? "flex flex-col gap-1" : "flex items-center gap-2"}>
                                                 <div className="flex items-center gap-2">
                                                     <Badge variant="secondary" className="bg-green-50 text-green-700 hover:bg-green-100">
                                                         Active
                                                     </Badge>
                                                     <a
-                                                        href={getGitHubIssueUrl(activeSession.track)}
+                                                        href={getGitHubIssueUrl(memberSession.track)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
                                                     >
-                                                        {activeSession.track.title}
+                                                        {memberSession.track.title}
                                                     </a>
+                                                    {(() => {
+                                                        const repoKey = `${memberSession.track.repo_owner}/${memberSession.track.repo_name}`;
+                                                        const hasRepoAccess = repoAccessMap[repoKey] ?? true;
+                                                        const currentUserHasActiveSession = !!activeSession;
+                                                        const isStarting = startSessionMutation.isPending;
+
+                                                        return (
+                                                            <TooltipProvider>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => handleStartSession(memberSession.track.id)}
+                                                                            disabled={isStarting || currentUserHasActiveSession || !hasRepoAccess}
+                                                                        >
+                                                                            <Play className="h-4 w-4 mr-1" />
+                                                                            Start Session
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>
+                                                                            {!hasRepoAccess
+                                                                                ? "You don't have access to this repository"
+                                                                                : currentUserHasActiveSession
+                                                                                    ? "You already have an active session"
+                                                                                    : "Start a new session for this track"
+                                                                            }
+                                                                        </p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        );
+                                                    })()}
                                                 </div>
                                                 {showDuration && (
                                                     <span className="text-sm text-gray-500">

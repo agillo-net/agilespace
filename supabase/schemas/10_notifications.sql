@@ -207,7 +207,11 @@ CREATE OR REPLACE FUNCTION create_notification(
   p_action_url TEXT DEFAULT NULL,
   p_metadata JSONB DEFAULT '{}'::jsonb
 )
-RETURNS UUID AS $$
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_notification_id UUID;
   v_user_preferences RECORD;
@@ -254,7 +258,7 @@ BEGIN
 
   RETURN v_notification_id;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 -- Function to notify space admins about time off requests
 CREATE OR REPLACE FUNCTION notify_space_admins(
@@ -268,15 +272,20 @@ CREATE OR REPLACE FUNCTION notify_space_admins(
   p_action_url TEXT DEFAULT NULL,
   p_metadata JSONB DEFAULT '{}'::jsonb
 )
-RETURNS INTEGER AS $$
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_admin_record RECORD;
   v_notification_count INTEGER := 0;
 BEGIN
-  -- Get all space admins
+  -- Get all space admins that exist in auth.users
   FOR v_admin_record IN
     SELECT DISTINCT sm.user_id
     FROM space_members sm
+    INNER JOIN auth.users u ON u.id = sm.user_id  -- Only get users that exist in auth.users
     WHERE sm.space_id = p_space_id
       AND sm.role = 'admin'
       AND sm.user_id != p_actor_id -- Don't notify the actor
@@ -300,7 +309,7 @@ BEGIN
 
   RETURN v_notification_count;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 -- =====================================================
 -- TRIGGERS
@@ -345,7 +354,11 @@ CREATE TRIGGER trigger_set_notification_read_at
 
 -- Trigger to create notifications when time off is requested
 CREATE OR REPLACE FUNCTION notify_time_off_requested()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_requester_name TEXT;
   v_space_name TEXT;
@@ -381,7 +394,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 CREATE TRIGGER trigger_notify_time_off_requested
   AFTER INSERT ON time_off_requests
@@ -391,7 +404,11 @@ CREATE TRIGGER trigger_notify_time_off_requested
 
 -- Trigger to create notifications when time off is approved
 CREATE OR REPLACE FUNCTION notify_time_off_approved()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_reviewer_name TEXT;
   v_space_name TEXT;
@@ -431,7 +448,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 CREATE TRIGGER trigger_notify_time_off_approved
   AFTER UPDATE ON time_off_requests
@@ -441,7 +458,11 @@ CREATE TRIGGER trigger_notify_time_off_approved
 
 -- Trigger to create notifications when time off is rejected
 CREATE OR REPLACE FUNCTION notify_time_off_rejected()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_reviewer_name TEXT;
   v_space_name TEXT;
@@ -481,7 +502,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 CREATE TRIGGER trigger_notify_time_off_rejected
   AFTER UPDATE ON time_off_requests
@@ -559,5 +580,8 @@ COMMENT ON COLUMN notifications.expires_at IS 'Optional expiration date for auto
 COMMENT ON FUNCTION get_unread_notification_count IS 'Gets count of unread notifications for a user';
 COMMENT ON FUNCTION mark_all_notifications_read IS 'Marks all unread notifications as read for a user';
 COMMENT ON FUNCTION delete_old_notifications IS 'Deletes notifications older than specified days';
-COMMENT ON FUNCTION create_notification IS 'Creates a new notification with preference checking';
-COMMENT ON FUNCTION notify_space_admins IS 'Sends notification to all admins/owners of a space';
+COMMENT ON FUNCTION create_notification IS 'Creates a new notification with preference checking (SECURITY DEFINER allows bypassing RLS)';
+COMMENT ON FUNCTION notify_space_admins IS 'Sends notification to all admins/owners of a space that exist in auth.users (SECURITY DEFINER allows bypassing RLS)';
+COMMENT ON FUNCTION notify_time_off_requested IS 'Trigger function to notify admins of new time off requests (SECURITY DEFINER allows bypassing RLS)';
+COMMENT ON FUNCTION notify_time_off_approved IS 'Trigger function to notify users of approved time off (SECURITY DEFINER allows bypassing RLS)';
+COMMENT ON FUNCTION notify_time_off_rejected IS 'Trigger function to notify users of rejected time off (SECURITY DEFINER allows bypassing RLS)';

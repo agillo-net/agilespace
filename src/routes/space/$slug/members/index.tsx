@@ -29,6 +29,7 @@ import { getSpaceBySlug } from '@/lib/supabase/queries'
 import { checkRepositoryAccess } from '@/lib/github/queries'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { queryKeys } from '@/lib/query-keys'
 
 export const Route = createFileRoute('/space/$slug/members/')({
     component: MembersPage,
@@ -46,7 +47,7 @@ function MembersPage() {
 
     // Fetch space data
     const { data: space } = useQuery({
-        queryKey: ['space', slug],
+        queryKey: queryKeys.spaces.bySlug(slug),
         queryFn: () => getSpaceBySlug(slug),
         enabled: !!slug,
     });

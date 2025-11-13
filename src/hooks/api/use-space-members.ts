@@ -6,20 +6,21 @@ import {
   getSpaceBySlug,
 } from "@/lib/supabase/queries";
 import { getDateRangeForFilter } from "@/lib/utils";
+import { queryKeys } from "@/lib/query-keys";
 
 export function useSpaceMembers(slug: string, timeFilter: "today" | "week" | "month" = "today") {
   const { data: members, isLoading } = useQuery({
-    queryKey: ["getSpaceMembers", slug],
+    queryKey: queryKeys.spaceMembers.withProfiles(slug),
     queryFn: () => getSpaceMembersWithProfiles(slug),
   });
 
   const { data: space } = useQuery({
-    queryKey: ["getSpace", slug],
+    queryKey: queryKeys.spaces.bySlug(slug),
     queryFn: () => getSpaceBySlug(slug),
   });
 
   const { data: activeSessions } = useQuery({
-    queryKey: ["activeSessions", slug, members],
+    queryKey: [...queryKeys.sessions.active(slug), members],
     queryFn: async () => {
       if (!members) return [];
       const sessions = await Promise.all(
@@ -39,7 +40,7 @@ export function useSpaceMembers(slug: string, timeFilter: "today" | "week" | "mo
   });
 
   const { data: timeAggregations } = useQuery({
-    queryKey: ["memberTimeAggregations", slug, timeFilter, space?.id],
+    queryKey: queryKeys.sessions.aggregations(space?.id || "", timeFilter),
     queryFn: async () => {
       if (!space?.id) return {};
       const { startDate, endDate } = getDateRangeForFilter(timeFilter);

@@ -25,6 +25,7 @@ import { DEBOUNCE_TIME } from "@/constants";
 import { notifySessionEvent } from "@/lib/notifications/utils";
 import { useAuth } from "@/hooks/api/use-auth";
 import type { GitHubIssue, Tag } from "@/types";
+import { queryKeys } from "@/lib/query-keys";
 
 export function useSessions(slug: string, initialTrackFilter?: string | null) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,19 +47,19 @@ export function useSessions(slug: string, initialTrackFilter?: string | null) {
   const { user } = useAuth();
 
   const { data: spaceData, isLoading: isLoadingSpace } = useQuery({
-    queryKey: ["space", slug],
+    queryKey: queryKeys.spaces.withTracks(slug),
     queryFn: () => getSpaceAndTracks(slug),
     staleTime: 0, // Always consider data stale to ensure fresh tracks
   });
 
   const { data: closedSessions, isLoading: isLoadingSessions } = useQuery({
-    queryKey: ["closedSessions", spaceData?.space?.id],
+    queryKey: queryKeys.sessions.closed(spaceData?.space?.id || ""),
     queryFn: () => getClosedSessions(spaceData?.space?.id || ""),
     enabled: !!spaceData?.space?.id,
   });
 
   const { data: activeSession } = useQuery({
-    queryKey: ["activeSession", slug],
+    queryKey: queryKeys.sessions.active(slug),
     queryFn: () => getActiveSession(),
     enabled: !!slug,
   });
@@ -267,8 +268,8 @@ export function useSessions(slug: string, initialTrackFilter?: string | null) {
       return track;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["space", slug] });
-      queryClient.invalidateQueries({ queryKey: ["activeSession", slug] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.spaces.withTracks(slug) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.active(slug) });
       setSearchQuery("");
       toast.success("Track created and session started");
     },

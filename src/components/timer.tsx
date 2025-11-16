@@ -7,6 +7,8 @@ import { EndSessionDialog } from "@/components/end-session-dialog"
 import { DiscardSessionDialog } from "@/components/discard-session-dialog"
 import { getGitHubIssueUrl } from "@/lib/utils"
 import { useSessions } from "@/hooks/api/use-sessions"
+import { useAudioNotifications } from "@/hooks/use-audio-notifications"
+import { cn } from "@/lib/utils"
 
 export function Timer() {
     const [time, setTime] = React.useState(0)
@@ -30,6 +32,12 @@ export function Timer() {
         showDiscardDialog,
         setShowDiscardDialog
     } = useSessions(slug)
+
+    // Audio notifications with visual feedback
+    const { isNotifying } = useAudioNotifications(
+        activeSession?.started_at || null,
+        !!activeSession
+    )
 
 
     // Initialize timer state from active session
@@ -105,7 +113,14 @@ export function Timer() {
                         </a>
                     </div>
                 )}
-                <span className="font-mono text-sm">{formatTime(time)}</span>
+                <span
+                    className={cn(
+                        "font-mono text-sm transition-all duration-300",
+                        isNotifying && "text-orange-600 dark:text-orange-400 font-bold animate-pulse"
+                    )}
+                >
+                    {formatTime(time)}
+                </span>
                 <div className="flex flex-row">
                     <Button
                         variant="ghost"

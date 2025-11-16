@@ -17,6 +17,7 @@ import { Route as SpaceSlugIndexRouteImport } from './routes/space/$slug/index'
 import { Route as SpaceSlugTracksIndexRouteImport } from './routes/space/$slug/tracks/index'
 import { Route as SpaceSlugTimeOffIndexRouteImport } from './routes/space/$slug/time-off/index'
 import { Route as SpaceSlugTagsIndexRouteImport } from './routes/space/$slug/tags/index'
+import { Route as SpaceSlugSettingsIndexRouteImport } from './routes/space/$slug/settings/index'
 import { Route as SpaceSlugSessionsIndexRouteImport } from './routes/space/$slug/sessions/index'
 import { Route as SpaceSlugMembersIndexRouteImport } from './routes/space/$slug/members/index'
 import { Route as SpaceSlugChangeRequestsIndexRouteImport } from './routes/space/$slug/change-requests/index'
@@ -62,6 +63,11 @@ const SpaceSlugTagsIndexRoute = SpaceSlugTagsIndexRouteImport.update({
   path: '/tags/',
   getParentRoute: () => SpaceSlugRouteRoute,
 } as any)
+const SpaceSlugSettingsIndexRoute = SpaceSlugSettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
+  getParentRoute: () => SpaceSlugRouteRoute,
+} as any)
 const SpaceSlugSessionsIndexRoute = SpaceSlugSessionsIndexRouteImport.update({
   id: '/sessions/',
   path: '/sessions/',
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/space/$slug/change-requests': typeof SpaceSlugChangeRequestsIndexRoute
   '/space/$slug/members': typeof SpaceSlugMembersIndexRoute
   '/space/$slug/sessions': typeof SpaceSlugSessionsIndexRoute
+  '/space/$slug/settings': typeof SpaceSlugSettingsIndexRoute
   '/space/$slug/tags': typeof SpaceSlugTagsIndexRoute
   '/space/$slug/time-off': typeof SpaceSlugTimeOffIndexRoute
   '/space/$slug/tracks': typeof SpaceSlugTracksIndexRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/space/$slug/change-requests': typeof SpaceSlugChangeRequestsIndexRoute
   '/space/$slug/members': typeof SpaceSlugMembersIndexRoute
   '/space/$slug/sessions': typeof SpaceSlugSessionsIndexRoute
+  '/space/$slug/settings': typeof SpaceSlugSettingsIndexRoute
   '/space/$slug/tags': typeof SpaceSlugTagsIndexRoute
   '/space/$slug/time-off': typeof SpaceSlugTimeOffIndexRoute
   '/space/$slug/tracks': typeof SpaceSlugTracksIndexRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/space/$slug/change-requests/': typeof SpaceSlugChangeRequestsIndexRoute
   '/space/$slug/members/': typeof SpaceSlugMembersIndexRoute
   '/space/$slug/sessions/': typeof SpaceSlugSessionsIndexRoute
+  '/space/$slug/settings/': typeof SpaceSlugSettingsIndexRoute
   '/space/$slug/tags/': typeof SpaceSlugTagsIndexRoute
   '/space/$slug/time-off/': typeof SpaceSlugTimeOffIndexRoute
   '/space/$slug/tracks/': typeof SpaceSlugTracksIndexRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/space/$slug/change-requests'
     | '/space/$slug/members'
     | '/space/$slug/sessions'
+    | '/space/$slug/settings'
     | '/space/$slug/tags'
     | '/space/$slug/time-off'
     | '/space/$slug/tracks'
@@ -151,6 +161,7 @@ export interface FileRouteTypes {
     | '/space/$slug/change-requests'
     | '/space/$slug/members'
     | '/space/$slug/sessions'
+    | '/space/$slug/settings'
     | '/space/$slug/tags'
     | '/space/$slug/time-off'
     | '/space/$slug/tracks'
@@ -165,6 +176,7 @@ export interface FileRouteTypes {
     | '/space/$slug/change-requests/'
     | '/space/$slug/members/'
     | '/space/$slug/sessions/'
+    | '/space/$slug/settings/'
     | '/space/$slug/tags/'
     | '/space/$slug/time-off/'
     | '/space/$slug/tracks/'
@@ -236,6 +248,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SpaceSlugTagsIndexRouteImport
       parentRoute: typeof SpaceSlugRouteRoute
     }
+    '/space/$slug/settings/': {
+      id: '/space/$slug/settings/'
+      path: '/settings'
+      fullPath: '/space/$slug/settings'
+      preLoaderRoute: typeof SpaceSlugSettingsIndexRouteImport
+      parentRoute: typeof SpaceSlugRouteRoute
+    }
     '/space/$slug/sessions/': {
       id: '/space/$slug/sessions/'
       path: '/sessions'
@@ -272,6 +291,7 @@ interface SpaceSlugRouteRouteChildren {
   SpaceSlugChangeRequestsIndexRoute: typeof SpaceSlugChangeRequestsIndexRoute
   SpaceSlugMembersIndexRoute: typeof SpaceSlugMembersIndexRoute
   SpaceSlugSessionsIndexRoute: typeof SpaceSlugSessionsIndexRoute
+  SpaceSlugSettingsIndexRoute: typeof SpaceSlugSettingsIndexRoute
   SpaceSlugTagsIndexRoute: typeof SpaceSlugTagsIndexRoute
   SpaceSlugTimeOffIndexRoute: typeof SpaceSlugTimeOffIndexRoute
   SpaceSlugTracksIndexRoute: typeof SpaceSlugTracksIndexRoute
@@ -283,6 +303,7 @@ const SpaceSlugRouteRouteChildren: SpaceSlugRouteRouteChildren = {
   SpaceSlugChangeRequestsIndexRoute: SpaceSlugChangeRequestsIndexRoute,
   SpaceSlugMembersIndexRoute: SpaceSlugMembersIndexRoute,
   SpaceSlugSessionsIndexRoute: SpaceSlugSessionsIndexRoute,
+  SpaceSlugSettingsIndexRoute: SpaceSlugSettingsIndexRoute,
   SpaceSlugTagsIndexRoute: SpaceSlugTagsIndexRoute,
   SpaceSlugTimeOffIndexRoute: SpaceSlugTimeOffIndexRoute,
   SpaceSlugTracksIndexRoute: SpaceSlugTracksIndexRoute,

@@ -15,7 +15,7 @@ import { NavUser } from "./nav-user";
 import { useAuth } from "@/hooks/api/use-auth";
 import { useProfile } from "@/hooks/api/use-profile";
 import { useIsSpaceAdmin } from "@/hooks/api/use-space-role";
-import { LayoutDashboard, ListMusic, Calendar, Users, Tags, Clock, CalendarDays } from 'lucide-react'
+import { LayoutDashboard, ListMusic, Calendar, Users, Tags, Clock, CalendarDays, Settings } from 'lucide-react'
 import { Link, useRouter } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import type { Profile, Space } from "@/types";
@@ -67,6 +67,12 @@ const sidebarMenu = [
         icon: <CalendarDays />,
         tooltip: "Time Off Requests",
         link: "/space/$slug/time-off",
+    },
+    {
+        label: "Settings",
+        icon: <Settings />,
+        tooltip: "Settings",
+        link: "/space/$slug/settings",
     },
 ];
 

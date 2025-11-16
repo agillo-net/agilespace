@@ -41,7 +41,7 @@ function SpaceLayout() {
 
   // Fetch organization data to get the login
   const { data: organization } = useQuery({
-    queryKey: queryKeys.organizations.byGithubId(space.github_org_id),
+    queryKey: queryKeys.organizations.byGithubId(space.github_org_id?.toString() ?? ''),
     queryFn: () => space.github_org_id ? getOrganizationById(space.github_org_id) : null,
     enabled: !!space.github_org_id,
   })

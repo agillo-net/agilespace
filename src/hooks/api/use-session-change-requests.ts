@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import {
   getSessionChangeRequests,
   getSessionChangeRequest,
@@ -18,7 +19,7 @@ export function useSessionChangeRequests(spaceId: string) {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["sessionChangeRequests", spaceId],
+    queryKey: queryKeys.sessionChangeRequests.bySpace(spaceId),
     queryFn: () => getSessionChangeRequests(spaceId),
     enabled: !!spaceId,
   });
@@ -27,7 +28,7 @@ export function useSessionChangeRequests(spaceId: string) {
     mutationFn: createSessionChangeRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["sessionChangeRequests", spaceId],
+        queryKey: queryKeys.sessionChangeRequests.bySpace(spaceId),
       });
       toast.success("Duration change request submitted successfully");
     },
@@ -40,11 +41,11 @@ export function useSessionChangeRequests(spaceId: string) {
     mutationFn: approveSessionChangeRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["sessionChangeRequests", spaceId],
+        queryKey: queryKeys.sessionChangeRequests.bySpace(spaceId),
       });
       // Also invalidate sessions to reflect the updated times
       queryClient.invalidateQueries({
-        queryKey: ["sessions"],
+        queryKey: queryKeys.sessions.all,
       });
       toast.success("Change request approved and session updated");
     },
@@ -57,7 +58,7 @@ export function useSessionChangeRequests(spaceId: string) {
     mutationFn: rejectSessionChangeRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["sessionChangeRequests", spaceId],
+        queryKey: queryKeys.sessionChangeRequests.bySpace(spaceId),
       });
       toast.success("Change request rejected");
     },
@@ -88,7 +89,7 @@ export function useSessionChangeRequests(spaceId: string) {
 
 export function useSessionChangeRequest(requestId: string) {
   return useQuery({
-    queryKey: ["sessionChangeRequest", requestId],
+    queryKey: queryKeys.sessionChangeRequests.detail(requestId),
     queryFn: () => getSessionChangeRequest(requestId),
     enabled: !!requestId,
   });

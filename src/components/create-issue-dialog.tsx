@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { queryKeys } from "@/lib/query-keys"
 
 import {
     Dialog,
@@ -65,7 +66,7 @@ export function CreateIssueDialog({
 
     // Fetch organization repositories
     const { data: repositories, isLoading: isLoadingRepos } = useQuery({
-        queryKey: ["org-repositories", organizationLogin],
+        queryKey: queryKeys.organizations.repositories(organizationLogin),
         queryFn: () => getOrgRepositories(organizationLogin),
         enabled: isOpen && !!organizationLogin,
     })

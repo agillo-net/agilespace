@@ -9,6 +9,7 @@ import { useSessions } from "@/hooks/api/use-sessions";
 import { useAccessibleRepos } from "@/hooks/api/use-repo-permissions";
 import { formatTime } from "@/lib/utils";
 import type { GitHubIssue } from "@/types";
+import { queryKeys } from "@/lib/query-keys";
 
 export function useCommandPalette() {
   const [open, setOpen] = React.useState(false);
@@ -20,7 +21,7 @@ export function useCommandPalette() {
 
   // Get space data for tracks
   const { data: spaceData, refetch: refetchSpaceData } = useQuery({
-    queryKey: ["space", slug],
+    queryKey: queryKeys.spaces.withTracks(slug),
     queryFn: () => getSpaceAndTracks(slug),
     enabled: !!slug,
     staleTime: 0, // Always consider data stale to ensure fresh tracks
@@ -38,7 +39,7 @@ export function useCommandPalette() {
     isLoading: isSearching,
     refetch,
   } = useQuery({
-    queryKey: ["sessions", "issues", slug, debouncedSearchQuery],
+    queryKey: queryKeys.search.sessions(slug, debouncedSearchQuery),
     queryFn: () => searchIssues(slug, debouncedSearchQuery),
     enabled: !!debouncedSearchQuery.trim() && !!slug,
     retry: false,
@@ -61,7 +62,7 @@ export function useCommandPalette() {
 
   // Fetch tracks for current search results to show correct UI state
   const { data: searchResultTracks } = useQuery({
-    queryKey: ["searchResultTracks", spaceData?.space?.id, searchResults?.map(r => `${r.repository.owner}/${r.repository.name}#${r.number}`)],
+    queryKey: queryKeys.search.tracks(spaceData?.space?.id || '', searchResults?.map(r => `${r.repository.owner}/${r.repository.name}#${r.number}`) || []),
     queryFn: () =>
       findTracksByIssues(
         spaceData?.space?.id || "",
@@ -76,7 +77,7 @@ export function useCommandPalette() {
 
   // Fetch session stats for command palette search result tracks
   const { data: commandPaletteSessionStats } = useQuery({
-    queryKey: ["commandPaletteSessionStats", Array.from(searchResultTracks?.values() || []).map((t) => t.id)],
+    queryKey: queryKeys.search.trackStats(Array.from(searchResultTracks?.values() || []).map((t) => t.id)),
     queryFn: () =>
       getTrackSessionStats(
         Array.from(searchResultTracks?.values() || []).map((t) => t.id)

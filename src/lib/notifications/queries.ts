@@ -104,11 +104,16 @@ export async function getNotifications(params?: {
   const notificationsWithActors = await Promise.all(
     (data || []).map(async (notification) => {
       if (notification.actor_id) {
-        const { data: actorData } = await supabase
+        const { data: actorData, error: actorError } = await supabase
           .from("profiles")
           .select("id, full_name, avatar_url")
           .eq("id", notification.actor_id)
           .single();
+
+        // Handle PGRST116 (no rows) gracefully - actor profile might not exist
+        if (actorError && actorError.code !== "PGRST116") {
+          console.error("Failed to fetch actor profile:", actorError);
+        }
 
         return {
           ...notification,
@@ -136,11 +141,16 @@ export async function getNotificationById(notificationId: string) {
 
   // Fetch actor details if actor_id exists
   if (data.actor_id) {
-    const { data: actorData } = await supabase
+    const { data: actorData, error: actorError } = await supabase
       .from("profiles")
       .select("id, full_name, avatar_url")
       .eq("id", data.actor_id)
       .single();
+
+    // Handle PGRST116 (no rows) gracefully - actor profile might not exist
+    if (actorError && actorError.code !== "PGRST116") {
+      console.error("Failed to fetch actor profile:", actorError);
+    }
 
     return {
       ...data,

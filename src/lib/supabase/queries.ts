@@ -32,7 +32,8 @@ export const getProfile = async () => {
     .eq("id", userId)
     .single();
 
-  if (error) {
+  // Handle PGRST116 (no rows) gracefully - profile might not exist yet
+  if (error && error.code !== "PGRST116") {
     throw new Error("Failed to fetch profile");
   }
 
@@ -410,11 +411,12 @@ export const getSpaceMembersWithProfiles = async (
   if (spaceError) throw new Error(spaceError.message);
   if (!space) throw new Error("Space not found");
 
-  // Then get all members with their profile details
+  // Then get all members with their profile details, sorted by joined_at (newest first)
   const { data: members, error: membersError } = await supabase
     .from("space_members")
     .select(`*`)
-    .eq("space_id", space.id);
+    .eq("space_id", space.id)
+    .order("joined_at", { ascending: false });
 
   // If there's an error fetching members, throw it
   if (membersError) throw new Error(membersError.message);
@@ -589,31 +591,88 @@ export async function getClosedSessions(
   })) as unknown as ClosedSession[];
 }
 
-export async function getTrackSessionStats(trackIds: string[]) {
-  const { data, error } = await supabase
-    .from("sessions")
-    .select("*")
-    .in("track_id", trackIds);
+export async function getTrackSessionStats(
+  spaceIdOrTrackIds: string | string[]
+) {
+  let data;
+  let error;
+
+  // If it's a string, treat as spaceId and fetch all sessions for space
+  if (typeof spaceIdOrTrackIds === "string") {
+    const result = await supabase
+      .from("sessions")
+      .select(`
+        *,
+        track:tracks!inner(space_id)
+      `)
+      .eq("tracks.space_id", spaceIdOrTrackIds);
+    data = result.data;
+    error = result.error;
+  } else {
+    // If it's an array, treat as trackIds
+    // If too many track IDs, split into batches to avoid URL length issues
+    const trackIds = spaceIdOrTrackIds;
+    const BATCH_SIZE = 100; // Safe number to avoid URL length issues
+
+    if (trackIds.length <= BATCH_SIZE) {
+      // Small enough to do in one query
+      const result = await supabase
+        .from("sessions")
+        .select("*")
+        .in("track_id", trackIds);
+      data = result.data;
+      error = result.error;
+    } else {
+      // Split into batches
+      const batches = [];
+      for (let i = 0; i < trackIds.length; i += BATCH_SIZE) {
+        batches.push(trackIds.slice(i, i + BATCH_SIZE));
+      }
+
+      // Fetch all batches
+      const results = await Promise.all(
+        batches.map(batch =>
+          supabase
+            .from("sessions")
+            .select("*")
+            .in("track_id", batch)
+        )
+      );
+
+      // Check for errors
+      const firstError = results.find(r => r.error);
+      if (firstError) {
+        error = firstError.error;
+      } else {
+        // Combine all results
+        data = results.flatMap(r => r.data || []);
+      }
+    }
+  }
+
   if (error) throw new Error(error.message);
 
   // Calculate both counts and durations per track
-  const stats = trackIds.reduce(
-    (acc, trackId) => {
-      const trackSessions =
-        data?.filter((session) => session.track_id === trackId) || [];
+  const stats = (data || []).reduce(
+    (acc, session) => {
+      const trackId = session.track_id;
+      if (!trackId) return acc;
 
-      // Calculate count
-      acc.counts[trackId] = trackSessions.length;
+      // Initialize track stats if not exists
+      if (!acc.counts[trackId]) {
+        acc.counts[trackId] = 0;
+        acc.durations[trackId] = 0;
+      }
+
+      // Increment count
+      acc.counts[trackId]++;
 
       // Calculate duration (only for completed sessions)
-      const totalDuration = trackSessions
-        .filter((session) => session.ended_at)
-        .reduce((total, session) => {
-          const start = new Date(session.started_at).getTime();
-          const end = new Date(session.ended_at!).getTime();
-          return total + (end - start);
-        }, 0);
-      acc.durations[trackId] = totalDuration;
+      if (session.ended_at) {
+        const start = new Date(session.started_at).getTime();
+        const end = new Date(session.ended_at).getTime();
+        acc.durations[trackId] += (end - start);
+      }
 
       return acc;
     },
@@ -1240,4 +1299,155 @@ export async function getRepoPermission(
   }
 
   return data || null;
+}
+
+// =====================================================
+// MEMBER STATISTICS QUERIES
+// =====================================================
+
+/**
+ * Fetches a specific member with their profile information
+ */
+export async function getMemberById(memberId: string, spaceId: string) {
+  const { data: member, error: memberError } = await supabase
+    .from("space_members")
+    .select("*")
+    .eq("id", memberId)
+    .eq("space_id", spaceId)
+    .single();
+
+  if (memberError) {
+    if (memberError.code === "PGRST116") return null; // Not found
+    throw new Error(memberError.message);
+  }
+
+  // Fetch the profile for this member
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", member.user_id)
+    .single();
+
+  if (profileError && profileError.code !== "PGRST116") {
+    throw new Error(profileError.message);
+  }
+
+  return {
+    member,
+    profile,
+  };
+}
+
+/**
+ * Fetches all sessions for a specific member with date filtering
+ * Includes track and tag information
+ */
+export async function getMemberSessions(
+  spaceMemberId: string,
+  startDate: string,
+  endDate: string
+) {
+  const { data: sessions, error: sessionsError } = await supabase
+    .from("sessions")
+    .select(
+      `
+      *,
+      track:tracks(*),
+      tags:session_tags(tag:tags(*))
+    `
+    )
+    .eq("space_member_id", spaceMemberId)
+    .not("ended_at", "is", null)
+    .gte("started_at", startDate)
+    .lte("ended_at", endDate)
+    .order("started_at", { ascending: false });
+
+  if (sessionsError) throw new Error(sessionsError.message);
+  if (!sessions) return { sessions: [], totalSessions: 0, totalDuration: 0 };
+
+  // Calculate statistics
+  const totalSessions = sessions.length;
+  const totalDuration = sessions.reduce((sum, session) => {
+    if (!session.ended_at) return sum;
+    const start = new Date(session.started_at).getTime();
+    const end = new Date(session.ended_at).getTime();
+    return sum + (end - start);
+  }, 0);
+
+  return { sessions, totalSessions, totalDuration };
+}
+
+/**
+ * Fetches track statistics for a specific member
+ * Returns tracks the member has worked on with session counts and durations
+ */
+export async function getMemberTrackStats(
+  spaceMemberId: string,
+  startDate: string,
+  endDate: string
+) {
+  // Get all sessions for this member in the date range
+  const { data: sessions, error: sessionsError } = await supabase
+    .from("sessions")
+    .select(
+      `
+      *,
+      track:tracks(*)
+    `
+    )
+    .eq("space_member_id", spaceMemberId)
+    .not("ended_at", "is", null)
+    .gte("started_at", startDate)
+    .lte("ended_at", endDate);
+
+  if (sessionsError) throw new Error(sessionsError.message);
+  if (!sessions || sessions.length === 0) return [];
+
+  // Group sessions by track
+  const trackStatsMap = new Map();
+
+  sessions.forEach((session) => {
+    if (!session.track) return;
+
+    const trackId = session.track.id;
+    if (!trackStatsMap.has(trackId)) {
+      trackStatsMap.set(trackId, {
+        track: session.track,
+        sessionCount: 0,
+        totalDuration: 0,
+      });
+    }
+
+    const stats = trackStatsMap.get(trackId);
+    stats.sessionCount += 1;
+
+    if (session.ended_at) {
+      const start = new Date(session.started_at).getTime();
+      const end = new Date(session.ended_at).getTime();
+      stats.totalDuration += end - start;
+    }
+  });
+
+  return Array.from(trackStatsMap.values());
+}
+
+/**
+ * Fetches active session for a specific member
+ */
+export async function getMemberActiveSession(spaceMemberId: string) {
+  const { data, error } = await supabase
+    .from("sessions")
+    .select(
+      `
+      *,
+      track:tracks(*),
+      tags:session_tags(tag:tags(*))
+    `
+    )
+    .eq("space_member_id", spaceMemberId)
+    .is("ended_at", null)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
 }

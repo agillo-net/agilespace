@@ -12,74 +12,75 @@ import {
   getTrackSessionStats,
   getSpaceActiveSessions,
 } from "@/lib/supabase/queries";
+import { queryKeys } from "@/lib/query-keys";
 
 export function useSpaceDashboard(slug: string) {
   // Load space and tracks data
   const { data: spaceData } = useQuery({
-    queryKey: ["space", slug],
+    queryKey: queryKeys.spaces.withTracks(slug),
     queryFn: () => getSpaceAndTracks(slug),
   });
 
   // Load active session
   useQuery({
-    queryKey: ["activeSession", slug],
+    queryKey: queryKeys.sessions.active(slug),
     queryFn: () => getActiveSession(),
     enabled: !!slug,
   });
 
   // Load closed sessions (for charts, limited to recent sessions)
   const { data: closedSessions } = useQuery({
-    queryKey: ["closedSessions", spaceData?.space?.id],
+    queryKey: queryKeys.sessions.closed(spaceData?.space?.id || ""),
     queryFn: () => getClosedSessions(spaceData?.space?.id || ""),
     enabled: !!spaceData?.space?.id,
   });
 
   // Load total sessions count (efficient count query for statistics)
   const { data: totalSessionsCount } = useQuery({
-    queryKey: ["totalSessionsCount", spaceData?.space?.id],
+    queryKey: queryKeys.sessions.closedCount(spaceData?.space?.id || ""),
     queryFn: () => getClosedSessionsCount(spaceData?.space?.id || ""),
     enabled: !!spaceData?.space?.id,
   });
 
   // Load active sessions count (efficient count query for statistics)
   const { data: activeSessionsCountData } = useQuery({
-    queryKey: ["activeSessionsCount", spaceData?.space?.id],
+    queryKey: queryKeys.sessions.activeCount(spaceData?.space?.id || ""),
     queryFn: () => getActiveSessionsCount(spaceData?.space?.id || ""),
     enabled: !!spaceData?.space?.id,
   });
 
   // Load tracks count (efficient count query for statistics)
   const { data: tracksCountData } = useQuery({
-    queryKey: ["tracksCount", spaceData?.space?.id],
+    queryKey: queryKeys.tracks.count(spaceData?.space?.id || ""),
     queryFn: () => getTracksCount(spaceData?.space?.id || ""),
     enabled: !!spaceData?.space?.id,
   });
 
   // Load members count (efficient count query for statistics)
   const { data: membersCountData } = useQuery({
-    queryKey: ["membersCount", spaceData?.space?.id],
+    queryKey: queryKeys.spaceMembers.count(spaceData?.space?.id || ""),
     queryFn: () => getSpaceMembersCount(spaceData?.space?.id || ""),
     enabled: !!spaceData?.space?.id,
   });
 
   // Load tags count (efficient count query for statistics)
   const { data: tagsCountData } = useQuery({
-    queryKey: ["tagsCount", spaceData?.space?.id],
+    queryKey: queryKeys.tags.count(spaceData?.space?.id || ""),
     queryFn: () => getTagsCount(spaceData?.space?.id || ""),
     enabled: !!spaceData?.space?.id,
   });
 
   // Load session stats for tracks
   const { data: sessionStats } = useQuery({
-    queryKey: ["sessionStats", spaceData?.tracks?.map((t) => t.id)],
+    queryKey: queryKeys.sessions.stats([spaceData?.space?.id || ""]),
     queryFn: () =>
-      getTrackSessionStats(spaceData?.tracks?.map((t) => t.id) || []),
-    enabled: !!spaceData?.tracks?.length,
+      getTrackSessionStats(spaceData?.space?.id || ""),
+    enabled: !!spaceData?.space?.id,
   });
 
   // Load all active sessions for the space (for display in the list)
   const { data: spaceActiveSessions } = useQuery({
-    queryKey: ["spaceActiveSessions", spaceData?.space?.id],
+    queryKey: queryKeys.sessions.active(spaceData?.space?.id || ""),
     queryFn: () => getSpaceActiveSessions(spaceData?.space?.id || ""),
     enabled: !!spaceData?.space?.id,
   });

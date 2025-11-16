@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSpaceDashboard } from "./api/use-space-dashboard";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { queryKeys } from "@/lib/query-keys";
 
 const supabase = getSupabaseClient();
 
@@ -50,7 +51,7 @@ export function useTeamInsights(slug: string) {
 
   // Team Collaboration Query
   const teamCollaborationQuery = useQuery({
-    queryKey: ['team-collaboration', dashboardData?.spaceData?.space?.id],
+    queryKey: queryKeys.teamInsights.collaboration(dashboardData?.spaceData?.space?.id || ''),
     queryFn: async (): Promise<TeamCollaboration> => {
       if (!dashboardData?.spaceData?.space?.id) {
         throw new Error('Space ID not available');
@@ -104,7 +105,7 @@ export function useTeamInsights(slug: string) {
 
   // Member Activity Query
   const memberActivityQuery = useQuery({
-    queryKey: ['member-activity', dashboardData?.spaceData?.space?.id],
+    queryKey: queryKeys.teamInsights.memberActivity(dashboardData?.spaceData?.space?.id || ''),
     queryFn: async (): Promise<MemberActivity[]> => {
       if (!dashboardData?.spaceData?.space?.id) {
         throw new Error('Space ID not available');
@@ -178,7 +179,7 @@ export function useTeamInsights(slug: string) {
 
   // Team Dynamics Query
   const teamDynamicsQuery = useQuery({
-    queryKey: ['team-dynamics', dashboardData?.spaceData?.space?.id],
+    queryKey: queryKeys.teamInsights.dynamics(dashboardData?.spaceData?.space?.id || ''),
     queryFn: async (): Promise<TeamDynamics> => {
       if (!dashboardData?.spaceData?.space?.id) {
         throw new Error('Space ID not available');
@@ -232,7 +233,7 @@ export function useTeamInsights(slug: string) {
 
   // Skill Distribution Query
   const skillDistributionQuery = useQuery({
-    queryKey: ['skill-distribution', dashboardData?.spaceData?.space?.id],
+    queryKey: queryKeys.teamInsights.skillDistribution(dashboardData?.spaceData?.space?.id || ''),
     queryFn: async (): Promise<SkillDistribution> => {
       if (!dashboardData?.spaceData?.space?.id) {
         throw new Error('Space ID not available');
@@ -304,7 +305,7 @@ export function useTeamInsights(slug: string) {
 
   // Team Performance Query
   const teamPerformanceQuery = useQuery({
-    queryKey: ['team-performance', dashboardData?.spaceData?.space?.id],
+    queryKey: queryKeys.teamInsights.performance(dashboardData?.spaceData?.space?.id || ''),
     queryFn: async (): Promise<TeamPerformance> => {
       if (!dashboardData?.spaceData?.space?.id) {
         throw new Error('Space ID not available');

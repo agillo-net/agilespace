@@ -101,6 +101,10 @@ export const queryKeys = {
       [...queryKeys.repoPermissions.all, 'space', spaceId] as const,
     byRepo: (spaceId: string, repoOwner: string, repoName: string) =>
       [...queryKeys.repoPermissions.all, 'repo', spaceId, repoOwner, repoName] as const,
+    checkAccess: (spaceId: string, repoOwner: string, repoName: string, minPermission: string) =>
+      [...queryKeys.repoPermissions.all, 'checkAccess', spaceId, repoOwner, repoName, minPermission] as const,
+    accessible: (spaceId: string, minPermission: string) =>
+      [...queryKeys.repoPermissions.all, 'accessible', spaceId, minPermission] as const,
   },
 
   // Session change requests
@@ -132,6 +136,97 @@ export const queryKeys = {
     all: ['organizations'] as const,
     byGithubId: (githubOrgId: string) =>
       [...queryKeys.organizations.all, 'github', githubOrgId] as const,
+    userOrgs: () => [...queryKeys.organizations.all, 'user'] as const,
+    repositories: (organizationLogin: string) =>
+      [...queryKeys.organizations.all, 'repositories', organizationLogin] as const,
+  },
+
+  // Member stats and analytics
+  memberStats: {
+    all: ['memberStats'] as const,
+    detail: (memberId: string, spaceId: string) =>
+      [...queryKeys.memberStats.all, 'detail', memberId, spaceId] as const,
+    sessions: (memberId: string, timeFilter: string, startDate: string, endDate: string) =>
+      [...queryKeys.memberStats.all, 'sessions', memberId, timeFilter, startDate, endDate] as const,
+    trackStats: (memberId: string, timeFilter: string, startDate: string, endDate: string) =>
+      [...queryKeys.memberStats.all, 'trackStats', memberId, timeFilter, startDate, endDate] as const,
+    activeSession: (memberId: string) =>
+      [...queryKeys.memberStats.all, 'activeSession', memberId] as const,
+  },
+
+  // Dashboard analytics
+  analytics: {
+    all: ['analytics'] as const,
+    timeHeatmap: (spaceId: string) =>
+      [...queryKeys.analytics.all, 'timeHeatmap', spaceId] as const,
+    productivityTrend: (spaceId: string) =>
+      [...queryKeys.analytics.all, 'productivityTrend', spaceId] as const,
+    activityTimeline: (spaceId: string) =>
+      [...queryKeys.analytics.all, 'activityTimeline', spaceId] as const,
+    focusTimeDistribution: (spaceId: string) =>
+      [...queryKeys.analytics.all, 'focusTimeDistribution', spaceId] as const,
+    productivityMetrics: (spaceId: string) =>
+      [...queryKeys.analytics.all, 'productivityMetrics', spaceId] as const,
+    teamProductivityInsights: (spaceId: string) =>
+      [...queryKeys.analytics.all, 'teamProductivityInsights', spaceId] as const,
+    productivityTrends: (spaceId: string) =>
+      [...queryKeys.analytics.all, 'productivityTrends', spaceId] as const,
+    burnoutIndicators: (spaceId: string) =>
+      [...queryKeys.analytics.all, 'burnoutIndicators', spaceId] as const,
+  },
+
+  // Team insights
+  teamInsights: {
+    all: ['teamInsights'] as const,
+    collaboration: (spaceId: string) =>
+      [...queryKeys.teamInsights.all, 'collaboration', spaceId] as const,
+    memberActivity: (spaceId: string) =>
+      [...queryKeys.teamInsights.all, 'memberActivity', spaceId] as const,
+    dynamics: (spaceId: string) =>
+      [...queryKeys.teamInsights.all, 'dynamics', spaceId] as const,
+    skillDistribution: (spaceId: string) =>
+      [...queryKeys.teamInsights.all, 'skillDistribution', spaceId] as const,
+    performance: (spaceId: string) =>
+      [...queryKeys.teamInsights.all, 'performance', spaceId] as const,
+  },
+
+  // Permissions
+  permissions: {
+    all: ['permissions'] as const,
+    single: (spaceId: string, permission: string) =>
+      [...queryKeys.permissions.all, 'single', spaceId, permission] as const,
+    any: (spaceId: string, permissions: string[]) =>
+      [...queryKeys.permissions.all, 'any', spaceId, permissions] as const,
+    allRequired: (spaceId: string, permissions: string[]) =>
+      [...queryKeys.permissions.all, 'allRequired', spaceId, permissions] as const,
+    user: (spaceId: string) =>
+      [...queryKeys.permissions.all, 'user', spaceId] as const,
+    specific: (spaceId: string, permissionsToCheck: Record<string, boolean>) =>
+      [...queryKeys.permissions.all, 'specific', spaceId, permissionsToCheck] as const,
+  },
+
+  // Notifications
+  notifications: {
+    all: ['notifications'] as const,
+    list: (params: { spaceId?: string; read?: boolean; types?: string[] }) =>
+      [...queryKeys.notifications.all, 'list', params] as const,
+    count: (spaceId?: string) =>
+      [...queryKeys.notifications.all, 'count', spaceId] as const,
+    detail: (notificationId: string) =>
+      [...queryKeys.notifications.all, 'detail', notificationId] as const,
+    preferences: (spaceId?: string) =>
+      [...queryKeys.notifications.all, 'preferences', spaceId] as const,
+  },
+
+  // Search queries
+  search: {
+    all: ['search'] as const,
+    sessions: (slug: string, searchQuery: string) =>
+      [...queryKeys.search.all, 'sessions', slug, searchQuery] as const,
+    tracks: (spaceId: string, trackIds: string[]) =>
+      [...queryKeys.search.all, 'tracks', spaceId, trackIds] as const,
+    trackStats: (trackIds: string[]) =>
+      [...queryKeys.search.all, 'trackStats', trackIds] as const,
   },
 } as const;
 

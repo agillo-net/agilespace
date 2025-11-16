@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { getRepoPermissions, getRepoPermission } from "@/lib/supabase/queries";
 import {
   syncRepoPermissions,
@@ -13,7 +14,7 @@ import { getOrganizationById } from "@/lib/github/queries";
  */
 export function useRepoPermissions(spaceId: string) {
   return useQuery({
-    queryKey: ["repo-permissions", spaceId],
+    queryKey: queryKeys.repoPermissions.bySpace(spaceId),
     queryFn: () => getRepoPermissions(spaceId),
     enabled: !!spaceId,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -29,7 +30,7 @@ export function useRepoPermission(
   repoName: string
 ) {
   return useQuery({
-    queryKey: ["repo-permission", spaceId, repoOwner, repoName],
+    queryKey: queryKeys.repoPermissions.byRepo(spaceId, repoOwner, repoName),
     queryFn: () => getRepoPermission(spaceId, repoOwner, repoName),
     enabled: !!spaceId && !!repoOwner && !!repoName,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -46,7 +47,7 @@ export function useCheckRepoAccess(
   minPermission: string = "read"
 ) {
   return useQuery({
-    queryKey: ["check-repo-access", spaceId, repoOwner, repoName, minPermission],
+    queryKey: queryKeys.repoPermissions.checkAccess(spaceId, repoOwner, repoName, minPermission),
     queryFn: () => checkUserRepoAccess(spaceId, repoOwner, repoName, minPermission),
     enabled: !!spaceId && !!repoOwner && !!repoName,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -58,7 +59,7 @@ export function useCheckRepoAccess(
  */
 export function useAccessibleRepos(spaceId: string, minPermission: string = "read") {
   return useQuery({
-    queryKey: ["accessible-repos", spaceId, minPermission],
+    queryKey: queryKeys.repoPermissions.accessible(spaceId, minPermission),
     queryFn: () => getUserAccessibleRepos(spaceId, minPermission),
     enabled: !!spaceId,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -91,10 +92,7 @@ export function useSyncRepoPermissions(spaceId: string) {
     },
     onSuccess: () => {
       // Invalidate all permission-related queries
-      queryClient.invalidateQueries({ queryKey: ["repo-permissions", spaceId] });
-      queryClient.invalidateQueries({ queryKey: ["accessible-repos", spaceId] });
-      queryClient.invalidateQueries({ queryKey: ["check-repo-access", spaceId] });
-      queryClient.invalidateQueries({ queryKey: ["repo-permission", spaceId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.repoPermissions.all });
     },
   });
 }

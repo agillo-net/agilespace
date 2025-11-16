@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getSpaceAndTracks, getTracksWithSessionData } from "@/lib/supabase/queries";
 import { searchIssues } from "@/lib/github/queries";
+import { queryKeys } from "@/lib/query-keys";
 import type { GitHubIssue } from "@/types";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DEBOUNCE_TIME } from "@/constants";
@@ -14,12 +15,12 @@ export function useTracks(slug: string) {
   );
 
   const { data: spaceData, isLoading } = useQuery({
-    queryKey: ["space", slug],
+    queryKey: queryKeys.spaces.withTracks(slug),
     queryFn: () => getSpaceAndTracks(slug),
   });
 
   const { data: tracksWithSessionData, isLoading: isLoadingTracks } = useQuery({
-    queryKey: ["tracks-with-sessions", spaceData?.space?.id],
+    queryKey: queryKeys.tracks.withSessionData(spaceData?.space?.id!),
     queryFn: () => getTracksWithSessionData(spaceData!.space!.id),
     enabled: !!spaceData?.space?.id,
   });
@@ -29,7 +30,7 @@ export function useTracks(slug: string) {
     isLoading: isSearching,
     error: searchError,
   } = useQuery({
-    queryKey: ["tracks", "issues", slug, debouncedSearchQuery],
+    queryKey: queryKeys.search.sessions(slug, debouncedSearchQuery),
     queryFn: () => searchIssues(slug, debouncedSearchQuery),
     enabled: !!debouncedSearchQuery.trim(),
     retry: false,

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useSpaceDashboard } from './api/use-space-dashboard';
+import { queryKeys } from '@/lib/query-keys';
 
 // Types for productivity analytics
 export interface ProductivityMetrics {
@@ -71,7 +72,7 @@ export function useProductivityAnalytics(slug: string) {
 
   // Individual Productivity Metrics Query
   const productivityMetricsQuery = useQuery({
-    queryKey: ['productivityMetrics', dashboardData?.spaceData?.space?.id],
+    queryKey: queryKeys.analytics.productivityMetrics(dashboardData?.spaceData?.space?.id || ''),
     queryFn: async (): Promise<ProductivityMetrics> => {
       if (!dashboardData?.spaceData?.space?.id) {
         return {
@@ -184,7 +185,7 @@ export function useProductivityAnalytics(slug: string) {
 
   // Team Productivity Insights Query
   const teamInsightsQuery = useQuery({
-    queryKey: ['teamProductivityInsights', dashboardData?.spaceData?.space?.id],
+    queryKey: queryKeys.analytics.teamProductivityInsights(dashboardData?.spaceData?.space?.id || ''),
     queryFn: async (): Promise<TeamProductivityInsights> => {
       if (!dashboardData?.spaceData?.space?.id) {
         return {
@@ -315,7 +316,7 @@ export function useProductivityAnalytics(slug: string) {
 
   // Productivity Trends Query
   const trendsQuery = useQuery({
-    queryKey: ['productivityTrends', dashboardData?.spaceData?.space?.id],
+    queryKey: queryKeys.analytics.productivityTrends(dashboardData?.spaceData?.space?.id || ''),
     queryFn: async (): Promise<ProductivityTrends> => {
       if (!dashboardData?.spaceData?.space?.id) {
         return {
@@ -440,7 +441,7 @@ export function useProductivityAnalytics(slug: string) {
 
   // Burnout Indicators Query
   const burnoutIndicatorsQuery = useQuery({
-    queryKey: ['burnoutIndicators', dashboardData?.spaceData?.space?.id],
+    queryKey: queryKeys.analytics.burnoutIndicators(dashboardData?.spaceData?.space?.id || ''),
     queryFn: async (): Promise<BurnoutIndicators> => {
       if (!dashboardData?.spaceData?.space?.id) {
         return {

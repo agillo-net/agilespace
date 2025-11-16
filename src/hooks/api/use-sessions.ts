@@ -69,22 +69,22 @@ export function useSessions(slug: string, initialTrackFilter?: string | null) {
     isLoading: isSearching,
     error: searchError,
   } = useQuery({
-    queryKey: ["sessions", "issues", slug, debouncedSearchQuery],
+    queryKey: queryKeys.search.sessions(slug, debouncedSearchQuery),
     queryFn: () => searchIssues(slug, debouncedSearchQuery),
     enabled: !!debouncedSearchQuery.trim(),
     retry: false,
   });
 
   const { data: sessionStats } = useQuery({
-    queryKey: ["sessionStats", spaceData?.tracks?.map((t) => t.id)],
+    queryKey: queryKeys.sessions.stats([spaceData?.space?.id || ""]),
     queryFn: () =>
-      getTrackSessionStats(spaceData?.tracks?.map((t) => t.id) || []),
-    enabled: !!spaceData?.tracks?.length,
+      getTrackSessionStats(spaceData?.space?.id || ""),
+    enabled: !!spaceData?.space?.id,
   });
 
   // Fetch tracks for current search results to show correct UI state
   const { data: searchResultTracks } = useQuery({
-    queryKey: ["searchResultTracks", spaceData?.space?.id, searchResults?.map(r => `${r.repository.owner}/${r.repository.name}#${r.number}`)],
+    queryKey: queryKeys.search.tracks(spaceData?.space?.id || "", searchResults?.map(r => `${r.repository.owner}/${r.repository.name}#${r.number}`) || []),
     queryFn: () =>
       findTracksByIssues(
         spaceData?.space?.id || "",
@@ -99,7 +99,7 @@ export function useSessions(slug: string, initialTrackFilter?: string | null) {
 
   // Fetch session stats for search result tracks
   const { data: searchResultSessionStats } = useQuery({
-    queryKey: ["searchResultSessionStats", Array.from(searchResultTracks?.values() || []).map((t) => t.id)],
+    queryKey: queryKeys.search.trackStats(Array.from(searchResultTracks?.values() || []).map((t) => t.id)),
     queryFn: () =>
       getTrackSessionStats(
         Array.from(searchResultTracks?.values() || []).map((t) => t.id)
@@ -153,9 +153,9 @@ export function useSessions(slug: string, initialTrackFilter?: string | null) {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["activeSession", slug] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.active(slug) });
       queryClient.invalidateQueries({
-        queryKey: ["closedSessions", spaceData?.space?.id],
+        queryKey: queryKeys.sessions.closed(spaceData?.space?.id || ""),
       });
       setShowEndSessionDialog(false);
       setEndSessionMessage("");
@@ -175,7 +175,7 @@ export function useSessions(slug: string, initialTrackFilter?: string | null) {
       await deleteSession(sessionId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["activeSession", slug] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.active(slug) });
       setShowDiscardDialog(false);
       toast.success("Session discarded successfully");
     },
@@ -211,7 +211,7 @@ export function useSessions(slug: string, initialTrackFilter?: string | null) {
     },
     onSuccess: () => {
       setSearchQuery("");
-      queryClient.invalidateQueries({ queryKey: ["activeSession", slug] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.active(slug) });
       toast.success("Session started successfully");
     },
     onError: (error) => {

@@ -7,11 +7,12 @@ import { queryClient } from "@/main";
 import { OrganizationsListSkeleton } from "@/components/skeleton/organizations-list-skeleton";
 import { OrganizationCard } from "@/components/organization-card";
 import { useSpaces } from "@/hooks/api/use-spaces";
+import { queryKeys } from "@/lib/query-keys";
 
 export const Route = createFileRoute("/spaces")({
   loader: async () => {
     const userOrgs = await queryClient.ensureQueryData({
-      queryKey: ["getUserOrgs"],
+      queryKey: queryKeys.organizations.userOrgs(),
       queryFn: getUserOrgs,
     });
 

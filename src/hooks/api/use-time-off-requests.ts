@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { queryKeys } from "@/lib/query-keys";
 import {
   getTimeOffRequests,
   getTimeOffRequestById,
@@ -35,7 +36,7 @@ export function useTimeOffRequests(
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["timeOffRequests", spaceId, filters],
+    queryKey: queryKeys.timeOffRequests.bySpace(spaceId, filters),
     queryFn: () => getTimeOffRequests(spaceId, filters),
     enabled: !!spaceId,
   });
@@ -44,9 +45,9 @@ export function useTimeOffRequests(
   const createMutation = useMutation({
     mutationFn: createTimeOffRequest,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["timeOffRequests", spaceId] });
-      queryClient.invalidateQueries({ queryKey: ["teamTimeOff", spaceId] });
-      queryClient.invalidateQueries({ queryKey: ["userTimeOffStats", spaceId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.bySpace(spaceId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.teamTimeOff(spaceId, '', '') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.stats(spaceId, '', undefined) });
       toast.success("Time off request created successfully");
     },
     onError: (error: Error) => {
@@ -64,8 +65,8 @@ export function useTimeOffRequests(
       params: Parameters<typeof updateTimeOffRequest>[1];
     }) => updateTimeOffRequest(requestId, params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["timeOffRequests", spaceId] });
-      queryClient.invalidateQueries({ queryKey: ["teamTimeOff", spaceId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.bySpace(spaceId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.teamTimeOff(spaceId, '', '') });
       toast.success("Time off request updated successfully");
     },
     onError: (error: Error) => {
@@ -83,9 +84,9 @@ export function useTimeOffRequests(
       reviewerNotes?: string;
     }) => approveTimeOffRequest(requestId, reviewerNotes),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["timeOffRequests", spaceId] });
-      queryClient.invalidateQueries({ queryKey: ["teamTimeOff", spaceId] });
-      queryClient.invalidateQueries({ queryKey: ["userTimeOffStats", spaceId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.bySpace(spaceId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.teamTimeOff(spaceId, '', '') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.stats(spaceId, '', undefined) });
       toast.success("Time off request approved");
     },
     onError: (error: Error) => {
@@ -103,7 +104,7 @@ export function useTimeOffRequests(
       reviewerNotes?: string;
     }) => rejectTimeOffRequest(requestId, reviewerNotes),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["timeOffRequests", spaceId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.bySpace(spaceId) });
       toast.success("Time off request rejected");
     },
     onError: (error: Error) => {
@@ -115,9 +116,9 @@ export function useTimeOffRequests(
   const cancelMutation = useMutation({
     mutationFn: (requestId: string) => cancelTimeOffRequest(requestId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["timeOffRequests", spaceId] });
-      queryClient.invalidateQueries({ queryKey: ["teamTimeOff", spaceId] });
-      queryClient.invalidateQueries({ queryKey: ["userTimeOffStats", spaceId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.bySpace(spaceId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.teamTimeOff(spaceId, '', '') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.stats(spaceId, '', undefined) });
       toast.success("Time off request cancelled");
     },
     onError: (error: Error) => {
@@ -129,9 +130,9 @@ export function useTimeOffRequests(
   const deleteMutation = useMutation({
     mutationFn: (requestId: string) => deleteTimeOffRequest(requestId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["timeOffRequests", spaceId] });
-      queryClient.invalidateQueries({ queryKey: ["teamTimeOff", spaceId] });
-      queryClient.invalidateQueries({ queryKey: ["userTimeOffStats", spaceId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.bySpace(spaceId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.teamTimeOff(spaceId, '', '') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeOffRequests.stats(spaceId, '', undefined) });
       toast.success("Time off request deleted");
     },
     onError: (error: Error) => {
@@ -184,7 +185,7 @@ export function useTimeOffRequests(
  */
 export function useTimeOffRequest(requestId: string) {
   return useQuery({
-    queryKey: ["timeOffRequest", requestId],
+    queryKey: queryKeys.timeOffRequests.detail(requestId),
     queryFn: () => getTimeOffRequestById(requestId),
     enabled: !!requestId,
   });
@@ -200,13 +201,7 @@ export function useTimeOffConflicts(
   excludeRequestId?: string
 ) {
   return useQuery({
-    queryKey: [
-      "timeOffConflicts",
-      spaceMemberId,
-      startDate,
-      endDate,
-      excludeRequestId,
-    ],
+    queryKey: queryKeys.timeOffRequests.conflicts(spaceMemberId, startDate, endDate),
     queryFn: () =>
       checkTimeOffConflicts(spaceMemberId, startDate, endDate, excludeRequestId),
     enabled: !!spaceMemberId && !!startDate && !!endDate,
@@ -223,7 +218,7 @@ export function useTeamTimeOff(
   statusFilter?: ("pending" | "approved" | "rejected" | "cancelled")[]
 ) {
   return useQuery({
-    queryKey: ["teamTimeOff", spaceId, startDate, endDate, statusFilter],
+    queryKey: queryKeys.timeOffRequests.teamTimeOff(spaceId, startDate, endDate),
     queryFn: () => getTeamTimeOff(spaceId, startDate, endDate, statusFilter),
     enabled: !!spaceId && !!startDate && !!endDate,
   });
@@ -238,7 +233,7 @@ export function useUserTimeOffStats(
   year?: number
 ) {
   return useQuery({
-    queryKey: ["userTimeOffStats", spaceId, userId, year],
+    queryKey: queryKeys.timeOffRequests.stats(spaceId, userId, year),
     queryFn: () => getUserTimeOffStats(spaceId, userId, year),
     enabled: !!spaceId && !!userId,
   });

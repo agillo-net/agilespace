@@ -1,5 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { ChevronDown } from 'lucide-react'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { ChevronDown, BarChart3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Collapsible,
@@ -165,6 +165,14 @@ function SpaceHome() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
         <div className="flex items-center gap-4">
+          {spaceData?.space_member && (
+            <Link to="/space/$slug/members/$id/stats" params={{ slug, id: spaceData.space_member.id }}>
+              <Button variant="outline" size="sm">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                View My Stats
+              </Button>
+            </Link>
+          )}
           <DashboardSettings
             sections={visibleSections}
             filters={dashboardFilters}

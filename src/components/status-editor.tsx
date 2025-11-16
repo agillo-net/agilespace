@@ -12,6 +12,7 @@ import { getCurrentMemberStatus } from "@/lib/supabase/queries";
 import { notifyStatusUpdate, type StatusUpdate } from "@/lib/notifications/utils";
 import { useAuth } from "@/hooks/api/use-auth";
 import { cn } from "@/lib/utils";
+import { queryKeys } from "@/lib/query-keys";
 
 interface StatusEditorProps {
     initialStatus: string;
@@ -53,7 +54,7 @@ export function StatusEditor({ initialStatus, initialLocation, slug }: StatusEdi
             }
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["space", slug] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.spaces.withTracks(slug) });
             toast.success("Status updated successfully");
             setIsEditing(false);
         },

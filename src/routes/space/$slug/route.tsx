@@ -9,6 +9,7 @@ import { Navbar } from '@/components/navbar'
 import { CreateIssueDialog } from '@/components/create-issue-dialog'
 import { useCreateIssueDialog } from '@/hooks/api/use-create-issue-dialog'
 import { useQuery } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/query-keys'
 
 export const Route = createFileRoute('/space/$slug')({
   component: SpaceLayout,
@@ -40,7 +41,7 @@ function SpaceLayout() {
 
   // Fetch organization data to get the login
   const { data: organization } = useQuery({
-    queryKey: ["organization", space.github_org_id],
+    queryKey: queryKeys.organizations.byGithubId(space.github_org_id),
     queryFn: () => space.github_org_id ? getOrganizationById(space.github_org_id) : null,
     enabled: !!space.github_org_id,
   })

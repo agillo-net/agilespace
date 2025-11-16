@@ -191,6 +191,28 @@ pnpm db:seed
 pnpm db:types
 ```
 
+### Testing with Production Data
+
+When you need to test with real production data:
+
+```bash
+# 1. Ensure local Supabase is running
+supabase start
+
+# 2. Pull production database to local
+./supabase/scripts/pull-remote-to-local.sh
+
+# 3. Your user is automatically synced, but if you need to re-sync:
+./supabase/scripts/sync-local-user.sh
+
+# 4. Test your app with real data at http://localhost:YOUR_PORT
+```
+
+**Note:** The sync script will automatically use your git config email. If you need a different email:
+```bash
+./supabase/scripts/sync-local-user.sh your.email@example.com
+```
+
 ### Development Cycle
 
 When making schema changes:
@@ -325,6 +347,60 @@ supabase gen types typescript --local > src/types/database.types.ts
    - Never commit `.env` to git
    - Use `.env.example` as template
    - Rotate keys if exposed
+
+### 7. Pull Remote Database to Local
+
+Pull your production database data to your local Supabase instance for testing with real data.
+
+```bash
+# Pull production data to local
+./supabase/scripts/pull-remote-to-local.sh
+
+# Skip local backup for faster execution
+./supabase/scripts/pull-remote-to-local.sh --skip-backup
+```
+
+**What it does:**
+- Backs up your current local database (optional)
+- Downloads a dump of your production database
+- Clears your local database
+- Restores the production data locally
+- Fixes schema permissions automatically
+- Syncs your user with all spaces
+
+**Requirements:**
+- Local Supabase must be running (`supabase start`)
+- `DATABASE_URL` configured in `.env` file (or `VITE_SUPABASE_URL` + `SUPABASE_DB_PASSWORD`)
+- PostgreSQL client tools (`pg_dump` and `psql`)
+
+**⚠️ Important Notes:**
+- This pulls real production data - handle with care!
+- Backups are kept in `supabase/backups/` (last 10 of each type)
+- Your local user will be automatically added to all spaces as admin
+
+### 8. Sync Local User with Spaces
+
+Add your user to all spaces in the local database as an admin member.
+
+```bash
+# Uses email from git config
+./supabase/scripts/sync-local-user.sh
+
+# Specify email manually
+./supabase/scripts/sync-local-user.sh your.email@example.com
+```
+
+**What it does:**
+- Finds or creates a user with the specified email
+- Adds the user to all spaces as admin
+- Allows you to test with proper Row Level Security (RLS)
+
+**When to use:**
+- After pulling production data
+- When you need to test authenticated API endpoints
+- When setting up a new developer's local environment
+
+**Note:** This is automatically run by `pull-remote-to-local.sh`
 
 ## Additional Resources
 

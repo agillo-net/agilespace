@@ -11,6 +11,7 @@ import { cn, isLightColor } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import MDEditor from '@uiw/react-md-editor'
 import { createFireEffect } from '@/lib/celebrate'
+import { queryKeys } from '@/lib/query-keys'
 
 interface EndSessionDialogProps {
     open: boolean
@@ -37,7 +38,7 @@ export function EndSessionDialog({
     const canSubmit = skipComment || message.trim().length > 0
 
     const { data: tags = [] } = useQuery({
-        queryKey: ['tags', spaceId],
+        queryKey: queryKeys.tags.bySpace(spaceId),
         queryFn: () => getTags(spaceId),
         enabled: open && !!spaceId
     })

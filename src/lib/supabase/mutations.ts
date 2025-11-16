@@ -713,3 +713,41 @@ export async function getUserAccessibleRepos(
 
   return data as { repo_owner: string; repo_name: string; permission_level: string }[];
 }
+
+// =====================================================
+// MEMBER ROLE MANAGEMENT
+// =====================================================
+
+/**
+ * Updates a space member's role (admin only)
+ * Requires 'members:update_roles' permission
+ */
+export async function updateSpaceMemberRole({
+  spaceMemberId,
+  newRole,
+}: {
+  spaceMemberId: string;
+  newRole: "admin" | "member" | "observer";
+}) {
+  const user = await getUser();
+  if (!user) throw new Error("Authentication required");
+
+  // Validate role
+  const validRoles = ["admin", "member", "observer"];
+  if (!validRoles.includes(newRole)) {
+    throw new Error("Invalid role. Must be admin, member, or observer");
+  }
+
+  // Update the space member's role
+  const { data, error } = await supabase
+    .from("space_members")
+    .update({
+      role: newRole,
+    })
+    .eq("id", spaceMemberId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}

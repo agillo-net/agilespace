@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { queryKeys } from "@/lib/query-keys";
 import {
   getNotifications,
   getNotificationById,
@@ -36,7 +37,7 @@ export function useNotifications(params?: {
 
   // Get current user
   const { data: userData } = useQuery({
-    queryKey: ["user"],
+    queryKey: queryKeys.users.current(),
     queryFn: async () => {
       const { data } = await supabase.auth.getUser();
       return data.user;
@@ -50,14 +51,14 @@ export function useNotifications(params?: {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["notifications", params?.spaceId, params?.read, params?.limit, params?.offset],
+    queryKey: queryKeys.notifications.list({ spaceId: params?.spaceId, read: params?.read }),
     queryFn: () => getNotifications(params),
     enabled: !!userData,
   });
 
   // Query for unread count
   const { data: unreadCount = 0, refetch: refetchUnreadCount } = useQuery({
-    queryKey: ["notificationCount", params?.spaceId],
+    queryKey: queryKeys.notifications.count(params?.spaceId),
     queryFn: () => getUnreadNotificationCount(params?.spaceId),
     enabled: !!userData,
     refetchInterval: 30000, // Refetch every 30 seconds as fallback
@@ -77,7 +78,7 @@ export function useNotifications(params?: {
 
       // Add new notification to the cache
       queryClient.setQueryData(
-        ["notifications", params?.spaceId, params?.read, params?.limit, params?.offset],
+        queryKeys.notifications.list({ spaceId: params?.spaceId, read: params?.read }),
         (old: Notification[] = []) => [notification, ...old]
       );
 
@@ -98,7 +99,7 @@ export function useNotifications(params?: {
 
       // Update notification in cache
       queryClient.setQueryData(
-        ["notifications", params?.spaceId, params?.read, params?.limit, params?.offset],
+        queryKeys.notifications.list({ spaceId: params?.spaceId, read: params?.read }),
         (old: Notification[] = []) =>
           old.map((n) => (n.id === notification.id ? notification : n))
       );
@@ -118,8 +119,8 @@ export function useNotifications(params?: {
   const markAsReadMutation = useMutation({
     mutationFn: markNotificationAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["notificationCount"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.count(params?.spaceId) });
     },
     onError: (error: Error) => {
       toast.error(`Failed to mark notification as read: ${error.message}`);
@@ -130,8 +131,8 @@ export function useNotifications(params?: {
   const markAsUnreadMutation = useMutation({
     mutationFn: markNotificationAsUnread,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["notificationCount"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.count(params?.spaceId) });
     },
     onError: (error: Error) => {
       toast.error(`Failed to mark notification as unread: ${error.message}`);
@@ -142,8 +143,8 @@ export function useNotifications(params?: {
   const markAllAsReadMutation = useMutation({
     mutationFn: () => markAllNotificationsAsRead(params?.spaceId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["notificationCount"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.count(params?.spaceId) });
       toast.success("All notifications marked as read");
     },
     onError: (error: Error) => {
@@ -155,8 +156,8 @@ export function useNotifications(params?: {
   const deleteMutation = useMutation({
     mutationFn: deleteNotification,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["notificationCount"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.count(params?.spaceId) });
     },
     onError: (error: Error) => {
       toast.error(`Failed to delete notification: ${error.message}`);
@@ -167,8 +168,8 @@ export function useNotifications(params?: {
   const deleteAllReadMutation = useMutation({
     mutationFn: () => deleteAllReadNotifications(params?.spaceId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["notificationCount"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.count(params?.spaceId) });
       toast.success("All read notifications deleted");
     },
     onError: (error: Error) => {
@@ -207,7 +208,7 @@ export function useNotifications(params?: {
  */
 export function useNotification(notificationId: string) {
   return useQuery({
-    queryKey: ["notification", notificationId],
+    queryKey: queryKeys.notifications.detail(notificationId),
     queryFn: () => getNotificationById(notificationId),
     enabled: !!notificationId,
   });
@@ -220,14 +221,14 @@ export function useNotificationPreferences(spaceId?: string) {
   const queryClient = useQueryClient();
 
   const { data: preferences, isLoading, error } = useQuery({
-    queryKey: ["notificationPreferences", spaceId],
+    queryKey: queryKeys.notifications.preferences(spaceId),
     queryFn: () => getNotificationPreferences(spaceId),
   });
 
   const updateMutation = useMutation({
     mutationFn: updateNotificationPreferences,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notificationPreferences"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.preferences(spaceId) });
       toast.success("Notification preferences updated");
     },
     onError: (error: Error) => {

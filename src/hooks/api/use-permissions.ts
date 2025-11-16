@@ -3,6 +3,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-keys';
 import type { Permission } from '@/lib/permissions/constants';
 import {
   checkUserPermission,
@@ -19,7 +20,7 @@ import {
  */
 export function usePermission(spaceId: string | undefined, permission: Permission) {
   const query = useQuery({
-    queryKey: ['permission', spaceId, permission],
+    queryKey: queryKeys.permissions.single(spaceId || '', permission),
     queryFn: () => {
       if (!spaceId) return Promise.resolve(false);
       return checkUserPermission(spaceId, permission);
@@ -47,7 +48,7 @@ export function useHasAnyPermission(
   permissions: Permission[]
 ) {
   const query = useQuery({
-    queryKey: ['permissions:any', spaceId, permissions],
+    queryKey: queryKeys.permissions.any(spaceId || '', permissions),
     queryFn: () => {
       if (!spaceId) return Promise.resolve(false);
       return checkUserHasAnyPermission(spaceId, permissions);
@@ -75,7 +76,7 @@ export function useHasAllPermissions(
   permissions: Permission[]
 ) {
   const query = useQuery({
-    queryKey: ['permissions:all', spaceId, permissions],
+    queryKey: queryKeys.permissions.allRequired(spaceId || '', permissions),
     queryFn: () => {
       if (!spaceId) return Promise.resolve(false);
       return checkUserHasAllPermissions(spaceId, permissions);
@@ -102,7 +103,7 @@ export function useHasAllPermissions(
  */
 export function useUserPermissions(spaceId: string | undefined) {
   const query = useQuery({
-    queryKey: ['permissions:user', spaceId],
+    queryKey: queryKeys.permissions.user(spaceId || ''),
     queryFn: () => {
       if (!spaceId) return Promise.resolve({} as Record<Permission, boolean>);
       return getUserPermissions(spaceId);
@@ -132,8 +133,13 @@ export function usePermissions(
   spaceId: string | undefined,
   permissionsToCheck: Permission[]
 ) {
+  const permissionsMap = permissionsToCheck.reduce(
+    (acc, p) => ({ ...acc, [p]: false }),
+    {} as Record<Permission, boolean>
+  );
+
   const query = useQuery({
-    queryKey: ['permissions:specific', spaceId, permissionsToCheck],
+    queryKey: queryKeys.permissions.specific(spaceId || '', permissionsMap),
     queryFn: async () => {
       if (!spaceId) {
         return permissionsToCheck.reduce(

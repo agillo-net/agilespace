@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -22,14 +22,17 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, Play } from 'lucide-react'
 import { getGitHubIssueUrl, getSessionDuration, formatTime } from '@/lib/utils'
-import { useSpaceMembers } from '@/hooks/api/use-space-members'
+import { useSpaceMembers, useUpdateSpaceMemberRole } from '@/hooks/api/use-space-members'
 import { useSessions } from '@/hooks/api/use-sessions'
 import { useSyncRepoPermissions } from '@/hooks/api/use-repo-permissions'
+import { useSpacePermissions } from '@/hooks/api/use-permissions'
 import { getSpaceBySlug } from '@/lib/supabase/queries'
 import { checkRepositoryAccess } from '@/lib/github/queries'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { queryKeys } from '@/lib/query-keys'
+import { RoleSelector } from '@/components/members/role-selector'
+import type { Role } from '@/lib/permissions/constants'
 
 export const Route = createFileRoute('/space/$slug/members/')({
     component: MembersPage,
@@ -37,6 +40,7 @@ export const Route = createFileRoute('/space/$slug/members/')({
 
 function MembersPage() {
     const { slug } = Route.useParams()
+    const navigate = useNavigate()
     const [timeFilter, setTimeFilter] = useState<"today" | "week" | "month">("today")
     const [repoAccessMap, setRepoAccessMap] = useState<Record<string, boolean>>({})
     const showDuration = false // Control visibility of duration display
@@ -53,6 +57,16 @@ function MembersPage() {
     });
 
     const syncPermissions = useSyncRepoPermissions(space?.id || '');
+
+    // Permission check for updating roles
+    const { canUpdateRoles } = useSpacePermissions(space?.id);
+
+    // Role update mutation
+    const updateRoleMutation = useUpdateSpaceMemberRole(slug);
+
+    const handleRoleChange = async (spaceMemberId: string, newRole: Role) => {
+        await updateRoleMutation.mutateAsync({ spaceMemberId, newRole });
+    };
 
     // Check repository access for all active sessions
     useEffect(() => {
@@ -152,7 +166,11 @@ function MembersPage() {
                             const sessionDuration = memberSession ? getSessionDuration(memberSession.started_at, new Date().toISOString()) : null
 
                             return (
-                                <TableRow key={member.id}>
+                                <TableRow
+                                    key={member.id}
+                                    className="cursor-pointer hover:bg-muted/50"
+                                    onClick={() => navigate({ to: '/space/$slug/members/$id/stats', params: { slug, id: member.id } })}
+                                >
                                     <TableCell>
                                         <div className="flex items-center gap-2">
                                             <Avatar className="h-8 w-8">
@@ -162,7 +180,19 @@ function MembersPage() {
                                             <span className="font-medium">{name}</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="capitalize">{member.role}</TableCell>
+                                    <TableCell>
+                                        {canUpdateRoles ? (
+                                            <RoleSelector
+                                                currentRole={member.role as Role}
+                                                memberId={member.id}
+                                                memberName={name}
+                                                onRoleChange={handleRoleChange}
+                                                disabled={updateRoleMutation.isPending}
+                                            />
+                                        ) : (
+                                            <span className="capitalize">{member.role}</span>
+                                        )}
+                                    </TableCell>
                                     <TableCell>{joinedDate}</TableCell>
                                     <TableCell>
                                         <span className="font-medium">
@@ -181,6 +211,7 @@ function MembersPage() {
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                                                        onClick={(e) => e.stopPropagation()}
                                                     >
                                                         {memberSession.track.title}
                                                     </a>
@@ -197,7 +228,10 @@ function MembersPage() {
                                                                         <Button
                                                                             variant="outline"
                                                                             size="sm"
-                                                                            onClick={() => handleStartSession(memberSession.track.id)}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                handleStartSession(memberSession.track.id)
+                                                                            }}
                                                                             disabled={isStarting || currentUserHasActiveSession || !hasRepoAccess}
                                                                         >
                                                                             <Play className="h-4 w-4 mr-1" />

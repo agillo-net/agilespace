@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { getSpacesWithMembershipStatus } from "@/lib/supabase/queries";
 import { createSpace, createSpaceMember } from "@/lib/supabase/mutations";
 import { generatePath } from "@/lib/routes";
+import { queryKeys } from "@/lib/query-keys";
 import type { SpaceWithMembership } from "@/types";
 import type { Endpoints } from "@octokit/types";
 
@@ -17,7 +18,7 @@ export function useSpaces() {
     data: spacesWithMemberStatus,
     isLoading: spacesWithMemberStatusLoading,
   } = useQuery({
-    queryKey: ["getSpacesWithMembershipStatus"],
+    queryKey: queryKeys.spaces.withMembership(),
     queryFn: getSpacesWithMembershipStatus,
   });
 
@@ -40,7 +41,7 @@ export function useSpaces() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({
-        queryKey: ["getSpacesWithMembershipStatus"],
+        queryKey: queryKeys.spaces.withMembership(),
       });
     },
   });
@@ -55,7 +56,7 @@ export function useSpaces() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({
-        queryKey: ["getSpacesWithMembershipStatus"],
+        queryKey: queryKeys.spaces.withMembership(),
       });
     },
   });

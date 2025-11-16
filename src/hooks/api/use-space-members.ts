@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getSpaceMembersWithProfiles,
   getActiveSession,
   getMemberSessionAggregations,
   getSpaceBySlug,
 } from "@/lib/supabase/queries";
+import { updateSpaceMemberRole } from "@/lib/supabase/mutations";
 import { getDateRangeForFilter } from "@/lib/utils";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -49,7 +50,7 @@ export function useSpaceMembers(slug: string, timeFilter: "today" | "week" | "mo
     enabled: !!space?.id,
   });
 
-  // Combine members with their time aggregations
+  // Combine members with their time aggregations (sorting is handled in the query)
   const membersWithTime = members?.map(({ member, profile }) => ({
     member,
     profile,
@@ -62,4 +63,30 @@ export function useSpaceMembers(slug: string, timeFilter: "today" | "week" | "mo
     activeSessions,
     timeAggregations,
   };
+}
+
+/**
+ * Hook for updating space member roles
+ */
+export function useUpdateSpaceMemberRole(spaceSlug: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      spaceMemberId,
+      newRole,
+    }: {
+      spaceMemberId: string;
+      newRole: "admin" | "member" | "observer";
+    }) => updateSpaceMemberRole({ spaceMemberId, newRole }),
+    onSuccess: () => {
+      // Invalidate relevant queries to refresh the data
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.spaceMembers.withProfiles(spaceSlug),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.spaceMembers.bySpace(spaceSlug),
+      });
+    },
+  });
 }

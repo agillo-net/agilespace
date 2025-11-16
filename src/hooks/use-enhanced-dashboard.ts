@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useSpaceDashboard } from './api/use-space-dashboard';
 import { getDay } from 'date-fns';
+import { queryKeys } from '@/lib/query-keys';
 
 interface TimeHeatmapData {
   hour: number;
@@ -42,7 +43,7 @@ export function useEnhancedDashboard(spaceSlug: string) {
 
   // Time Heatmap Query - Shows activity patterns by hour and day
   const timeHeatmapQuery = useQuery({
-    queryKey: ['timeHeatmap', dashboardData?.spaceData?.space?.id],
+    queryKey: queryKeys.analytics.timeHeatmap(dashboardData?.spaceData?.space?.id || ''),
     queryFn: async (): Promise<TimeHeatmapData[]> => {
       if (!dashboardData?.spaceData?.space?.id) return [];
       
@@ -94,7 +95,7 @@ export function useEnhancedDashboard(spaceSlug: string) {
 
    // Productivity Trend Query - Shows productivity metrics over time
    const productivityTrendQuery = useQuery({
-     queryKey: ['productivityTrend', dashboardData?.spaceData?.space?.id],
+     queryKey: queryKeys.analytics.productivityTrend(dashboardData?.spaceData?.space?.id || ''),
      queryFn: async (): Promise<ProductivityTrendData[]> => {
        if (!dashboardData?.spaceData?.space?.id) return [];
        
@@ -167,7 +168,7 @@ export function useEnhancedDashboard(spaceSlug: string) {
 
    // Activity Timeline Query - Shows recent team activities
    const activityTimelineQuery = useQuery({
-     queryKey: ['activityTimeline', dashboardData?.spaceData?.space?.id],
+     queryKey: queryKeys.analytics.activityTimeline(dashboardData?.spaceData?.space?.id || ''),
      queryFn: async (): Promise<ActivityTimelineEvent[]> => {
        if (!dashboardData?.spaceData?.space?.id) return [];
        
@@ -244,7 +245,7 @@ export function useEnhancedDashboard(spaceSlug: string) {
 
    // Focus Time Distribution Query - Shows how focus time is distributed
    const focusTimeDistributionQuery = useQuery({
-     queryKey: ['focusTimeDistribution', dashboardData?.spaceData?.space?.id],
+     queryKey: queryKeys.analytics.focusTimeDistribution(dashboardData?.spaceData?.space?.id || ''),
      queryFn: async (): Promise<FocusTimeDistribution[]> => {
        if (!dashboardData?.spaceData?.space?.id) return [];
        
@@ -264,8 +265,8 @@ export function useEnhancedDashboard(spaceSlug: string) {
 
       if (error) throw error;
 
-      // Get session tags
-      const sessionIds = sessions?.map(s => s.id) || [];
+      // Get session tags - fetch all tags for sessions in this space by filtering at database level
+      // This avoids creating extremely long URLs with hundreds of session IDs in .in() clause
       const { data: sessionTags } = await supabase
         .from('session_tags')
         .select(`
@@ -273,9 +274,14 @@ export function useEnhancedDashboard(spaceSlug: string) {
           tag:tags(
             name,
             color
+          ),
+          session:sessions!inner(
+            track:tracks!inner(
+              space_id
+            )
           )
         `)
-        .in('session_id', sessionIds);
+        .eq('sessions.tracks.space_id', dashboardData.spaceData?.space?.id);
 
       const tagMap = new Map();
       sessionTags?.forEach(st => {

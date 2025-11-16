@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getTags } from "@/lib/supabase/queries";
 import { createTag, deleteTag, updateTag } from "@/lib/supabase/mutations";
+import { queryKeys } from "@/lib/query-keys";
 import type { Tag } from "@/types";
 
 export function useTags(spaceId: string | undefined) {
@@ -17,7 +18,7 @@ export function useTags(spaceId: string | undefined) {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["tags", spaceId],
+    queryKey: queryKeys.tags.bySpace(spaceId!),
     queryFn: () => getTags(spaceId!),
     enabled: !!spaceId,
   });
@@ -25,7 +26,7 @@ export function useTags(spaceId: string | undefined) {
   const createTagMutation = useMutation({
     mutationFn: () => createTag(spaceId!, newTagName, newTagColor),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tags", spaceId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.bySpace(spaceId!) });
       setNewTagName("");
       setNewTagColor("#000000");
       setIsCreateDialogOpen(false);
@@ -36,7 +37,7 @@ export function useTags(spaceId: string | undefined) {
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Tag> }) =>
       updateTag(id, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tags", spaceId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.bySpace(spaceId!) });
       setEditingTag(null);
       setEditingTagId(null);
     },
@@ -45,7 +46,7 @@ export function useTags(spaceId: string | undefined) {
   const deleteTagMutation = useMutation({
     mutationFn: (id: string) => deleteTag(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tags", spaceId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.bySpace(spaceId!) });
     },
   });
 

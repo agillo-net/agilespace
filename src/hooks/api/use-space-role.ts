@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { getUser } from "@/lib/supabase/queries";
 
@@ -22,7 +23,7 @@ export const getCurrentUserSpaceRole = async (spaceId: string): Promise<string |
 
 export const useSpaceRole = (spaceId: string) => {
   return useQuery({
-    queryKey: ["spaceRole", spaceId],
+    queryKey: queryKeys.spaceMembers.bySpace(spaceId),
     queryFn: () => getCurrentUserSpaceRole(spaceId),
     enabled: !!spaceId,
   });

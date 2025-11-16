@@ -20,6 +20,7 @@ import { Route as SpaceSlugTagsIndexRouteImport } from './routes/space/$slug/tag
 import { Route as SpaceSlugSessionsIndexRouteImport } from './routes/space/$slug/sessions/index'
 import { Route as SpaceSlugMembersIndexRouteImport } from './routes/space/$slug/members/index'
 import { Route as SpaceSlugChangeRequestsIndexRouteImport } from './routes/space/$slug/change-requests/index'
+import { Route as SpaceSlugMembersIdStatsIndexRouteImport } from './routes/space/$slug/members/$id/stats/index'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -77,6 +78,12 @@ const SpaceSlugChangeRequestsIndexRoute =
     path: '/change-requests/',
     getParentRoute: () => SpaceSlugRouteRoute,
   } as any)
+const SpaceSlugMembersIdStatsIndexRoute =
+  SpaceSlugMembersIdStatsIndexRouteImport.update({
+    id: '/members/$id/stats/',
+    path: '/members/$id/stats/',
+    getParentRoute: () => SpaceSlugRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/space/$slug/tags': typeof SpaceSlugTagsIndexRoute
   '/space/$slug/time-off': typeof SpaceSlugTimeOffIndexRoute
   '/space/$slug/tracks': typeof SpaceSlugTracksIndexRoute
+  '/space/$slug/members/$id/stats': typeof SpaceSlugMembersIdStatsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +110,7 @@ export interface FileRoutesByTo {
   '/space/$slug/tags': typeof SpaceSlugTagsIndexRoute
   '/space/$slug/time-off': typeof SpaceSlugTimeOffIndexRoute
   '/space/$slug/tracks': typeof SpaceSlugTracksIndexRoute
+  '/space/$slug/members/$id/stats': typeof SpaceSlugMembersIdStatsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,6 +125,7 @@ export interface FileRoutesById {
   '/space/$slug/tags/': typeof SpaceSlugTagsIndexRoute
   '/space/$slug/time-off/': typeof SpaceSlugTimeOffIndexRoute
   '/space/$slug/tracks/': typeof SpaceSlugTracksIndexRoute
+  '/space/$slug/members/$id/stats/': typeof SpaceSlugMembersIdStatsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/space/$slug/tags'
     | '/space/$slug/time-off'
     | '/space/$slug/tracks'
+    | '/space/$slug/members/$id/stats'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/space/$slug/tags'
     | '/space/$slug/time-off'
     | '/space/$slug/tracks'
+    | '/space/$slug/members/$id/stats'
   id:
     | '__root__'
     | '/'
@@ -156,6 +168,7 @@ export interface FileRouteTypes {
     | '/space/$slug/tags/'
     | '/space/$slug/time-off/'
     | '/space/$slug/tracks/'
+    | '/space/$slug/members/$id/stats/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -244,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SpaceSlugChangeRequestsIndexRouteImport
       parentRoute: typeof SpaceSlugRouteRoute
     }
+    '/space/$slug/members/$id/stats/': {
+      id: '/space/$slug/members/$id/stats/'
+      path: '/members/$id/stats'
+      fullPath: '/space/$slug/members/$id/stats'
+      preLoaderRoute: typeof SpaceSlugMembersIdStatsIndexRouteImport
+      parentRoute: typeof SpaceSlugRouteRoute
+    }
   }
 }
 
@@ -255,6 +275,7 @@ interface SpaceSlugRouteRouteChildren {
   SpaceSlugTagsIndexRoute: typeof SpaceSlugTagsIndexRoute
   SpaceSlugTimeOffIndexRoute: typeof SpaceSlugTimeOffIndexRoute
   SpaceSlugTracksIndexRoute: typeof SpaceSlugTracksIndexRoute
+  SpaceSlugMembersIdStatsIndexRoute: typeof SpaceSlugMembersIdStatsIndexRoute
 }
 
 const SpaceSlugRouteRouteChildren: SpaceSlugRouteRouteChildren = {
@@ -265,6 +286,7 @@ const SpaceSlugRouteRouteChildren: SpaceSlugRouteRouteChildren = {
   SpaceSlugTagsIndexRoute: SpaceSlugTagsIndexRoute,
   SpaceSlugTimeOffIndexRoute: SpaceSlugTimeOffIndexRoute,
   SpaceSlugTracksIndexRoute: SpaceSlugTracksIndexRoute,
+  SpaceSlugMembersIdStatsIndexRoute: SpaceSlugMembersIdStatsIndexRoute,
 }
 
 const SpaceSlugRouteRouteWithChildren = SpaceSlugRouteRoute._addFileChildren(
